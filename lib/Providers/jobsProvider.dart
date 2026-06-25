@@ -1,0 +1,19 @@
+// ─── Jobs Provider ────────────────────────────────────────────────────────────
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../Models/CustomerModelas.dart';
+import '../Models/job.dart';
+
+final jobsProvider = StateProvider<List<Job>>((ref) => mockJobs);
+
+final selectedJobProvider = StateProvider<Job?>((ref) => null);
+
+final jobFilterProvider = StateProvider<String>((ref) => 'all');
+
+final filteredJobsProvider = Provider<List<Job>>((ref) {
+  final jobs = ref.watch(jobsProvider);
+  final filter = ref.watch(jobFilterProvider);
+  if (filter == 'all') return jobs;
+  return jobs.where((j) => j.status == filter).toList();
+});
