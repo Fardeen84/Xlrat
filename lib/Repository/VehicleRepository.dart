@@ -47,19 +47,33 @@ class VehicleRepository {
     return rows.map(BillingVehicle.fromMap).toList();
   }
 
+
+
   Future<List<BillingVehicle>> searchVehicles(String query) async {
-    if (query.trim().isEmpty) return getAllVehicles();
     final db = await _db.database;
-    final q = '%${query.trim()}%';
     final rows = await db.query(
-      _table,
-      where:
-      'vehicle_number LIKE ? OR vehicle_brand LIKE ? OR vehicle_model LIKE ?',
-      whereArgs: [q, q, q],
-      orderBy: 'vehicle_number ASC',
+      'billing_vehicles',
+      where: 'vehicle_number LIKE ?',
+      whereArgs: ['%${query.toUpperCase()}%'],
+      orderBy: 'created_at DESC',
     );
     return rows.map(BillingVehicle.fromMap).toList();
   }
+
+
+  // Future<List<BillingVehicle>> searchVehicles(String query) async {
+  //   if (query.trim().isEmpty) return getAllVehicles();
+  //   final db = await _db.database;
+  //   final q = '%${query.trim()}%';
+  //   final rows = await db.query(
+  //     _table,
+  //     where:
+  //     'vehicle_number LIKE ? OR vehicle_brand LIKE ? OR vehicle_model LIKE ?',
+  //     whereArgs: [q, q, q],
+  //     orderBy: 'vehicle_number ASC',
+  //   );
+  //   return rows.map(BillingVehicle.fromMap).toList();
+  // }
 
   // ─── Update ───────────────────────────────────────────────────────────────
 

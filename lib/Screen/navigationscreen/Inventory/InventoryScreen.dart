@@ -559,179 +559,179 @@ class _MenuItem {
 
 // ─── Invoice Screen ───────────────────────────────────────────────────────────
 
-class InvoiceScreen extends ConsumerWidget {
-  const InvoiceScreen({super.key,});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final job = ref.watch(selectedJobProvider) ?? mockJobs[0];
-
-    return Scaffold(
-      backgroundColor: kBackground,
-      appBar: AppBar(
-        title: const Text('Invoice'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: kForeground),
-          onPressed: (){},
-        ),
-        actions: [
-          IconButton(icon: const Icon(Icons.share_rounded, color: kPrimary), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.print_rounded, color: kPrimary), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.download_rounded, color: kPrimary), onPressed: () {}),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            GarageCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('GarageOS', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimary)),
-                          const Text('Fradeen Auto Works', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-                          const Text('Pune, Maharashtra 411001', style: TextStyle(fontSize: 11, color: kMutedForeground)),
-                          const Text('+91 9876543210', style: TextStyle(fontSize: 11, color: kMutedForeground)),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(color: const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(10)),
-                            child: const Text('PAID', style: TextStyle(color: kGreen, fontWeight: FontWeight.w900, fontSize: 13)),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(job.id, style: const TextStyle(fontSize: 11, color: kMutedForeground, fontWeight: FontWeight.w700)),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 24, color: kBorder),
-                  // Bill to
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('BILL TO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kMutedForeground, letterSpacing: 0.8)),
-                          const SizedBox(height: 4),
-                          Text(job.customer, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                          const Text('+91 9876543210', style: TextStyle(fontSize: 12, color: kMutedForeground)),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          const Text('DATE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kMutedForeground, letterSpacing: 0.8)),
-                          const SizedBox(height: 4),
-                          Text(job.date, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // Vehicle info
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: kMuted, borderRadius: BorderRadius.circular(12)),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.directions_car_rounded, size: 18, color: kPrimary),
-                        const SizedBox(width: 8),
-                        Text('${job.vehicle} · ${job.brand}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Items
-                  Container(
-                    decoration: BoxDecoration(border: Border.all(color: kBorder), borderRadius: BorderRadius.circular(12)),
-                    child: Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: const BoxDecoration(
-                            color: kMuted,
-                            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                          ),
-                          child: const Row(
-                            children: [
-                              Expanded(flex: 3, child: Text('Item', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kMutedForeground))),
-                              Expanded(child: Text('Qty', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kMutedForeground))),
-                              Expanded(child: Text('Rate', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kMutedForeground))),
-                              Expanded(child: Text('Total', textAlign: TextAlign.right, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kMutedForeground))),
-                            ],
-                          ),
-                        ),
-                        ...([
-                          ('Engine Oil 10W-40 (1L)', 4, 520, 2080),
-                          ('Oil Filter – Universal', 1, 150, 150),
-                          ('Air Filter – Maruti Swift', 1, 220, 220),
-                          ('Labour - Engine Service', 1, 2500, 2500),
-                        ].map((item) => Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          decoration: const BoxDecoration(border: Border(top: BorderSide(color: kBorder, width: 0.5))),
-                          child: Row(
-                            children: [
-                              Expanded(flex: 3, child: Text(item.$1, style: const TextStyle(fontSize: 12))),
-                              Expanded(child: Text('${item.$2}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12))),
-                              Expanded(child: Text('₹${item.$3}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12))),
-                              Expanded(child: Text('₹${item.$4}', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700))),
-                            ],
-                          ),
-                        ))),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  // Totals
-                  _totalRow('Subtotal', '₹4,950'),
-                  const SizedBox(height: 4),
-                  _totalRow('GST (18%)', '₹891'),
-                  const Divider(height: 16, color: kBorder),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('TOTAL AMOUNT', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kForeground)),
-                      Text(formatCurrency(job.amount), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: kPrimary)),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.share_rounded, size: 18),
-                      label: const Text('Share Invoice'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 80),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _totalRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 13, color: kMutedForeground)),
-        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-      ],
-    );
-  }
-}
+// class InvoiceScreen extends ConsumerWidget {
+//   const InvoiceScreen({super.key,});
+//
+//   @override
+//   Widget build(BuildContext context, WidgetRef ref) {
+//     final job = ref.watch(selectedJobProvider) ?? mockJobs[0];
+//
+//     return Scaffold(
+//       backgroundColor: kBackground,
+//       appBar: AppBar(
+//         title: const Text('Invoice'),
+//         leading: IconButton(
+//           icon: const Icon(Icons.arrow_back_rounded, color: kForeground),
+//           onPressed: (){},
+//         ),
+//         actions: [
+//           IconButton(icon: const Icon(Icons.share_rounded, color: kPrimary), onPressed: () {}),
+//           IconButton(icon: const Icon(Icons.print_rounded, color: kPrimary), onPressed: () {}),
+//           IconButton(icon: const Icon(Icons.download_rounded, color: kPrimary), onPressed: () {}),
+//         ],
+//       ),
+//       body: SingleChildScrollView(
+//         padding: const EdgeInsets.all(16),
+//         child: Column(
+//           children: [
+//             GarageCard(
+//               child: Column(
+//                 crossAxisAlignment: CrossAxisAlignment.start,
+//                 children: [
+//                   // Header
+//                   Row(
+//                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                     children: [
+//                       Column(
+//                         crossAxisAlignment: CrossAxisAlignment.start,
+//                         children: [
+//                           const Text('GarageOS', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimary)),
+//                           const Text('Fradeen Auto Works', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+//                           const Text('Pune, Maharashtra 411001', style: TextStyle(fontSize: 11, color: kMutedForeground)),
+//                           const Text('+91 9876543210', style: TextStyle(fontSize: 11, color: kMutedForeground)),
+//                         ],
+//                       ),
+//                       Column(
+//                         crossAxisAlignment: CrossAxisAlignment.end,
+//                         children: [
+//                           Container(
+//                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+//                             decoration: BoxDecoration(color: const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(10)),
+//                             child: const Text('PAID', style: TextStyle(color: kGreen, fontWeight: FontWeight.w900, fontSize: 13)),
+//                           ),
+//                           const SizedBox(height: 4),
+//                           Text(job.id, style: const TextStyle(fontSize: 11, color: kMutedForeground, fontWeight: FontWeight.w700)),
+//                         ],
+//                       ),
+//                     ],
+//                   ),
+//                   const Divider(height: 24, color: kBorder),
+//                   // Bill to
+//                   Row(
+//                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                     children: [
+//                       Column(
+//                         crossAxisAlignment: CrossAxisAlignment.start,
+//                         children: [
+//                           const Text('BILL TO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kMutedForeground, letterSpacing: 0.8)),
+//                           const SizedBox(height: 4),
+//                           Text(job.customer, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+//                           const Text('+91 9876543210', style: TextStyle(fontSize: 12, color: kMutedForeground)),
+//                         ],
+//                       ),
+//                       Column(
+//                         crossAxisAlignment: CrossAxisAlignment.end,
+//                         children: [
+//                           const Text('DATE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kMutedForeground, letterSpacing: 0.8)),
+//                           const SizedBox(height: 4),
+//                           Text(job.date, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+//                         ],
+//                       ),
+//                     ],
+//                   ),
+//                   const SizedBox(height: 16),
+//                   // Vehicle info
+//                   Container(
+//                     padding: const EdgeInsets.all(12),
+//                     decoration: BoxDecoration(color: kMuted, borderRadius: BorderRadius.circular(12)),
+//                     child: Row(
+//                       children: [
+//                         const Icon(Icons.directions_car_rounded, size: 18, color: kPrimary),
+//                         const SizedBox(width: 8),
+//                         Text('${job.vehicle} · ${job.brand}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+//                       ],
+//                     ),
+//                   ),
+//                   const SizedBox(height: 16),
+//                   // Items
+//                   Container(
+//                     decoration: BoxDecoration(border: Border.all(color: kBorder), borderRadius: BorderRadius.circular(12)),
+//                     child: Column(
+//                       children: [
+//                         Container(
+//                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+//                           decoration: const BoxDecoration(
+//                             color: kMuted,
+//                             borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+//                           ),
+//                           child: const Row(
+//                             children: [
+//                               Expanded(flex: 3, child: Text('Item', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kMutedForeground))),
+//                               Expanded(child: Text('Qty', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kMutedForeground))),
+//                               Expanded(child: Text('Rate', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kMutedForeground))),
+//                               Expanded(child: Text('Total', textAlign: TextAlign.right, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kMutedForeground))),
+//                             ],
+//                           ),
+//                         ),
+//                         ...([
+//                           ('Engine Oil 10W-40 (1L)', 4, 520, 2080),
+//                           ('Oil Filter – Universal', 1, 150, 150),
+//                           ('Air Filter – Maruti Swift', 1, 220, 220),
+//                           ('Labour - Engine Service', 1, 2500, 2500),
+//                         ].map((item) => Container(
+//                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+//                           decoration: const BoxDecoration(border: Border(top: BorderSide(color: kBorder, width: 0.5))),
+//                           child: Row(
+//                             children: [
+//                               Expanded(flex: 3, child: Text(item.$1, style: const TextStyle(fontSize: 12))),
+//                               Expanded(child: Text('${item.$2}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12))),
+//                               Expanded(child: Text('₹${item.$3}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12))),
+//                               Expanded(child: Text('₹${item.$4}', textAlign: TextAlign.right, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700))),
+//                             ],
+//                           ),
+//                         ))),
+//                       ],
+//                     ),
+//                   ),
+//                   const SizedBox(height: 14),
+//                   // Totals
+//                   _totalRow('Subtotal', '₹4,950'),
+//                   const SizedBox(height: 4),
+//                   _totalRow('GST (18%)', '₹891'),
+//                   const Divider(height: 16, color: kBorder),
+//                   Row(
+//                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                     children: [
+//                       const Text('TOTAL AMOUNT', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kForeground)),
+//                       Text(formatCurrency(job.amount), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: kPrimary)),
+//                     ],
+//                   ),
+//                   const SizedBox(height: 16),
+//                   SizedBox(
+//                     width: double.infinity,
+//                     child: ElevatedButton.icon(
+//                       onPressed: () {},
+//                       icon: const Icon(Icons.share_rounded, size: 18),
+//                       label: const Text('Share Invoice'),
+//                     ),
+//                   ),
+//                 ],
+//               ),
+//             ),
+//             const SizedBox(height: 80),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+//
+//   Widget _totalRow(String label, String value) {
+//     return Row(
+//       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//       children: [
+//         Text(label, style: const TextStyle(fontSize: 13, color: kMutedForeground)),
+//         Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+//       ],
+//     );
+//   }
+// }

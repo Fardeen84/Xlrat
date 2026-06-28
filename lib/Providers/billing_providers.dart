@@ -1,4 +1,5 @@
 
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../Local Database/billing_database.dart';
@@ -9,7 +10,6 @@ import '../Models/Billing model/invoice.dart';
 import '../Repository/BillingRepository.dart';
 import '../Repository/CustomerRepository.dart';
 import '../Repository/VehicleRepository.dart';
-
 
 // ─── Database singleton ───────────────────────────────────────────────────────
 
@@ -33,17 +33,14 @@ final billingRepositoryProvider = Provider<BillingRepository>(
 
 // ─── Customer providers ───────────────────────────────────────────────────────
 
-/// All customers (reactive — re-fetched on invalidation).
 final customerListProvider =
 FutureProvider.autoDispose<List<BillingCustomer>>((ref) {
   final repo = ref.watch(customerRepositoryProvider);
   return repo.getCustomers();
 });
 
-/// Search query string for customer list.
 final customerSearchProvider = StateProvider.autoDispose<String>((ref) => '');
 
-/// Filtered customer list driven by [customerSearchProvider].
 final filteredBillingCustomersProvider =
 FutureProvider.autoDispose<List<BillingCustomer>>((ref) {
   final repo = ref.watch(customerRepositoryProvider);
@@ -51,7 +48,6 @@ FutureProvider.autoDispose<List<BillingCustomer>>((ref) {
   return repo.searchCustomers(query);
 });
 
-/// Single customer by id (used in detail screen).
 final customerByIdProvider =
 FutureProvider.autoDispose.family<BillingCustomer?, int>((ref, id) {
   final repo = ref.watch(customerRepositoryProvider);
@@ -60,7 +56,6 @@ FutureProvider.autoDispose.family<BillingCustomer?, int>((ref, id) {
 
 // ─── Vehicle providers ────────────────────────────────────────────────────────
 
-/// Vehicles belonging to a specific customer.
 final vehiclesForCustomerProvider =
 FutureProvider.autoDispose.family<List<BillingVehicle>, int>(
       (ref, customerId) {
@@ -77,49 +72,43 @@ FutureProvider.autoDispose<List<BillingVehicle>>((ref) {
 
 // ─── Invoice list providers ───────────────────────────────────────────────────
 
-/// Search/filter state for invoice list.
 final invoiceSearchQueryProvider = StateProvider<String>((ref) => '');
-final invoiceStatusFilterProvider =
-StateProvider<PaymentStatus?>((ref) => null);
+final invoiceStatusFilterProvider = StateProvider<PaymentStatus?>((ref) => null);
 
-/// Full invoice list with optional search.
 final invoiceListProvider = FutureProvider.autoDispose<List<Invoice>>((ref) {
   final repo = ref.watch(billingRepositoryProvider);
   final query = ref.watch(invoiceSearchQueryProvider);
   final status = ref.watch(invoiceStatusFilterProvider);
-
-  if (query.isNotEmpty) {
-    return repo.searchInvoices(query);
-  }
-  if (status != null) {
-    return repo.getInvoicesByStatus(status);
-  }
+  if (query.isNotEmpty) return repo.searchInvoices(query);
+  if (status != null) return repo.getInvoicesByStatus(status);
   return repo.getInvoices();
 });
 
-/// Single invoice detail (by id).
 final invoiceDetailProvider =
 FutureProvider.autoDispose.family<Invoice?, int>((ref, id) {
   final repo = ref.watch(billingRepositoryProvider);
   return repo.getInvoice(id);
 });
 
-/// Today's dashboard summary.
 final todaySummaryProvider =
 FutureProvider.autoDispose<({double total, int count})>((ref) {
   final repo = ref.watch(billingRepositoryProvider);
   return repo.getTodaySummary();
 });
 
-// ─── Invoice draft state (for CreateInvoice / EditInvoice screens) ────────────
+// ─── Invoice draft notifier ───────────────────────────────────────────────────
 
-/// Notifier that holds the mutable draft while the user builds an invoice.
 class InvoiceDraftNotifier extends Notifier<InvoiceDraft> {
   @override
   InvoiceDraft build() => InvoiceDraft.empty();
 
   void setCustomer(BillingCustomer customer) {
     state = state.copyWith(customer: customer, vehicle: null);
+  }
+
+  // ── FIX: dummy empty customer set karne ki jagah properly null karo ────────
+  void clearCustomer() {
+    state = state.copyWith(customer: null, vehicle: null);
   }
 
   void setVehicle(BillingVehicle? vehicle) {
@@ -182,17 +171,12 @@ class InvoiceDraftNotifier extends Notifier<InvoiceDraft> {
     final subTotal =
     state.items.fold<double>(0, (sum, item) => sum + item.total);
     final gst = subTotal * state.gstPercent / 100;
-    final grandTotal =
-    Invoice.calculateGrandTotal(
+    final grandTotal = Invoice.calculateGrandTotal(
       subTotal: subTotal,
       discount: state.discount,
       gst: gst,
     );
-    state = state.copyWith(
-      subTotal: subTotal,
-      gst: gst,
-      grandTotal: grandTotal,
-    );
+    state = state.copyWith(subTotal: subTotal, gst: gst, grandTotal: grandTotal);
   }
 }
 
@@ -203,9 +187,8 @@ NotifierProvider<InvoiceDraftNotifier, InvoiceDraft>(
 
 // ─── InvoiceDraft value object ────────────────────────────────────────────────
 
-/// Mutable state for building a new or editing an existing invoice.
 class InvoiceDraft {
-  final int? invoiceId; // null → new invoice
+  final int? invoiceId;
   final String invoiceNumber;
   final BillingCustomer? customer;
   final BillingVehicle? vehicle;
@@ -213,9 +196,9 @@ class InvoiceDraft {
   final List<InvoiceItem> items;
   final double subTotal;
   final double discount;
-  final double gstPercent; // 0 | 5 | 12 | 18 | 28
-  final double gst; // computed
-  final double grandTotal; // computed
+  final double gstPercent;
+  final double gst;
+  final double grandTotal;
   final PaymentStatus paymentStatus;
   final PaymentMethod paymentMethod;
   final String notes;
@@ -261,14 +244,18 @@ class InvoiceDraft {
     );
   }
 
-  bool get isValid =>
-      customer != null && items.isNotEmpty;
+  bool get isValid => customer != null && items.isNotEmpty;
+
+  // ── copyWith — customer/vehicle ko explicitly null karne ke liye sentinel ──
+  // Problem: normal copyWith mein `customer: null` pass karo toh purana value
+  // rehta hai (null check se). Isliye _Nil sentinel use kiya.
+  static const _nil = Object();
 
   InvoiceDraft copyWith({
     int? invoiceId,
     String? invoiceNumber,
-    BillingCustomer? customer,
-    BillingVehicle? vehicle,
+    Object? customer = _nil,   // sentinel — null bhi set ho sake
+    Object? vehicle = _nil,    // sentinel — null bhi set ho sake
     DateTime? invoiceDate,
     List<InvoiceItem>? items,
     double? subTotal,
@@ -283,8 +270,12 @@ class InvoiceDraft {
       InvoiceDraft(
         invoiceId: invoiceId ?? this.invoiceId,
         invoiceNumber: invoiceNumber ?? this.invoiceNumber,
-        customer: customer ?? this.customer,
-        vehicle: vehicle ?? this.vehicle,
+        customer: identical(customer, _nil)
+            ? this.customer
+            : customer as BillingCustomer?,
+        vehicle: identical(vehicle, _nil)
+            ? this.vehicle
+            : vehicle as BillingVehicle?,
         invoiceDate: invoiceDate ?? this.invoiceDate,
         items: items ?? this.items,
         subTotal: subTotal ?? this.subTotal,

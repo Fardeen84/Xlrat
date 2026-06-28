@@ -6,10 +6,11 @@ import '../Screen/SplashScreen.dart';
 import '../Screen/auth/LoginScreen.dart';
 import '../Screen/auth/OtpScreen.dart';
 import '../Screen/navigationscreen/Billing/BillingScreen.dart';
+import '../Screen/navigationscreen/Billing/InvoiceHistoryScreen.dart';
 import '../Screen/navigationscreen/Billing/InvoiceScreen.dart';
 import '../Screen/navigationscreen/Customers/CustomersScreen.dart';
 import '../Screen/navigationscreen/DashboardScreen.dart';
-import '../Screen/navigationscreen/Inventory/InventoryScreen.dart' hide InvoiceScreen;
+import '../Screen/navigationscreen/Inventory/InventoryScreen.dart';
 import '../Screen/navigationscreen/Job/JobsScreen.dart';
 import '../Screen/repot/ReportsScreen.dart';
 import 'MainShell.dart';
@@ -50,10 +51,15 @@ final appRouter = GoRouter(
       path: '/billing',
       builder: (context, state) => const BillingScreen(),
     ),
+
     GoRoute(
-      path: '/invoice',
+      path: '/InvoiceHistory',
+      builder: (context, state) => const InvoiceHistoryScreen(),
+    ),
+    GoRoute(
+      path: '/invoice/:id',
       builder: (context, state) {
-        final invoiceId = state.extra as int;
+        final invoiceId = int.parse(state.pathParameters['id']!);
 
         return InvoiceScreen(
           invoiceId: invoiceId,
