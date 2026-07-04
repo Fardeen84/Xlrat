@@ -106,7 +106,7 @@ class BillingItemsSection extends ConsumerWidget {
                     color: Color(0xFFF0F4FF),
                     borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
                       Expanded(flex: 5, child: Text('ITEM', style: _hStyle)),
                       SizedBox(width: 48, child: Text('QTY', textAlign: TextAlign.center, style: _hStyle)),
@@ -152,7 +152,7 @@ class BillingItemsSection extends ConsumerWidget {
   }
 }
 
-_hStyle = TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kMutedForeground, letterSpacing: 0.6);
+final _hStyle = TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kMutedForeground, letterSpacing: 0.6);
 
 class _ItemRow extends StatelessWidget {
   final InvoiceItem item;
