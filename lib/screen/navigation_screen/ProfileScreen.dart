@@ -7,22 +7,45 @@ import 'package:xlrat/l10n/app_localizations.dart';
 import '../../core/theme.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/locale_provider.dart';
+import '../../providers/billing_providers.dart';
+import '../../providers/jobsProvider.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
+  String _formatCurrencyCompact(double amount) {
+    if (amount >= 100000) {
+      return '₹${(amount / 100000).toStringAsFixed(1)}L';
+    }
+    if (amount >= 1000) {
+      return '₹${(amount / 1000).toStringAsFixed(1)}k';
+    }
+    return '₹${amount.toStringAsFixed(0)}';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final garageName = ref.watch(profileProvider);
-    final displayName = garageName.isNotEmpty ? garageName : 'My Garage';
+    final profile = ref.watch(profileProvider);
+    final displayName = profile.garageName.isNotEmpty ? profile.garageName : 'My Garage';
+    final gstDisplay = profile.gstNumber.isNotEmpty ? profile.gstNumber : 'Not set';
+    final addressDisplay = profile.address.isNotEmpty ? profile.address : 'Not set';
+
     final l10n = AppLocalizations.of(context)!;
     final locale = ref.watch(localeProvider);
+
+    final customersAsync = ref.watch(customerListProvider);
+    final jobsAsync = ref.watch(jobsProvider);
+    final invoicesAsync = ref.watch(invoiceListProvider);
+
+    final customerCount = customersAsync.value?.length ?? 0;
+    final completedJobsCount = jobsAsync.value?.where((j) => j.status == 'completed').length ?? 0;
+    final totalRevenue = invoicesAsync.value?.fold<double>(0.0, (sum, inv) => sum + inv.grandTotal) ?? 0.0;
 
     final sections = [
       _Section('Workshop', [
         _Item(Icons.store_rounded, 'Workshop Details', displayName, id: 'workshop'),
-        _Item(Icons.shield_rounded, 'GST & Tax Settings', '27AABCV1234A1ZB'),
-        _Item(Icons.location_on_rounded, 'Address & Location', 'Pune, Maharashtra'),
+        _Item(Icons.shield_rounded, 'GST & Tax Settings', gstDisplay, id: 'gst'),
+        _Item(Icons.location_on_rounded, 'Address & Location', addressDisplay, id: 'address'),
       ]),
       _Section('App Settings', [
         _Item(Icons.print_rounded, 'Printer Settings', 'Bluetooth thermal'),
@@ -31,7 +54,7 @@ class ProfileScreen extends ConsumerWidget {
         _Item(Icons.language_rounded, l10n.profileLanguageSetting, locale.languageCode == 'en' ? 'English' : 'हिंदी', id: 'language'),
       ]),
       _Section('Account', [
-        _Item(Icons.person_rounded, 'My Profile', 'Asian auto repair'),
+        _Item(Icons.person_rounded, 'My Profile', displayName, id: 'profile'),
         _Item(Icons.lock_rounded, 'Security & PIN', 'Biometric enabled'),
         _Item(Icons.help_outline_rounded, 'Help & Support', 'v2.4.1'),
       ]),
@@ -67,14 +90,16 @@ class ProfileScreen extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
                   ),
-                  child: const Center(
-                    child: Text('VS',
-                        style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900)),
+                  child: Center(
+                    child: Text(
+                      displayName.isNotEmpty ? displayName.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join('').toUpperCase() : 'MG',
+                      style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 14),
-                const Text('Asian auto repair',
-                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+                Text(displayName,
+                    style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 4),
                 Text('Garage Owner · $displayName',
                     style: TextStyle(color: Colors.blue[200], fontSize: 13)),
@@ -83,8 +108,6 @@ class ProfileScreen extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     _chip('⭐ Premium Plan'),
-                    const SizedBox(width: 8),
-                    _chip('Since 2021'),
                   ],
                 ),
               ],
@@ -105,11 +128,11 @@ class ProfileScreen extends ConsumerWidget {
               ),
               child: Row(
                 children: [
-                  _statItem('1,284', 'Customers'),
+                  _statItem('$customerCount', 'Customers'),
                   _divider(),
-                  _statItem('3,421', 'Jobs Done'),
+                  _statItem('$completedJobsCount', 'Jobs Done'),
                   _divider(),
-                  _statItem('₹28.4L', 'Revenue'),
+                  _statItem(_formatCurrencyCompact(totalRevenue), 'Revenue'),
                 ],
               ),
             ),
@@ -159,6 +182,10 @@ class ProfileScreen extends ConsumerWidget {
                             onTap: () {
                               if (item.id == 'workshop') {
                                 _showEditGarageNameDialog(context, ref, displayName);
+                              } else if (item.id == 'gst') {
+                                _showEditGstDialog(context, ref, profile.gstNumber);
+                              } else if (item.id == 'address') {
+                                _showEditAddressDialog(context, ref, profile.address);
                               } else if (item.id == 'language') {
                                 _showLanguageDialog(context, ref);
                               }
@@ -225,6 +252,69 @@ class ProfileScreen extends ConsumerWidget {
             ElevatedButton(
               onPressed: () {
                 ref.read(profileProvider.notifier).updateGarageName(controller.text.trim());
+                Navigator.pop(context);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showEditGstDialog(BuildContext context, WidgetRef ref, String currentGst) {
+    final controller = TextEditingController(text: currentGst);
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Edit GST Number'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(
+              hintText: 'Enter GST number',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                ref.read(profileProvider.notifier).updateGstNumber(controller.text.trim());
+                Navigator.pop(context);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showEditAddressDialog(BuildContext context, WidgetRef ref, String currentAddress) {
+    final controller = TextEditingController(text: currentAddress);
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Edit Address'),
+          content: TextField(
+            controller: controller,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              hintText: 'Enter garage address',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                ref.read(profileProvider.notifier).updateAddress(controller.text.trim());
                 Navigator.pop(context);
               },
               child: const Text('Save'),

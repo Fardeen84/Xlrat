@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:xlrat/l10n/app_localizations.dart';
 
-import '../../../models/CustomerModelas.dart';
-import '../../../models/Vehicle.dart';
-import '../../../providers/NavigationProvider.dart';
-import '../../../providers/customersProvider.dart';
+import '../../../models/billing_model/BillingCustomer.dart';
+import '../../../models/billing_model/invoice.dart';
+import '../../../providers/billing_providers.dart';
+import '../../../providers/jobsProvider.dart';
 import '../../../core/Theme.dart';
 import '../../../widgets/StatusBadge.dart';
-
 
 class CustomersScreen extends ConsumerStatefulWidget {
   const CustomersScreen({super.key});
@@ -21,9 +21,90 @@ class CustomersScreen extends ConsumerStatefulWidget {
 class _CustomersScreenState extends ConsumerState<CustomersScreen> {
   int _tabIndex = 0;
 
+  void _showAddCustomerDialog(BuildContext context) {
+    final nameController = TextEditingController();
+    final mobileController = TextEditingController();
+    final emailController = TextEditingController();
+    final addressController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: kCard,
+        title: const Text('Add Customer', style: TextStyle(fontWeight: FontWeight.w800, color: kForeground)),
+        content: Form(
+          key: formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Name *', labelStyle: TextStyle(color: kMutedForeground)),
+                  style: const TextStyle(color: kForeground),
+                  validator: (value) => (value == null || value.trim().isEmpty) ? 'Please enter name' : null,
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: mobileController,
+                  decoration: const InputDecoration(labelText: 'Mobile *', labelStyle: TextStyle(color: kMutedForeground)),
+                  keyboardType: TextInputType.phone,
+                  style: const TextStyle(color: kForeground),
+                  validator: (value) => (value == null || value.trim().isEmpty) ? 'Please enter mobile' : null,
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: emailController,
+                  decoration: const InputDecoration(labelText: 'Email (Optional)', labelStyle: TextStyle(color: kMutedForeground)),
+                  keyboardType: TextInputType.emailAddress,
+                  style: const TextStyle(color: kForeground),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: addressController,
+                  decoration: const InputDecoration(labelText: 'Address (Optional)', labelStyle: TextStyle(color: kMutedForeground)),
+                  maxLines: 2,
+                  style: const TextStyle(color: kForeground),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: kMutedForeground)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
+            onPressed: () async {
+              if (formKey.currentState!.validate()) {
+                final newCust = BillingCustomer(
+                  name: nameController.text.trim(),
+                  mobile: mobileController.text.trim(),
+                  email: emailController.text.trim(),
+                  address: addressController.text.trim(),
+                  createdAt: DateTime.now(),
+                );
+                await ref.read(customerRepositoryProvider).createCustomer(newCust);
+                ref.invalidate(customerListProvider);
+                ref.invalidate(filteredBillingCustomersProvider);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
+              }
+            },
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final filtered = ref.watch(filteredCustomersProvider);
+    final filteredAsync = ref.watch(filteredBillingCustomersProvider);
     final selectedCust = ref.watch(selectedCustomerProvider);
 
     return Scaffold(
@@ -31,16 +112,22 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isPC = constraints.maxWidth > 850;
-          if (isPC) {
-            return _buildPCLayout(context, filtered, selectedCust);
-          } else {
-            return _buildMobileLayout(context, filtered);
-          }
+          return filteredAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (err, stack) => Center(child: Text('Error: $err', style: const TextStyle(color: kRed))),
+            data: (customers) {
+              if (isPC) {
+                return _buildPCLayout(context, customers, selectedCust);
+              } else {
+                return _buildMobileLayout(context, customers);
+              }
+            },
+          );
         },
       ),
       floatingActionButton: MediaQuery.of(context).size.width <= 850
           ? FloatingActionButton(
-              onPressed: () {},
+              onPressed: () => _showAddCustomerDialog(context),
               backgroundColor: kPrimary,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
               child: const Icon(Icons.person_add_rounded, color: Colors.white),
@@ -50,7 +137,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
   }
 
   // ── PC Master-Detail Layout ──────────────────────────────────────────────────
-  Widget _buildPCLayout(BuildContext context, List<Customer> customers, Customer? selectedCust) {
+  Widget _buildPCLayout(BuildContext context, List<BillingCustomer> customers, BillingCustomer? selectedCust) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -74,7 +161,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                         children: [
                           Text(AppLocalizations.of(context)!.customersTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kForeground)),
                           ElevatedButton.icon(
-                            onPressed: () {},
+                            onPressed: () => _showAddCustomerDialog(context),
                             icon: const Icon(Icons.person_add_rounded, color: Colors.white, size: 16),
                             label: Text(AppLocalizations.of(context)!.customersAdd, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
                             style: ElevatedButton.styleFrom(
@@ -150,7 +237,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
   }
 
   // ── Mobile Layout ──────────────────────────────────────────────────────────
-  Widget _buildMobileLayout(BuildContext context, List<Customer> filtered) {
+  Widget _buildMobileLayout(BuildContext context, List<BillingCustomer> filtered) {
     return Column(
       children: [
         // Header
@@ -167,20 +254,23 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                    Text(AppLocalizations.of(context)!.customersTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kForeground)),
-                    Container(
+                  Text(AppLocalizations.of(context)!.customersTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kForeground)),
+                  GestureDetector(
+                    onTap: () => _showAddCustomerDialog(context),
+                    child: Container(
                       width: 38,
                       height: 38,
                       decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(12)),
                       child: const Icon(Icons.person_add_rounded, color: Colors.white, size: 20),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                GarageSearchBar(
-                  hint: AppLocalizations.of(context)!.customersSearchHint,
-                  onChanged: (v) => ref.read(customerSearchProvider.notifier).state = v,
-                ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              GarageSearchBar(
+                hint: AppLocalizations.of(context)!.customersSearchHint,
+                onChanged: (v) => ref.read(customerSearchProvider.notifier).state = v,
+              ),
             ],
           ),
         ),
@@ -214,11 +304,18 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
   }
 
   // ── PC Detail View Pane ─────────────────────────────────────────────────────
-  Widget _buildPCDetailView(BuildContext context, Customer customer) {
-    final vehicles = [
-      const Vehicle(id: 1, number: 'MH12 AB 1234', brand: 'Maruti', model: 'Swift VXI', year: '2019', km: '44,200', lastService: '15 Jan 2024', type: 'car'),
-      const Vehicle(id: 2, number: 'MH12 XY 9876', brand: 'Royal Enfield', model: 'Bullet 350', year: '2021', km: '18,700', lastService: '10 Mar 2024', type: 'bike'),
-    ];
+  Widget _buildPCDetailView(BuildContext context, BillingCustomer customer) {
+    final invoicesAsync = ref.watch(invoicesByCustomerProvider(customer.id!));
+    final invoices = invoicesAsync.value ?? [];
+
+    final totalSpent = invoices.fold<double>(0, (sum, i) => sum + i.grandTotal).round();
+    final pending = invoices.where((i) => i.paymentStatus != PaymentStatus.paid).fold<double>(0, (sum, i) => sum + i.grandTotal).round();
+
+    final vehiclesAsync = ref.watch(vehiclesForCustomerProvider(customer.id!));
+    final vehiclesList = vehiclesAsync.value ?? [];
+
+    final initials = customer.name.trim().split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join('').toUpperCase();
+    final avatar = initials.isNotEmpty ? initials : '?';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -247,7 +344,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                         border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
                       ),
                       child: Center(
-                        child: Text(customer.avatar, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
+                        child: Text(avatar, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -261,15 +358,15 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                             children: [
                               const Icon(Icons.phone_rounded, size: 12, color: Colors.white70),
                               const SizedBox(width: 4),
-                              Text(customer.phone, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                              Text(customer.mobile, style: const TextStyle(color: Colors.white70, fontSize: 13)),
                             ],
                           ),
                           const SizedBox(height: 8),
                           Row(
                             children: [
-                              _whiteChip('${customer.vehicles} Vehicles'),
+                              _whiteChip('${vehiclesList.length} Vehicles'),
                               const SizedBox(width: 6),
-                              _whiteChip('Since 2021'),
+                              _whiteChip('Since ${DateFormat('yyyy').format(customer.createdAt)}'),
                             ],
                           ),
                         ],
@@ -280,9 +377,9 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Expanded(child: _miniStat('Total Spent', formatCurrency(customer.totalSpent))),
+                    Expanded(child: _miniStat('Total Spent', formatCurrency(totalSpent))),
                     const SizedBox(width: 12),
-                    Expanded(child: _miniStat('Pending', customer.pending > 0 ? formatCurrency(customer.pending) : '—')),
+                    Expanded(child: _miniStat('Pending', pending > 0 ? formatCurrency(pending) : '—')),
                   ],
                 ),
               ],
@@ -344,12 +441,12 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
           ),
 
           const SizedBox(height: 16),
-          if (_tabIndex == 0) ...vehicles.map((v) => Padding(
+          if (_tabIndex == 0) ...vehiclesList.map((v) => Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: GarageCard(
               child: Row(
                 children: [
-                  VehicleIcon(type: v.type),
+                  const VehicleIcon(type: 'car'),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -358,24 +455,12 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('${v.brand} ${v.model}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-                            Text(v.year, style: const TextStyle(fontSize: 11, color: kMutedForeground)),
+                            Text('${v.vehicleBrand} ${v.vehicleModel}'.trim().isNotEmpty ? '${v.vehicleBrand} ${v.vehicleModel}' : 'Unknown Vehicle', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                            Text(v.fuelType.isNotEmpty ? v.fuelType : 'Petrol', style: const TextStyle(fontSize: 11, color: kMutedForeground)),
                           ],
                         ),
                         const SizedBox(height: 2),
-                        Text(v.number, style: const TextStyle(fontSize: 12, color: kPrimary, fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            const Icon(Icons.speed_rounded, size: 11, color: kMutedForeground),
-                            const SizedBox(width: 3),
-                            Text('${v.km} km', style: const TextStyle(fontSize: 11, color: kMutedForeground)),
-                            const SizedBox(width: 10),
-                            const Icon(Icons.calendar_today_rounded, size: 11, color: kMutedForeground),
-                            const SizedBox(width: 3),
-                            Text(v.lastService, style: const TextStyle(fontSize: 11, color: kMutedForeground)),
-                          ],
-                        ),
+                        Text(v.vehicleNumber, style: const TextStyle(fontSize: 12, color: kPrimary, fontWeight: FontWeight.w700)),
                       ],
                     ),
                   ),
@@ -384,41 +469,69 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
             ),
           )),
 
-          if (_tabIndex == 1) ...mockJobs.take(3).map((job) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: GarageCard(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(job.id, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-                      const SizedBox(height: 2),
-                      Text('${job.date} · ${job.brand}', style: const TextStyle(fontSize: 11, color: kMutedForeground)),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(formatCurrency(job.amount), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                      const SizedBox(height: 4),
-                      StatusBadge(status: job.status),
-                    ],
-                  ),
-                ],
+          if (_tabIndex == 1)
+            ref.watch(jobsProvider).when(
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(child: CircularProgressIndicator()),
               ),
+              error: (err, stack) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(child: Text('Error loading jobs: $err', style: const TextStyle(color: kRed))),
+              ),
+              data: (allJobs) {
+                final filteredJobs = allJobs
+                    .where((job) => job.customer.toLowerCase().trim() == customer.name.toLowerCase().trim())
+                    .toList();
+
+                if (filteredJobs.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(
+                      child: Text(
+                        'No jobs found for this customer.',
+                        style: TextStyle(color: kMutedForeground, fontSize: 13),
+                      ),
+                    ),
+                  );
+                }
+
+                return Column(
+                  children: filteredJobs.map((job) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: GarageCard(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(job.jobNumber, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                              const SizedBox(height: 2),
+                              Text('${job.date} · ${job.brand}', style: const TextStyle(fontSize: 11, color: kMutedForeground)),
+                            ],
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(formatCurrency(job.amount), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                              const SizedBox(height: 4),
+                              StatusBadge(status: job.status),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  )).toList(),
+                );
+              },
             ),
-          )),
 
           if (_tabIndex == 2)
-            ...List.generate(4, (i) {
-              final items = [
-                ('23 Jun 2024', 'Engine oil change, filter replacement', 1200),
-                ('15 Jan 2024', 'Full service + AC gas refill', 8500),
-                ('8 Oct 2023', 'Brake pads replacement', 3200),
-                ('22 Jul 2023', 'Tyre rotation, wheel balancing', 800),
-              ];
+            ...List.generate(invoices.length, (i) {
+              final inv = invoices[i];
+              final dateStr = DateFormat('dd MMM yyyy').format(inv.invoiceDate);
+              final desc = inv.items.map((it) => it.itemName).join(', ');
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -434,7 +547,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                         ),
                         child: const Icon(Icons.check_circle_rounded, size: 18, color: kGreen),
                       ),
-                      if (i < 3) Container(width: 2, height: 40, color: kBorder),
+                      if (i < invoices.length - 1) Container(width: 2, height: 40, color: kBorder),
                     ],
                   ),
                   const SizedBox(width: 12),
@@ -446,11 +559,11 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(items[i].$1, style: const TextStyle(fontSize: 11, color: kMutedForeground)),
+                            Text(dateStr, style: const TextStyle(fontSize: 11, color: kMutedForeground)),
                             const SizedBox(height: 2),
-                            Text(items[i].$2, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                            Text(desc.isNotEmpty ? desc : 'Service Invoice', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                             const SizedBox(height: 4),
-                            Text(formatCurrency(items[i].$3), style: const TextStyle(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 12)),
+                            Text(formatCurrency(inv.grandTotal.round()), style: const TextStyle(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 12)),
                           ],
                         ),
                       ),
@@ -494,8 +607,8 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
   }
 }
 
-class _CustomerCard extends StatelessWidget {
-  final Customer customer;
+class _CustomerCard extends ConsumerWidget {
+  final BillingCustomer customer;
   final VoidCallback onTap;
   final bool isSelected;
 
@@ -506,7 +619,19 @@ class _CustomerCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final initials = customer.name.trim().split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join('').toUpperCase();
+    final avatar = initials.isNotEmpty ? initials : '?';
+
+    final vehiclesAsync = ref.watch(vehiclesForCustomerProvider(customer.id!));
+    final vehiclesCount = vehiclesAsync.value?.length ?? 0;
+
+    final invoicesAsync = ref.watch(invoicesByCustomerProvider(customer.id!));
+    final invoices = invoicesAsync.value ?? [];
+    final pending = invoices.where((i) => i.paymentStatus != PaymentStatus.paid).fold<double>(0, (sum, i) => sum + i.grandTotal).round();
+
+    final dateStr = DateFormat('dd MMM yyyy').format(customer.createdAt);
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
@@ -520,7 +645,7 @@ class _CustomerCard extends StatelessWidget {
         color: isSelected ? kPrimary.withOpacity(0.05) : kCard,
         child: Row(
           children: [
-            AvatarWidget(initials: customer.avatar),
+            AvatarWidget(initials: avatar),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -532,7 +657,7 @@ class _CustomerCard extends StatelessWidget {
                     children: [
                       const Icon(Icons.phone_rounded, size: 11, color: kMutedForeground),
                       const SizedBox(width: 3),
-                      Text(customer.phone, style: const TextStyle(fontSize: 12, color: kMutedForeground)),
+                      Text(customer.mobile, style: const TextStyle(fontSize: 12, color: kMutedForeground)),
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -540,10 +665,10 @@ class _CustomerCard extends StatelessWidget {
                     children: [
                       const Icon(Icons.directions_car_rounded, size: 11, color: kMutedForeground),
                       const SizedBox(width: 3),
-                      Text('${customer.vehicles} vehicle${customer.vehicles > 1 ? 's' : ''}',
+                      Text('$vehiclesCount vehicle${vehiclesCount != 1 ? 's' : ''}',
                           style: const TextStyle(fontSize: 11, color: kMutedForeground)),
                       const Text(' · ', style: TextStyle(color: kMutedForeground, fontSize: 11)),
-                      Text(customer.lastVisit, style: const TextStyle(fontSize: 11, color: kMutedForeground)),
+                      Text(dateStr, style: const TextStyle(fontSize: 11, color: kMutedForeground)),
                     ],
                   ),
                 ],
@@ -552,11 +677,11 @@ class _CustomerCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                if (customer.pending > 0)
+                if (pending > 0)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(color: const Color(0xFFFFEBEE), borderRadius: BorderRadius.circular(12)),
-                    child: Text('₹${(customer.pending / 1000).toStringAsFixed(1)}k due',
+                    child: Text('₹${(pending / 1000).toStringAsFixed(1)}k due',
                         style: const TextStyle(color: kRed, fontSize: 11, fontWeight: FontWeight.w700)),
                   ),
                 const SizedBox(height: 4),
@@ -569,4 +694,3 @@ class _CustomerCard extends StatelessWidget {
     );
   }
 }
-

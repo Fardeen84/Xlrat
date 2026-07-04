@@ -302,24 +302,14 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
         );
 
     if (_selectedProductId != null) {
-      ref.read(inventoryProvider.notifier).update((state) {
-        return state.map((item) {
-          if (item.id == _selectedProductId) {
-            return InventoryItem(
-              id: item.id,
-              name: item.name,
-              category: item.category,
-              stock: (item.stock - qty.toInt()).clamp(0, 999999),
-              unit: item.unit,
-              purchase: item.purchase,
-              selling: item.selling,
-              minStock: item.minStock,
-              sku: item.sku,
-            );
-          }
-          return item;
-        }).toList();
-      });
+      final inventory = ref.read(inventoryListProvider).value ?? [];
+      final match = inventory.where((item) => item.id == _selectedProductId);
+      if (match.isNotEmpty) {
+        final item = match.first;
+        final newStock = (item.stock - qty.toInt()).clamp(0, 999999);
+        ref.read(inventoryRepositoryProvider).updateStock(_selectedProductId!, newStock);
+        ref.invalidate(inventoryListProvider);
+      }
     }
 
     Navigator.pop(context);
@@ -327,6 +317,8 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final inventoryAsync = ref.watch(inventoryListProvider);
+    final inventory = inventoryAsync.value ?? [];
     final bottom = MediaQuery.of(context).viewInsets.bottom;
     return Container(
       decoration: const BoxDecoration(
@@ -413,7 +405,6 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
                 if (textEditingValue.text.isEmpty) {
                   return const Iterable<InventoryItem>.empty();
                 }
-                final inventory = ref.read(inventoryProvider);
                 return inventory.where((item) => item.name
                     .toLowerCase()
                     .contains(textEditingValue.text.toLowerCase()));

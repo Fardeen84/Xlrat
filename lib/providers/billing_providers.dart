@@ -11,6 +11,7 @@ import '../repository/BillingRepository.dart';
 import '../repository/CustomerRepository.dart';
 import '../repository/VehicleRepository.dart';
 import 'ReminderService.dart';
+import 'firestoreServiceProvider.dart';
 
 // ─── Database singleton ───────────────────────────────────────────────────────
 
@@ -42,6 +43,11 @@ final Provider<BillingRepository> billingRepositoryProvider = Provider<BillingRe
           } catch (e) {
             print('Failed to trigger reminder callback: $e');
           }
+          try {
+            ref.read(cloudSyncServiceProvider).pushPendingInvoices();
+          } catch (e) {
+            print('Failed to trigger pushPendingInvoices callback: $e');
+          }
         },
       ),
 );
@@ -67,6 +73,13 @@ final customerByIdProvider =
 FutureProvider.autoDispose.family<BillingCustomer?, int>((ref, id) {
   final repo = ref.watch(customerRepositoryProvider);
   return repo.getCustomer(id);
+});
+
+final selectedCustomerProvider = StateProvider<BillingCustomer?>((ref) => null);
+
+final customerCountProvider = FutureProvider.autoDispose<int>((ref) async {
+  final list = await ref.watch(customerListProvider.future);
+  return list.length;
 });
 
 // ─── Vehicle providers ────────────────────────────────────────────────────────
@@ -102,6 +115,55 @@ final invoiceListProvider = FutureProvider.autoDispose<List<Invoice>>((ref) {
 final reportsInvoicesProvider = FutureProvider.autoDispose<List<Invoice>>((ref) {
   final repo = ref.watch(billingRepositoryProvider);
   return repo.getInvoices();
+});
+
+final topCustomersProvider = Provider.autoDispose<AsyncValue<List<(String, double, int, String)>>>((ref) {
+  final invoicesAsync = ref.watch(reportsInvoicesProvider);
+  return invoicesAsync.whenData((invoices) {
+    final Map<int, (String, double, int, String)> customerMap = {};
+    for (final inv in invoices) {
+      final cust = inv.customer;
+      if (cust == null) continue;
+      final custId = cust.id ?? 0;
+      final current = customerMap[custId];
+      if (current == null) {
+        final initials = cust.name.trim().split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join('').toUpperCase();
+        customerMap[custId] = (cust.name, inv.grandTotal, 1, initials.isEmpty ? '?' : initials);
+      } else {
+        customerMap[custId] = (
+          current.$1,
+          current.$2 + inv.grandTotal,
+          current.$3 + 1,
+          current.$4,
+        );
+      }
+    }
+    final list = customerMap.values.toList();
+    list.sort((a, b) => b.$2.compareTo(a.$2));
+    return list.take(4).toList();
+  });
+});
+
+final topPartsProvider = Provider.autoDispose<AsyncValue<List<(String, double, double)>>>((ref) {
+  final invoicesAsync = ref.watch(reportsInvoicesProvider);
+  return invoicesAsync.whenData((invoices) {
+    final Map<String, (double, double)> partsMap = {};
+    for (final inv in invoices) {
+      if (inv.items == null) continue;
+      for (final item in inv.items!) {
+        final name = item.itemName;
+        final current = partsMap[name];
+        if (current == null) {
+          partsMap[name] = (item.quantity, item.total);
+        } else {
+          partsMap[name] = (current.$1 + item.quantity, current.$2 + item.total);
+        }
+      }
+    }
+    final list = partsMap.entries.map((e) => (e.key, e.value.$1, e.value.$2)).toList();
+    list.sort((a, b) => b.$3.compareTo(a.$3));
+    return list.take(4).toList();
+  });
 });
 
 final invoiceDetailProvider =

@@ -43,7 +43,6 @@ class _MainShellState extends ConsumerState<MainShell> {
   AppScreen _locationToScreen(String location) {
     if (location == '/') return AppScreen.splash;
     if (location == '/login') return AppScreen.login;
-    if (location == '/otp') return AppScreen.otp;
     if (location.startsWith('/dashboard')) return AppScreen.dashboard;
     if (location.startsWith('/customer-detail')) return AppScreen.customerDetail;
     if (location.startsWith('/customers')) return AppScreen.customers;

@@ -1,8 +1,8 @@
-import 'CustomerModelas.dart';
+import 'billing_model/BillingCustomer.dart';
 
 class NewJobFormState {
   final int step;
-  final Customer? customer;
+  final BillingCustomer? customer;
   final String selectedVehicle;
   final String complaint;
   final String mechanic;
@@ -17,7 +17,7 @@ class NewJobFormState {
 
   NewJobFormState copyWith({
     int? step,
-    Customer? customer,
+    BillingCustomer? customer,
     String? selectedVehicle,
     String? complaint,
     String? mechanic,

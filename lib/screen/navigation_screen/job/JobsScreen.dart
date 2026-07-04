@@ -4,10 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:xlrat/l10n/app_localizations.dart';
 
-import '../../../models/CustomerModelas.dart';
+import '../../../models/billing_model/BillingCustomer.dart';
 import '../../../models/job.dart';
 import '../../../providers/jobsProvider.dart';
-import '../../../providers/customersProvider.dart';
+import '../../../providers/billing_providers.dart';
 import '../../../core/Theme.dart';
 import '../../../widgets/StatusBadge.dart';
 
@@ -34,8 +34,9 @@ class JobsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final filter = ref.watch(jobFilterProvider);
     final filtered = ref.watch(filteredJobsProvider);
-    final allJobs = ref.watch(jobsProvider);
-    final customers = ref.watch(customersProvider);
+    final allJobsAsync = ref.watch(jobsProvider);
+    final allJobs = allJobsAsync.value ?? [];
+    final customers = ref.watch(customerListProvider).value ?? [];
 
     final counts = {
       'all': allJobs.length,
@@ -71,7 +72,7 @@ class JobsScreen extends ConsumerWidget {
     List<Job> filteredJobs,
     List<(String, String)> filters,
     String activeFilter,
-    List<Customer> customers,
+    List<BillingCustomer> customers,
   ) {
     return Scaffold(
       backgroundColor: kBackground,
@@ -199,24 +200,22 @@ class JobsScreen extends ConsumerWidget {
                               rows: filteredJobs.map((job) {
                                 final customer = customers.firstWhere(
                                   (c) => c.name.trim().toLowerCase() == job.customer.trim().toLowerCase(),
-                                  orElse: () => const Customer(
+                                  orElse: () => BillingCustomer(
                                     id: 0,
                                     name: '',
-                                    phone: '',
-                                    vehicles: 0,
-                                    lastVisit: '',
-                                    avatar: '',
-                                    totalSpent: 0,
-                                    pending: 0,
+                                    mobile: '',
+                                    createdAt: DateTime.now(),
                                   ),
                                 );
-                                final phone = customer.phone;
+                                final phone = customer.mobile;
+                                final initials = customer.name.trim().split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join('').toUpperCase();
+                                final avatar = initials.isNotEmpty ? initials : '?';
 
                                 return DataRow(
                                   cells: [
                                     DataCell(
                                       Text(
-                                        job.id,
+                                        job.jobNumber,
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           color: kPrimary,
@@ -231,7 +230,7 @@ class JobsScreen extends ConsumerWidget {
                                             radius: 12,
                                             backgroundColor: kPrimary.withValues(alpha: 0.1),
                                             child: Text(
-                                              customer.avatar.isNotEmpty ? customer.avatar : '?',
+                                              avatar,
                                               style: const TextStyle(
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.bold,
@@ -273,7 +272,7 @@ class JobsScreen extends ConsumerWidget {
                                         icon: const Icon(Icons.arrow_forward_rounded, color: kPrimary, size: 18),
                                         onPressed: () {
                                           ref.read(selectedJobProvider.notifier).state = job;
-                                          context.push('/job-detail');
+                                          context.push('/job-detail/${job.id}');
                                         },
                                       ),
                                     ),
@@ -299,7 +298,7 @@ class JobsScreen extends ConsumerWidget {
     List<Job> filteredJobs,
     List<(String, String)> filters,
     String activeFilter,
-    List<Customer> customers,
+    List<BillingCustomer> customers,
   ) {
     return Scaffold(
       backgroundColor: kBackground,
@@ -360,25 +359,21 @@ class JobsScreen extends ConsumerWidget {
               separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (ctx, i) {
                 final job = filteredJobs[i];
-                final customer = customers.firstWhere(
-                  (c) => c.name.trim().toLowerCase() == job.customer.trim().toLowerCase(),
-                  orElse: () => const Customer(
-                    id: 0,
-                    name: '',
-                    phone: '',
-                    vehicles: 0,
-                    lastVisit: '',
-                    avatar: '',
-                    totalSpent: 0,
-                    pending: 0,
-                  ),
-                );
-                return _JobCard(
-                  job: job,
-                  customerPhone: customer.phone,
+                 final customer = customers.firstWhere(
+                   (c) => c.name.trim().toLowerCase() == job.customer.trim().toLowerCase(),
+                   orElse: () => BillingCustomer(
+                     id: 0,
+                     name: '',
+                     mobile: '',
+                     createdAt: DateTime.now(),
+                   ),
+                 );
+                 return _JobCard(
+                   job: job,
+                   customerPhone: customer.mobile,
                   onTap: () {
                     ref.read(selectedJobProvider.notifier).state = job;
-                    context.push("/job-detail");
+                    context.push('/job-detail/${job.id}');
                   },
                   onCall: _makeCall,
                 );
@@ -432,7 +427,7 @@ class _JobCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(job.id,
+                          Text(job.jobNumber,
                               style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kPrimary)),
                           const SizedBox(height: 2),
                           Row(

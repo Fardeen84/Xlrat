@@ -1,10 +1,7 @@
-// lib/core/app_router.dart
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../screen/SplashScreen.dart';
 import '../screen/auth/LoginScreen.dart';
-import '../screen/auth/OtpScreen.dart';
 import '../screen/navigation_screen/billing/BillingScreen.dart';
 import '../screen/navigation_screen/billing/InvoiceHistoryScreen.dart';
 import '../screen/navigation_screen/billing/InvoiceScreen.dart';
@@ -40,7 +37,6 @@ final appRouter = GoRouter(
     // ── Auth / Splash (no bottom nav) ──────────────────────────────────────
     GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-    GoRoute(path: '/otp', builder: (context, state) => const OtpScreen()),
 
     // ── Main Shell ───────────────────────────────────────────────────────
     ShellRoute(
@@ -75,8 +71,11 @@ final appRouter = GoRouter(
           },
         ),
         GoRoute(
-          path: '/job-detail',
-          builder: (context, state) => const JobDetailScreen(),
+          path: '/job-detail/:id',
+          builder: (context, state) {
+            final jobId = int.parse(state.pathParameters['id']!);
+            return JobDetailScreen(jobId: jobId);
+          },
         ),
         GoRoute(
           path: '/new-job',

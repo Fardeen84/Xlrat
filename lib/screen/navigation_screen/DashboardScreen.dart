@@ -15,7 +15,8 @@ import '../../models/job.dart';
 import '../../providers/jobsProvider.dart';
 import '../../providers/notificationsProvider.dart';
 import '../../providers/profile_provider.dart';
-import '../../providers/customersProvider.dart';
+import '../../providers/billing_providers.dart';
+import '../../providers/firestoreServiceProvider.dart';
 
 import '../../core/Theme.dart';
 import '../../widgets/StatusBadge.dart';
@@ -32,6 +33,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Timer? _debounce;
 
   @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      try {
+        ref.read(cloudSyncServiceProvider).pullRemoteInvoices();
+      } catch (e) {
+        print('Failed to trigger pullRemoteInvoices: $e');
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _searchCtrl.dispose();
     _debounce?.cancel();
@@ -41,13 +54,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final unreadCount = ref.watch(unreadCountProvider);
-    final lowStock = ref.watch(lowStockItemsProvider);
+    final lowStockAsync = ref.watch(lowStockItemsProvider);
+    final lowStock = lowStockAsync.value ?? [];
     final invoicesAsync = ref.watch(invoiceListProvider);
-    final jobs = ref.watch(jobsProvider);
+    final jobsAsync = ref.watch(jobsProvider);
+    final jobs = jobsAsync.value ?? [];
     final todaySummaryAsync = ref.watch(todaySummaryProvider);
-    final customers = ref.watch(customersProvider);
-    final garageName = ref.watch(profileProvider);
-    final displayName = garageName.isNotEmpty ? garageName : 'My Garage';
+    final customersAsync = ref.watch(customerListProvider);
+    final totalCustomers = customersAsync.value?.length ?? 0;
+    final profileState = ref.watch(profileProvider);
+    final displayName = profileState.garageName.isNotEmpty ? profileState.garageName : 'My Garage';
 
     final searchQuery = ref.watch(dashboardSearchQueryProvider);
     final searchResultsAsync = ref.watch(dashboardSearchResultsProvider);
@@ -72,7 +88,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       invoicesAsync,
                       jobs,
                       todaySummaryAsync,
-                      customers.length,
+                      totalCustomers,
                     ),
                   ],
                 ),
@@ -87,7 +103,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               invoicesAsync,
               jobs,
               todaySummaryAsync,
-              customers.length,
+              totalCustomers,
               displayName,
               searchQuery,
               searchResultsAsync,
@@ -258,7 +274,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                                 )
                                                 .state =
                                             job;
-                                        context.push('/job-detail');
+                                        context.push('/job-detail/${job.id}');
                                       },
                                     ),
                                   ),

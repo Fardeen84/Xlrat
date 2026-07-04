@@ -15,3 +15,24 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+
+## Development Setup
+
+To run or build the app, compile-time environment variables for Firebase configuration must be supplied.
+
+### Option 1: Using `env.json` (Recommended)
+1. Copy the template `env.json.example` to `env.json`:
+   ```bash
+   cp env.json.example env.json
+   ```
+2. Open `env.json` and fill in your actual Firebase API key and project ID. Note that `env.json` is ignored by git and must not be committed.
+3. Run the app using:
+   ```bash
+   flutter run --dart-define-from-file=env.json
+   ```
+
+### Option 2: Using command-line flags
+Alternatively, you can pass these parameters directly to the run/build commands:
+```bash
+flutter run --dart-define=FIREBASE_API_KEY=xxxx --dart-define=FIREBASE_PROJECT_ID=xxxx
+```
