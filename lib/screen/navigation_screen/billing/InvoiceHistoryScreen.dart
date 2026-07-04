@@ -1,12 +1,18 @@
-// lib/Screen/navigationscreen/Billing/InvoiceHistoryScreen.dart
+// lib/screen/navigation_screen/Billing/InvoiceHistoryScreen.dart
 
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-import '../../../Models/Billing model/invoice.dart';
-import '../../../Providers/billing_providers.dart';
+import '../../../models/billing_model/invoice.dart';
+import '../../../providers/billing_providers.dart';
 import '../../../core/Theme.dart';
 
 // ─── Local state providers (scoped to this screen) ───────────────────────────
@@ -37,6 +43,274 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _showExportDialog(BuildContext context) async {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: kCard,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Export Data',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            color: kForeground,
+          ),
+        ),
+        content: const Text(
+          'Choose the format in which you want to export your invoices.',
+          style: TextStyle(fontSize: 14, color: kMutedForeground),
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _exportData(context, isCsv: true);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Export CSV (Excel compatible)',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _exportData(context, isCsv: false);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: kPrimary, width: 1.2),
+                    foregroundColor: kPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Export JSON (App backup)',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: kMutedForeground,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _exportData(BuildContext context, {required bool isCsv}) async {
+    try {
+      final repo = ref.read(billingRepositoryProvider);
+      final allInvoices = await repo.getInvoices();
+
+      if (allInvoices.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('No invoices found to export.'),
+              backgroundColor: kOrange,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        }
+        return;
+      }
+
+      final downloadsDir = await getDownloadsDirectory();
+      if (downloadsDir == null) {
+        throw Exception('Could not access Downloads directory.');
+      }
+
+      final dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      final String fileName;
+      final String fileContent;
+
+      if (isCsv) {
+        fileName = 'xlrat_bills_export.csv';
+        final List<List<dynamic>> rows = [];
+        rows.add([
+          'Invoice Number',
+          'Invoice Date',
+          'Customer Name',
+          'Customer Mobile',
+          'Customer Email',
+          'Vehicle Number',
+          'Vehicle Model',
+          'Item Name',
+          'Quantity',
+          'Unit',
+          'Price',
+          'Item Total',
+          'Subtotal',
+          'Discount',
+          'GST',
+          'Grand Total',
+          'Payment Status',
+          'Payment Method',
+          'Notes',
+        ]);
+
+        for (final inv in allInvoices) {
+          final invDateStr = DateFormat('yyyy-MM-dd').format(inv.invoiceDate);
+          if (inv.items.isEmpty) {
+            rows.add([
+              inv.invoiceNumber,
+              invDateStr,
+              inv.customer?.name ?? '',
+              inv.customer?.mobile ?? '',
+              inv.customer?.email ?? '',
+              inv.vehicle?.vehicleNumber ?? '',
+              inv.vehicle?.vehicleModel ?? '',
+              '',
+              0.0,
+              '',
+              0.0,
+              0.0,
+              inv.subTotal,
+              inv.discount,
+              inv.gst,
+              inv.grandTotal,
+              inv.paymentStatus.label,
+              inv.paymentMethod.label,
+              inv.notes,
+            ]);
+          } else {
+            for (final item in inv.items) {
+              rows.add([
+                inv.invoiceNumber,
+                invDateStr,
+                inv.customer?.name ?? '',
+                inv.customer?.mobile ?? '',
+                inv.customer?.email ?? '',
+                inv.vehicle?.vehicleNumber ?? '',
+                inv.vehicle?.vehicleModel ?? '',
+                item.itemName,
+                item.quantity,
+                item.unit,
+                item.price,
+                item.total,
+                inv.subTotal,
+                inv.discount,
+                inv.gst,
+                inv.grandTotal,
+                inv.paymentStatus.label,
+                inv.paymentMethod.label,
+                inv.notes,
+              ]);
+            }
+          }
+        }
+        fileContent = const ListToCsvConverter().convert(rows);
+      } else {
+        fileName = 'xlrat_backup_$dateStr.json';
+        final List<Map<String, dynamic>> jsonData = [];
+        for (final inv in allInvoices) {
+          final invDateStr = DateFormat('yyyy-MM-dd').format(inv.invoiceDate);
+          if (inv.items.isEmpty) {
+            jsonData.add({
+              'Invoice Number': inv.invoiceNumber,
+              'Invoice Date': invDateStr,
+              'Customer Name': inv.customer?.name ?? '',
+              'Customer Mobile': inv.customer?.mobile ?? '',
+              'Customer Email': inv.customer?.email ?? '',
+              'Vehicle Number': inv.vehicle?.vehicleNumber ?? '',
+              'Vehicle Model': inv.vehicle?.vehicleModel ?? '',
+              'Item Name': '',
+              'Quantity': 0.0,
+              'Unit': '',
+              'Price': 0.0,
+              'Item Total': 0.0,
+              'Subtotal': inv.subTotal,
+              'Discount': inv.discount,
+              'GST': inv.gst,
+              'Grand Total': inv.grandTotal,
+              'Payment Status': inv.paymentStatus.label,
+              'Payment Method': inv.paymentMethod.label,
+              'Notes': inv.notes,
+            });
+          } else {
+            for (final item in inv.items) {
+              jsonData.add({
+                'Invoice Number': inv.invoiceNumber,
+                'Invoice Date': invDateStr,
+                'Customer Name': inv.customer?.name ?? '',
+                'Customer Mobile': inv.customer?.mobile ?? '',
+                'Customer Email': inv.customer?.email ?? '',
+                'Vehicle Number': inv.vehicle?.vehicleNumber ?? '',
+                'Vehicle Model': inv.vehicle?.vehicleModel ?? '',
+                'Item Name': item.itemName,
+                'Quantity': item.quantity,
+                'Unit': item.unit,
+                'Price': item.price,
+                'Item Total': item.total,
+                'Subtotal': inv.subTotal,
+                'Discount': inv.discount,
+                'GST': inv.gst,
+                'Grand Total': inv.grandTotal,
+                'Payment Status': inv.paymentStatus.label,
+                'Payment Method': inv.paymentMethod.label,
+                'Notes': inv.notes,
+              });
+            }
+          }
+        }
+        fileContent = const JsonEncoder.withIndent('  ').convert(jsonData);
+      }
+
+      final file = File('${downloadsDir.path}/$fileName');
+      await file.writeAsString(fileContent);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Exported to Downloads/$fileName'),
+            backgroundColor: kGreen,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Export failed: $e'),
+            backgroundColor: kRed,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _deleteInvoice(BuildContext context, Invoice invoice) async {
@@ -149,6 +423,14 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
                   letterSpacing: -0.3,
                 ),
               ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.file_download_outlined, color: kPrimary),
+                  tooltip: 'Export Data',
+                  onPressed: () => _showExportDialog(context),
+                ),
+                const SizedBox(width: 8),
+              ],
               bottom: PreferredSize(
                 preferredSize: const Size.fromHeight(112),
                 child: Container(
@@ -407,6 +689,19 @@ class _InvoiceCard extends StatelessWidget {
     required this.onDelete,
   });
 
+  Future<void> _makeCall(String phoneNumber) async {
+    if (phoneNumber.isNotEmpty) {
+      final Uri url = Uri(scheme: 'tel', path: phoneNumber);
+      try {
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url);
+        }
+      } catch (e) {
+        print('Could not launch call url: $e');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -493,16 +788,29 @@ class _InvoiceCard extends StatelessWidget {
                           ),
                         ),
 
-                        // Status badge + Menu
+                        // Status badge + Menu & Call
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             _PaymentStatusBadge(status: invoice.paymentStatus),
                             const SizedBox(height: 4),
-                            _CardPopupMenu(
-                              onView: onView,
-                              onEdit: onEdit,
-                              onDelete: onDelete,
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (invoice.customer?.mobile != null && invoice.customer!.mobile.isNotEmpty)
+                                  IconButton(
+                                    icon: const Icon(Icons.phone_rounded, color: kGreen, size: 18),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    onPressed: () => _makeCall(invoice.customer!.mobile),
+                                  ),
+                                const SizedBox(width: 8),
+                                _CardPopupMenu(
+                                  onView: onView,
+                                  onEdit: onEdit,
+                                  onDelete: onDelete,
+                                ),
+                              ],
                             ),
                           ],
                         ),

@@ -1,34 +1,57 @@
 // lib/screens/customers/customer_detail_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
-import '../../../core/theme.dart';
+import '../../../core/Theme.dart';
 import '../../../widgets/StatusBadge.dart';
+import '../../../models/CustomerModelas.dart';
+import '../../../models/billing_model/BillingVehicle.dart';
+import '../../../models/billing_model/InvoiceItem.dart';
+import '../../../models/billing_model/invoice.dart';
+import '../../../providers/customersProvider.dart';
+import '../../../providers/billing_providers.dart';
 
-class CustomerDetailScreen extends StatefulWidget {
-  const CustomerDetailScreen({super.key});
+class CustomerDetailScreen extends ConsumerStatefulWidget {
+  final int customerId;
+  const CustomerDetailScreen({super.key, required this.customerId});
 
   @override
-  State<CustomerDetailScreen> createState() => _CustomerDetailScreenState();
+  ConsumerState<CustomerDetailScreen> createState() => _CustomerDetailScreenState();
 }
 
-class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
+class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
   int _tabIndex = 0;
 
-  static const _vehicles = [
-    ('MH12 AB 1234', 'Maruti', 'Swift VXI', '2019', '44,200', '15 Jan 2024', 'car'),
-    ('MH12 XY 9876', 'Royal Enfield', 'Bullet 350', '2021', '18,700', '10 Mar 2024', 'bike'),
-  ];
-
-  static const _history = [
-    ('23 Jun 2024', 'Engine oil change, filter replacement', 1200),
-    ('15 Jan 2024', 'Full service + AC gas refill', 8500),
-    ('8 Oct 2023', 'Brake pads replacement', 3200),
-    ('22 Jul 2023', 'Tyre rotation, wheel balancing', 800),
-  ];
+  String summarizeItems(List<InvoiceItem> items) {
+    if (items.isEmpty) return 'No items';
+    return items.map((i) => i.itemName).join(', ');
+  }
 
   @override
   Widget build(BuildContext context) {
+    final customer = ref.watch(customersProvider).firstWhere(
+          (c) => c.id == widget.customerId,
+          orElse: () => Customer(
+            id: widget.customerId,
+            name: 'Customer #${widget.customerId}',
+            phone: '',
+            vehicles: 0,
+            lastVisit: '',
+            avatar: '?',
+            totalSpent: 0,
+            pending: 0,
+          ),
+        );
+
+    final invoicesAsync = ref.watch(invoicesByCustomerProvider(widget.customerId));
+    final invoices = invoicesAsync.value ?? [];
+
+    final uniqueVehiclesCount = invoices.map((i) => i.vehicle?.vehicleNumber).whereType<String>().toSet().length;
+    final totalSpent = invoices.fold<double>(0, (sum, i) => sum + i.grandTotal).round();
+    final pending = invoices.where((i) => i.paymentStatus != PaymentStatus.paid).fold<double>(0, (sum, i) => sum + i.grandTotal).round();
+
     return Scaffold(
       backgroundColor: kBackground,
       body: CustomScrollView(
@@ -78,9 +101,11 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                                 borderRadius: BorderRadius.circular(18),
                                 border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
                               ),
-                              child: const Center(
-                                child: Text('RK',
-                                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+                              child: Center(
+                                child: Text(
+                                  customer.avatar.isNotEmpty ? customer.avatar : (customer.name.length >= 2 ? customer.name.substring(0, 2).toUpperCase() : '?'),
+                                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 14),
@@ -88,21 +113,21 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Rajesh Kumar',
-                                      style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
+                                  Text(customer.name,
+                                      style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
                                   const SizedBox(height: 4),
                                   Row(children: [
                                     Icon(Icons.phone_rounded, size: 12, color: Colors.blue[200]),
                                     const SizedBox(width: 4),
-                                    Text('+91 9876543210',
+                                    Text('+91 ${customer.phone}',
                                         style: TextStyle(color: Colors.blue[200], fontSize: 13)),
                                   ]),
                                   const SizedBox(height: 8),
                                   Row(
                                     children: [
-                                      _chip('2 Vehicles'),
+                                      _chip('$uniqueVehiclesCount Vehicle${uniqueVehiclesCount == 1 ? '' : 's'}'),
                                       const SizedBox(width: 8),
-                                      _chip('Since 2021'),
+                                      _chip('Since ${customer.lastVisit.isNotEmpty ? customer.lastVisit : '2024'}'),
                                     ],
                                   ),
                                 ],
@@ -113,9 +138,9 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                         const SizedBox(height: 14),
                         Row(
                           children: [
-                            Expanded(child: _miniStat('Total Spent', '₹48,500')),
+                            Expanded(child: _miniStat('Total Spent', formatCurrency(totalSpent))),
                             const SizedBox(width: 10),
-                            Expanded(child: _miniStat('Pending', '—')),
+                            Expanded(child: _miniStat('Pending', pending > 0 ? formatCurrency(pending) : '—')),
                           ],
                         ),
                       ],
@@ -174,116 +199,173 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
 
                   const SizedBox(height: 14),
 
-                  if (_tabIndex == 0)
-                    ..._vehicles.map((v) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: GarageCard(
-                        child: Row(
-                          children: [
-                            VehicleIcon(type: v.$7),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                  invoicesAsync.when(
+                    loading: () => const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40),
+                      child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                    ),
+                    error: (err, stack) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      child: Center(child: Text('Error: $err', style: const TextStyle(color: kRed))),
+                    ),
+                    data: (invoicesList) {
+                      if (invoicesList.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 40),
+                          child: Column(
+                            children: [
+                              Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(color: kMuted, borderRadius: BorderRadius.circular(14)),
+                                child: const Icon(Icons.receipt_long_rounded, size: 22, color: kMutedForeground),
+                              ),
+                              const SizedBox(height: 10),
+                              const Text('Koi invoice nahi mila', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kForeground)),
+                              const SizedBox(height: 4),
+                              const Text('Is customer ke liye koi record nahi hai', style: TextStyle(fontSize: 12, color: kMutedForeground)),
+                            ],
+                          ),
+                        );
+                      }
+
+                      final uniqueVehicles = <String, BillingVehicle>{};
+                      for (final inv in invoicesList) {
+                        final veh = inv.vehicle;
+                        if (veh != null && veh.vehicleNumber.isNotEmpty) {
+                          uniqueVehicles[veh.vehicleNumber] = veh;
+                        }
+                      }
+                      final vehiclesList = uniqueVehicles.values.toList();
+
+                      if (_tabIndex == 0) {
+                        if (vehiclesList.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 20),
+                            child: Text('Vehicles data available nahi hai', style: TextStyle(color: kMutedForeground, fontSize: 13)),
+                          );
+                        }
+                        return Column(
+                          children: vehiclesList.map((v) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: GarageCard(
+                              child: Row(
                                 children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text('${v.$2} ${v.$3}',
-                                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-                                      Text(v.$4, style: const TextStyle(fontSize: 11, color: kMutedForeground)),
-                                    ],
+                                  const VehicleIcon(type: 'car'),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              '${v.vehicleBrand} ${v.vehicleModel}'.trim().isNotEmpty
+                                                  ? '${v.vehicleBrand} ${v.vehicleModel}'
+                                                  : 'Unknown Vehicle',
+                                              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                                            ),
+                                            Text(v.fuelType.isNotEmpty ? v.fuelType : 'Petrol', style: const TextStyle(fontSize: 11, color: kMutedForeground)),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(v.vehicleNumber, style: const TextStyle(fontSize: 12, color: kPrimary, fontWeight: FontWeight.w700)),
+                                      ],
+                                    ),
                                   ),
-                                  const SizedBox(height: 2),
-                                  Text(v.$1, style: const TextStyle(fontSize: 12, color: kPrimary, fontWeight: FontWeight.w700)),
-                                  const SizedBox(height: 6),
-                                  Row(children: [
-                                    const Icon(Icons.speed_rounded, size: 11, color: kMutedForeground),
-                                    const SizedBox(width: 3),
-                                    Text('${v.$5} km', style: const TextStyle(fontSize: 11, color: kMutedForeground)),
-                                    const SizedBox(width: 10),
-                                    const Icon(Icons.calendar_today_rounded, size: 11, color: kMutedForeground),
-                                    const SizedBox(width: 3),
-                                    Text(v.$6, style: const TextStyle(fontSize: 11, color: kMutedForeground)),
-                                  ]),
                                 ],
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    )),
+                          )).toList(),
+                        );
+                      }
 
-                  if (_tabIndex == 1)
-                    ...[
-                      ('JC-2024-0156', '23 Jun 2024', 'Maruti Swift', 8500, 'in-progress'),
-                      ('JC-2024-0154', '22 Jun 2024', 'Toyota Innova', 14200, 'completed'),
-                      ('JC-2024-0152', '21 Jun 2024', 'Hyundai i20', 9800, 'in-progress'),
-                    ].map((job) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: GarageCard(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Text(job.$1, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-                              const SizedBox(height: 2),
-                              Text('${job.$2} · ${job.$3}', style: const TextStyle(fontSize: 11, color: kMutedForeground)),
-                            ]),
-                            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                              Text(formatCurrency(job.$4), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                              const SizedBox(height: 4),
-                              StatusBadge(status: job.$5),
-                            ]),
-                          ],
-                        ),
-                      ),
-                    )),
-
-                  if (_tabIndex == 2)
-                    ..._history.asMap().entries.map((entry) {
-                      final i = entry.key;
-                      final h = entry.value;
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Column(children: [
-                            Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE8F5E9),
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
+                      if (_tabIndex == 1) {
+                        return Column(
+                          children: invoicesList.map((inv) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: GarageCard(
+                              onTap: () => context.push('/invoice/${inv.id}'),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(inv.invoiceNumber, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                                      const SizedBox(height: 2),
+                                      Text('${DateFormat('dd MMM yyyy').format(inv.invoiceDate)} · ${inv.vehicle?.vehicleBrand ?? ''} ${inv.vehicle?.vehicleModel ?? ''}'.trim(),
+                                          style: const TextStyle(fontSize: 11, color: kMutedForeground)),
+                                    ],
+                                  ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(formatCurrency(inv.grandTotal.round()), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                                      const SizedBox(height: 4),
+                                      StatusBadge(status: inv.paymentStatus == PaymentStatus.paid ? 'completed' : 'pending'),
+                                    ],
+                                  ),
+                                ],
                               ),
-                              child: const Icon(Icons.check_circle_rounded, size: 18, color: kGreen),
                             ),
-                            if (i < _history.length - 1)
-                              Container(width: 2, height: 48, color: kBorder),
-                          ]),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: GarageCard(
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(h.$1, style: const TextStyle(fontSize: 11, color: kMutedForeground)),
-                                    const SizedBox(height: 2),
-                                    Text(h.$2, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                                    const SizedBox(height: 4),
-                                    Text(formatCurrency(h.$3),
-                                        style: const TextStyle(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 12)),
-                                  ],
+                          )).toList(),
+                        );
+                      }
+
+                      if (_tabIndex == 2) {
+                        return Column(
+                          children: List.generate(invoicesList.length, (i) {
+                            final inv = invoicesList[i];
+                            final dateStr = DateFormat('dd MMM yyyy').format(inv.invoiceDate);
+                            final description = summarizeItems(inv.items);
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Column(children: [
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE8F5E9),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 2),
+                                    ),
+                                    child: const Icon(Icons.check_circle_rounded, size: 18, color: kGreen),
+                                  ),
+                                  if (i < invoicesList.length - 1)
+                                    Container(width: 2, height: 48, color: kBorder),
+                                ]),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(bottom: 10),
+                                    child: GarageCard(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(dateStr, style: const TextStyle(fontSize: 11, color: kMutedForeground)),
+                                          const SizedBox(height: 2),
+                                          Text(description, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                                          const SizedBox(height: 4),
+                                          Text(formatCurrency(inv.grandTotal.round()),
+                                              style: const TextStyle(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 12)),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    }),
+                              ],
+                            );
+                          }),
+                        );
+                      }
+
+                      return const SizedBox.shrink();
+                    },
+                  ),
 
                   const SizedBox(height: 80),
                 ],

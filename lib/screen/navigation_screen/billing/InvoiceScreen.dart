@@ -5,10 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../../Models/Billing model/InvoiceItem.dart';
-import '../../../Models/Billing model/invoice.dart';
-import '../../../Providers/InvoicePdfService.dart';
-import '../../../Providers/billing_providers.dart';
+import '../../../models/billing_model/InvoiceItem.dart';
+import '../../../models/billing_model/invoice.dart';
+import '../../../providers/InvoicePdfService.dart';
+import '../../../providers/billing_providers.dart';
 import '../../../core/Theme.dart';
 
 
@@ -117,7 +117,7 @@ class _InvoiceBody extends StatelessWidget {
                                       color: Colors.white, size: 16),
                                   SizedBox(width: 6),
                                   Text(
-                                    'Fradeen Auto Garage',
+                                    'Asian Auto Repair',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 15,
@@ -374,7 +374,7 @@ class _InvoiceBody extends StatelessWidget {
 
                         const SizedBox(height: 20),
                         const Text(
-                          'Thank you for choosing Fradeen Auto Garage!',
+                          'Thank you for choosing Asian Auto Repair!',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                               fontSize: 12, color: kMutedForeground),
@@ -417,19 +417,35 @@ class _BottomActions extends StatefulWidget {
 class _BottomActionsState extends State<_BottomActions> {
   bool _pdfLoading  = false;
   bool _waLoading   = false;
+  bool _printLoading = false;
 
   // ── Download PDF ────────────────────────────────────────────────────────────
   Future<void> _onDownloadPdf() async {
     if (_pdfLoading) return;
     setState(() => _pdfLoading = true);
     try {
-      await InvoicePdfService.downloadAndShare(widget.invoice);
+      await InvoicePdfService.downloadPdf(widget.invoice);
     } catch (e) {
       if (mounted) {
         _showError('PDF nahi bana: $e');
       }
     } finally {
       if (mounted) setState(() => _pdfLoading = false);
+    }
+  }
+
+  // ── Print Invoice ───────────────────────────────────────────────────────────
+  Future<void> _onPrint() async {
+    if (_printLoading) return;
+    setState(() => _printLoading = true);
+    try {
+      await InvoicePdfService.printInvoice(widget.invoice);
+    } catch (e) {
+      if (mounted) {
+        _showError('Print nahi hua: $e');
+      }
+    } finally {
+      if (mounted) setState(() => _printLoading = false);
     }
   }
 
@@ -479,6 +495,40 @@ class _BottomActionsState extends State<_BottomActions> {
       ),
       child: Row(
         children: [
+          // Print button
+          Expanded(
+            child: OutlinedButton(
+              onPressed: _printLoading ? null : _onPrint,
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                side: const BorderSide(color: kPrimary, width: 1.2),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                foregroundColor: kPrimary,
+              ),
+              child: _printLoading
+                  ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: kPrimary,
+                ),
+              )
+                  : const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.print_rounded, size: 16),
+                  SizedBox(width: 6),
+                  Text('Print',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 10),
+
           // Download PDF button
           Expanded(
             child: ElevatedButton(

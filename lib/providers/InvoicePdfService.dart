@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:intl/intl.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -10,27 +11,45 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../Models/Billing model/invoice.dart';
-import '../Models/Billing model/InvoiceItem.dart';
+import '../models/billing_model/invoice.dart';
+import '../models/billing_model/InvoiceItem.dart';
 
 class InvoicePdfService {
   // ── Public API ─────────────────────────────────────────────────────────────
 
+  /// PDF generate karke Application Documents directory mein save karein aur open karein.
+  static Future<void> downloadPdf(Invoice invoice) async {
+    final bytes = await buildPdf(invoice);
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/${invoice.invoiceNumber}.pdf');
+    await file.writeAsBytes(bytes);
+    await OpenFilex.open(file.path);
+  }
+
+  /// System ka print dialog trigger karein.
+  static Future<void> printInvoice(Invoice invoice) async {
+    final bytes = await buildPdf(invoice);
+    await Printing.layoutPdf(
+      onLayout: (_) async => bytes,
+      name: 'Invoice_${invoice.invoiceNumber}',
+    );
+  }
+
   /// PDF generate karo aur device pe save karke share sheet kholo.
   static Future<void> downloadAndShare(Invoice invoice) async {
-    final bytes = await _buildPdf(invoice);
+    final bytes = await buildPdf(invoice);
     final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/${invoice.invoiceNumber}.pdf');
     await file.writeAsBytes(bytes);
     await Share.shareXFiles(
       [XFile(file.path, mimeType: 'application/pdf')],
-      subject: 'Invoice ${invoice.invoiceNumber} – Fradeen Auto Garage',
+      subject: 'Invoice ${invoice.invoiceNumber} – Asian Auto Repair',
     );
   }
 
   /// PDF print preview kholo (printing package ka built-in dialog).
   static Future<void> printPreview(Invoice invoice) async {
-    final bytes = await _buildPdf(invoice);
+    final bytes = await buildPdf(invoice);
     await Printing.layoutPdf(onLayout: (_) async => bytes);
   }
 
@@ -50,7 +69,7 @@ class InvoicePdfService {
     final date   = DateFormat('dd MMM yyyy').format(invoice.invoiceDate);
 
     final message = '''
-🔧 *Fradeen Auto Garage*
+🔧 *Asian Auto Repair*
 
 Namaste ${invoice.customer?.name ?? 'Customer'},
 
@@ -63,7 +82,7 @@ Aapka invoice ready hai:
 ✅ *Status:* $status
 
 ${invoice.notes.isNotEmpty ? '📝 Note: ${invoice.notes}\n' : ''}
-Shukriya Fradeen Auto Garage choose karne ke liye! 🙏
+Shukriya Asian Auto Repair choose karne ke liye! 🙏
 ''';
 
     final encoded = Uri.encodeComponent(message);
@@ -78,7 +97,7 @@ Shukriya Fradeen Auto Garage choose karne ke liye! 🙏
 
   // ── PDF Builder ────────────────────────────────────────────────────────────
 
-  static Future<Uint8List> _buildPdf(Invoice invoice) async {
+  static Future<Uint8List> buildPdf(Invoice invoice) async {
     final pdf    = pw.Document();
     final font   = await PdfGoogleFonts.notoSansRegular();
     final fontB  = await PdfGoogleFonts.notoSansBold();
@@ -109,7 +128,7 @@ Shukriya Fradeen Auto Garage choose karne ke liye! 🙏
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
                       pw.Text(
-                        'Fradeen Auto Garage',
+                        'Asian Auto Repair',
                         style: pw.TextStyle(
                           font: fontB,
                           fontSize: 16,
@@ -354,7 +373,7 @@ Shukriya Fradeen Auto Garage choose karne ke liye! 🙏
             pw.SizedBox(height: 6),
             pw.Center(
               child: pw.Text(
-                'Thank you for choosing Fradeen Auto Garage!',
+                'Thank you for choosing Asian Auto Repair!',
                 style: const pw.TextStyle(
                     fontSize: 10, color: PdfColors.grey600),
               ),

@@ -1,8 +1,8 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../Models/CustomerModelas.dart';
-import '../Models/InventoryItem.dart';
+import '../models/CustomerModelas.dart';
+import '../models/InventoryItem.dart';
 
 final inventoryProvider = StateProvider<List<InventoryItem>>((ref) => mockInventory);
 

@@ -1,7 +1,7 @@
 // lib/widgets/bottom_nav.dart
 import 'package:flutter/material.dart';
 
-import 'Providers/NavigationProvider.dart';
+import 'providers/NavigationProvider.dart';
 import 'core/Theme.dart';
 
 class GarageBottomNav extends StatelessWidget {

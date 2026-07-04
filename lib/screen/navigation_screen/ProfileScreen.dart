@@ -1,17 +1,26 @@
-// lib/screens/profile/profile_screen.dart
+// lib/screen/navigation_screen/ProfileScreen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:xlrat/l10n/app_localizations.dart';
 
 import '../../core/theme.dart';
+import '../../providers/profile_provider.dart';
+import '../../providers/locale_provider.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final garageName = ref.watch(profileProvider);
+    final displayName = garageName.isNotEmpty ? garageName : 'My Garage';
+    final l10n = AppLocalizations.of(context)!;
+    final locale = ref.watch(localeProvider);
+
     final sections = [
       _Section('Workshop', [
-        _Item(Icons.store_rounded, 'Workshop Details', 'Fradeen Auto Garage'),
+        _Item(Icons.store_rounded, 'Workshop Details', displayName, id: 'workshop'),
         _Item(Icons.shield_rounded, 'GST & Tax Settings', '27AABCV1234A1ZB'),
         _Item(Icons.location_on_rounded, 'Address & Location', 'Pune, Maharashtra'),
       ]),
@@ -19,9 +28,10 @@ class ProfileScreen extends StatelessWidget {
         _Item(Icons.print_rounded, 'Printer Settings', 'Bluetooth thermal'),
         _Item(Icons.palette_rounded, 'Theme & Display', 'Light mode'),
         _Item(Icons.notifications_rounded, 'Notifications', 'All enabled'),
+        _Item(Icons.language_rounded, l10n.profileLanguageSetting, locale.languageCode == 'en' ? 'English' : 'हिंदी', id: 'language'),
       ]),
       _Section('Account', [
-        _Item(Icons.person_rounded, 'My Profile', 'Fradeen Sharma · Owner'),
+        _Item(Icons.person_rounded, 'My Profile', 'Asian auto repair'),
         _Item(Icons.lock_rounded, 'Security & PIN', 'Biometric enabled'),
         _Item(Icons.help_outline_rounded, 'Help & Support', 'v2.4.1'),
       ]),
@@ -30,7 +40,7 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: kBackground,
       body: ListView(
-        padding: EdgeInsets.only(bottom: 100),
+        padding: const EdgeInsets.only(bottom: 100),
         children: [
           // Gradient Header
           Container(
@@ -63,10 +73,10 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 14),
-                const Text('Fradeen Sharma',
+                const Text('Asian auto repair',
                     style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 4),
-                Text('Garage Owner · Fradeen Auto Garage',
+                Text('Garage Owner · $displayName',
                     style: TextStyle(color: Colors.blue[200], fontSize: 13)),
                 const SizedBox(height: 14),
                 Row(
@@ -82,23 +92,26 @@ class ProfileScreen extends StatelessWidget {
           ),
 
           // Stats Row
-          Container(
-            margin: const EdgeInsets.fromLTRB(16, -20, 16, 20),
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            decoration: BoxDecoration(
-              color: kCard,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: kBorder.withOpacity(0.5)),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 16, offset: const Offset(0, 4))],
-            ),
-            child: Row(
-              children: [
-                _statItem('1,284', 'Customers'),
-                _divider(),
-                _statItem('3,421', 'Jobs Done'),
-                _divider(),
-                _statItem('₹28.4L', 'Revenue'),
-              ],
+          Transform.translate(
+            offset: const Offset(0, -20),
+            child: Container(
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                color: kCard,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: kBorder.withOpacity(0.5)),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 16, offset: const Offset(0, 4))],
+              ),
+              child: Row(
+                children: [
+                  _statItem('1,284', 'Customers'),
+                  _divider(),
+                  _statItem('3,421', 'Jobs Done'),
+                  _divider(),
+                  _statItem('₹28.4L', 'Revenue'),
+                ],
+              ),
             ),
           ),
 
@@ -143,7 +156,13 @@ class ProfileScreen extends StatelessWidget {
                             subtitle: Text(item.sub,
                                 style: const TextStyle(fontSize: 12, color: kMutedForeground)),
                             trailing: const Icon(Icons.chevron_right_rounded, color: kMutedForeground),
-                            onTap: () {},
+                            onTap: () {
+                              if (item.id == 'workshop') {
+                                _showEditGarageNameDialog(context, ref, displayName);
+                              } else if (item.id == 'language') {
+                                _showLanguageDialog(context, ref);
+                              }
+                            },
                           ),
                           if (i < section.items.length - 1)
                             const Divider(height: 1, indent: 70, color: kBorder),
@@ -185,6 +204,74 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  void _showEditGarageNameDialog(BuildContext context, WidgetRef ref, String currentName) {
+    final controller = TextEditingController(text: currentName);
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Edit Workshop Name'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(
+              hintText: 'Enter garage name',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                ref.read(profileProvider.notifier).updateGarageName(controller.text.trim());
+                Navigator.pop(context);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showLanguageDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final currentLanguageCode = ref.read(localeProvider).languageCode;
+        return AlertDialog(
+          title: Text(AppLocalizations.of(context)!.profileLanguageSelect),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: const Text('English'),
+                trailing: currentLanguageCode == 'en'
+                    ? const Icon(Icons.check, color: kPrimary)
+                    : null,
+                onTap: () {
+                  ref.read(localeProvider.notifier).setLocale('en');
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                title: const Text('हिंदी (Hindi)'),
+                trailing: currentLanguageCode == 'hi'
+                    ? const Icon(Icons.check, color: kPrimary)
+                    : null,
+                onTap: () {
+                  ref.read(localeProvider.notifier).setLocale('hi');
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _chip(String text) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
     decoration: BoxDecoration(
@@ -208,4 +295,9 @@ class ProfileScreen extends StatelessWidget {
 }
 
 class _Section { final String title; final List<_Item> items; const _Section(this.title, this.items); }
-class _Item { final IconData icon; final String label, sub; const _Item(this.icon, this.label, this.sub); }
+class _Item {
+  final IconData icon;
+  final String label, sub;
+  final String? id;
+  const _Item(this.icon, this.label, this.sub, {this.id});
+}

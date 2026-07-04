@@ -2,7 +2,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../Models/CustomerModelas.dart';
+import '../models/CustomerModelas.dart';
 
 final customersProvider = StateProvider<List<Customer>>((ref) => mockCustomers);
 

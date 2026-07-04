@@ -1,7 +1,7 @@
 // lib/billing/repositories/vehicle_repository.dart
 
-import '../Local Database/billing_database.dart';
-import '../Models/Billing model/BillingVehicle.dart';
+import '../local_database/billing_database.dart';
+import '../models/billing_model/BillingVehicle.dart';
 
 /// All database access for billing vehicles goes through this class.
 class VehicleRepository {

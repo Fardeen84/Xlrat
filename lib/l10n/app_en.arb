@@ -1,0 +1,141 @@
+{
+  "loginTitleWelcomeBack": "Welcome Back",
+  "loginTitleCreatePin": "Create Security PIN",
+  "loginSubWelcomeBack": "Enter your PIN to access your workshop",
+  "loginSubCreatePin": "Set a 4-digit PIN to protect your database",
+  "loginLabelPin": "Security PIN",
+  "loginLabelEnterPin": "Enter 4-digit PIN",
+  "loginLabelConfirmPin": "Confirm 4-digit PIN",
+  "loginErrorLength": "PIN must be 4 digits",
+  "loginErrorMismatch": "PINs do not match",
+  "loginErrorIncorrect": "Incorrect PIN",
+  "loginButtonUnlock": "Unlock Dashboard",
+  "loginButtonSetPin": "Set PIN & Login",
+
+  "dashboardTitle": "Dashboard",
+  "dashboardSearchHint": "Search customer or vehicle...",
+  "dashboardStatTodaysSales": "Today's Sales",
+  "dashboardStatBillsGenerated": "{count} bills generated",
+  "@dashboardStatBillsGenerated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dashboardStatPendingJobs": "Pending Jobs",
+  "dashboardStatInProgressCount": "{count} in progress",
+  "@dashboardStatInProgressCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dashboardStatCompletedJobs": "Completed Jobs",
+  "dashboardStatCompleted": "Completed",
+  "dashboardStatCompletedToday": "Today",
+  "dashboardStatTotalCustomers": "Total Customers",
+  "dashboardStatRegistered": "Registered",
+  "dashboardSectionActiveJobs": "Active Job Cards",
+  "dashboardSectionLowStockAlert": "Low Stock Items",
+  "dashboardNoActiveJobs": "No active job cards",
+  "dashboardNoLowStock": "All items are in stock",
+  "dashboardViewAll": "View All",
+  "dashboardLowStockAlert": "Low stock alert",
+  "dashboardItemsNeedRestocking": "{count} items need restocking",
+  "@dashboardItemsNeedRestocking": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dashboardActionView": "View",
+  "dashboardQuickActions": "Quick actions",
+
+  "billingTitle": "New Invoice",
+  "billingCustomerSection": "Customer Details",
+  "billingVehicleSection": "Vehicle Details",
+  "billingItemsSection": "Items & Services",
+  "billingSummarySection": "Payment Summary",
+  "billingButtonSave": "Save Invoice",
+  "billingErrorCustomerRequired": "Customer is required",
+  "billingErrorItemRequired": "Add at least one item",
+  "billingHintSavedVehicle": "Select saved vehicle or add new below",
+  "billingLabelSavedVehicles": "Saved Vehicles",
+  "billingLabelNewVehicle": "+ New vehicle",
+  "billingLabelCustomerName": "Customer Name",
+  "billingLabelMobileNumber": "Mobile Number",
+  "billingLabelVehicleNumber": "Vehicle Number",
+  "billingLabelVehicleModel": "Vehicle Model",
+  "billingLabelFuelType": "Fuel Type",
+  "billingStatusExistingCustomer": "Existing customer",
+  "billingActionClear": "Clear",
+  "billingItemsHeader": "Items",
+  "billingActionAddItem": "Add Item",
+  "billingNoItemsTitle": "No items added",
+  "billingNoItemsSubtitle": "Tap to add parts or services",
+  "billingHistory": "History",
+  "billingInvoiceDate": "Invoice Date",
+  "billingPayment": "Payment",
+  "billingStatus": "Status",
+  "billingMethod": "Method",
+  "billingNotesHint": "Notes or remarks (optional)…",
+
+  "statusPending": "Pending",
+  "statusInProgress": "In Progress",
+  "statusCompleted": "Completed",
+  "statusPaid": "Paid",
+  "statusPartial": "Partial",
+
+  "methodCash": "Cash",
+  "methodUpi": "UPI",
+  "methodCard": "Card",
+  "methodBank": "Bank Transfer",
+  "methodPending": "Pending",
+
+  "profileTitle": "Profile",
+  "profileLanguageSetting": "App Language",
+  "profileLanguageSelect": "Choose Language",
+
+  "jobsTitle": "Job Cards",
+  "jobsFilterAll": "All",
+  "jobsNewJobCard": "New Job Card",
+  "jobsNoJobCards": "No job cards found matching this filter.",
+  "jobsColJobId": "Job ID",
+  "jobsColCustomer": "Customer",
+  "jobsColVehicle": "Vehicle",
+  "jobsColComplaint": "Complaint",
+  "jobsColMechanic": "Mechanic",
+  "jobsColAmount": "Amount",
+  "jobsColStatus": "Status",
+  "jobsColActions": "Actions",
+
+  "customersTitle": "Customers",
+  "customersAdd": "Add",
+  "customersSearchHint": "Search by name or phone...",
+
+  "inventoryTitle": "Inventory Management",
+  "inventoryAddPart": "Add Part",
+  "inventoryTabAll": "All Parts",
+  "inventoryTabLowStock": "Low Stock",
+  "inventorySearchHint": "Search parts by name, category, or SKU...",
+  "inventoryColName": "Part Name",
+  "inventoryColSku": "SKU",
+  "inventoryColCategory": "Category",
+  "inventoryColPurchase": "Purchase Price",
+  "inventoryColSelling": "Selling Price",
+  "inventoryColStock": "Stock Qty",
+  "inventoryColMinStock": "Min Stock",
+  "inventoryColStatus": "Status",
+  "inventoryColActions": "Actions",
+
+  "reportsTitle": "Reports",
+  "reportsPeriodDaily": "Daily",
+  "reportsPeriodWeekly": "Weekly",
+  "reportsPeriodMonthly": "Monthly",
+  "tabVehicles": "Vehicles",
+  "tabInvoices": "Invoices",
+  "tabHistory": "History"
+}

@@ -1,5 +1,6 @@
 // lib/theme.dart
 import 'package:flutter/material.dart';
+import 'package:xlrat/l10n/app_localizations.dart';
 
 const kPrimary = Color(0xFF1565C0);
 const kPrimaryDark = Color(0xFF0D47A1);
@@ -47,6 +48,38 @@ ThemeData buildTheme() {
         elevation: 0,
       ),
     ),
+    scrollbarTheme: ScrollbarThemeData(
+      thumbColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.hovered) || states.contains(WidgetState.dragged)) {
+          return kPrimary.withOpacity(0.8);
+        }
+        return kMutedForeground.withOpacity(0.4);
+      }),
+      thickness: WidgetStateProperty.all(6),
+      radius: const Radius.circular(8),
+      interactive: true,
+    ),
+    dataTableTheme: DataTableThemeData(
+      headingRowColor: WidgetStateProperty.all(const Color(0xFFF0F4FF)),
+      headingTextStyle: const TextStyle(
+        fontWeight: FontWeight.w700,
+        color: kForeground,
+        fontSize: 12,
+      ),
+      dataRowColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.hovered)) {
+          return const Color(0xFFF5F7FA);
+        }
+        return kCard;
+      }),
+      dataTextStyle: const TextStyle(
+        color: kForeground,
+        fontSize: 12,
+      ),
+      dividerThickness: 0.8,
+      horizontalMargin: 16,
+      columnSpacing: 16,
+    ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: kMuted,
@@ -88,11 +121,12 @@ extension StatusColor on String {
     }
   }
 
-  String get statusLabel {
+  String statusLabel(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     switch (this) {
-      case 'in-progress': return 'In Progress';
-      case 'pending': return 'Pending';
-      case 'completed': return 'Completed';
+      case 'in-progress': return l10n.statusInProgress;
+      case 'pending': return l10n.statusPending;
+      case 'completed': return l10n.statusCompleted;
       default: return this;
     }
   }

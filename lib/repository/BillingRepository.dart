@@ -1,17 +1,18 @@
 
-import '../Local Database/billing_database.dart';
-import '../Models/Billing model/BillingCustomer.dart';
-import '../Models/Billing model/BillingVehicle.dart';
-import '../Models/Billing model/InvoiceItem.dart';
-import '../Models/Billing model/invoice.dart';
+import '../local_database/billing_database.dart';
+import '../models/billing_model/BillingCustomer.dart';
+import '../models/billing_model/BillingVehicle.dart';
+import '../models/billing_model/InvoiceItem.dart';
+import '../models/billing_model/invoice.dart';
 
 /// Central repository for invoice operations.
 /// Handles atomic invoice + items saves, eager-loading of related entities,
 /// search, and deletion.
 class BillingRepository {
-  BillingRepository(this._db);
+  BillingRepository(this._db, {this.onInvoiceCreated});
 
   final BillingDatabase _db;
+  final Function(Invoice)? onInvoiceCreated;
 
   static const _invoicesTable = 'billing_invoices';
   static const _itemsTable = 'billing_invoice_items';
@@ -28,7 +29,7 @@ class BillingRepository {
         ? await _db.nextInvoiceNumber()
         : invoice.invoiceNumber;
 
-    return db.transaction((txn) async {
+    final savedInvoice = await db.transaction((txn) async {
       final invoiceMap = invoice
           .copyWith(invoiceNumber: invoiceNumber)
           .toMap()
@@ -52,6 +53,10 @@ class BillingRepository {
         items: savedItems,
       );
     });
+
+    onInvoiceCreated?.call(savedInvoice);
+
+    return savedInvoice;
   }
 
   // ─── Read ─────────────────────────────────────────────────────────────────
@@ -72,6 +77,18 @@ class BillingRepository {
       _invoicesTable,
       orderBy: 'created_at DESC',
       limit: limit,
+    );
+    return Future.wait(rows.map(_hydrateInvoice));
+  }
+
+  /// Returns all invoices for a customer, ordered newest-first, with items joined.
+  Future<List<Invoice>> getInvoicesByCustomer(int customerId) async {
+    final db = await _db.database;
+    final rows = await db.query(
+      _invoicesTable,
+      where: 'customer_id = ?',
+      whereArgs: [customerId],
+      orderBy: 'invoice_date DESC',
     );
     return Future.wait(rows.map(_hydrateInvoice));
   }

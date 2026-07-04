@@ -1,8 +1,10 @@
-// lib/screens/auth/login_screen.dart
+// lib/screen/auth/LoginScreen.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:xlrat/l10n/app_localizations.dart';
 
 import '../../core/theme.dart';
+import '../../core/auth_state.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,12 +14,88 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _phoneController = TextEditingController();
-  bool _remember = true;
+  bool _isPinSet = false;
+  bool _isLoading = true;
+  final _pinController = TextEditingController();
+  final _confirmPinController = TextEditingController();
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPinStatus();
+  }
+
+  @override
+  void dispose() {
+    _pinController.dispose();
+    _confirmPinController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _checkPinStatus() async {
+    final hasPin = await AuthState.isPinSet();
+    if (mounted) {
+      setState(() {
+        _isPinSet = hasPin;
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _handleAction() async {
+    setState(() {
+      _errorMessage = null;
+    });
+
+    final pin = _pinController.text;
+    if (pin.length != 4) {
+      setState(() {
+        _errorMessage = AppLocalizations.of(context)!.loginErrorLength;
+      });
+      return;
+    }
+
+    if (!_isPinSet) {
+      final confirmPin = _confirmPinController.text;
+      if (pin != confirmPin) {
+        setState(() {
+          _errorMessage = AppLocalizations.of(context)!.loginErrorMismatch;
+        });
+        return;
+      }
+      await AuthState.savePin(pin);
+      if (mounted) {
+        context.go('/dashboard');
+      }
+    } else {
+      final success = await AuthState.verifyPin(pin);
+      if (success) {
+        if (mounted) {
+          context.go('/dashboard');
+        }
+      } else {
+        setState(() {
+          _errorMessage = AppLocalizations.of(context)!.loginErrorIncorrect;
+          _pinController.clear();
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final isValid = _phoneController.text.length == 10;
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: kCard,
+        body: Center(
+          child: CircularProgressIndicator(color: kPrimary),
+        ),
+      );
+    }
+
+    final buttonEnabled = _pinController.text.length == 4 &&
+        (_isPinSet || _confirmPinController.text.length == 4);
 
     return Scaffold(
       backgroundColor: kCard,
@@ -37,11 +115,21 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Welcome Back',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white)),
+                Text(
+                  _isPinSet ? AppLocalizations.of(context)!.loginTitleWelcomeBack : AppLocalizations.of(context)!.loginTitleCreatePin,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text('Sign in to your workshop account',
-                    style: TextStyle(fontSize: 14, color: Colors.blue[200])),
+                Text(
+                  _isPinSet
+                      ? AppLocalizations.of(context)!.loginSubWelcomeBack
+                      : AppLocalizations.of(context)!.loginSubCreatePin,
+                  style: TextStyle(fontSize: 14, color: Colors.blue[200]),
+                ),
               ],
             ),
           ),
@@ -53,63 +141,102 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 16),
-                  const Text('Mobile Number',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kForeground)),
+                  
+                  // PIN field
+                  Text(
+                    _isPinSet ? AppLocalizations.of(context)!.loginLabelPin : AppLocalizations.of(context)!.loginLabelEnterPin,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: kForeground,
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                        decoration: BoxDecoration(
-                          color: kMuted,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: kBorder),
-                        ),
-                        child: const Row(
-                          children: [
-                            Text('🇮🇳 +91', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                            SizedBox(width: 4),
-                            Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: kMutedForeground),
-                          ],
-                        ),
+                  TextField(
+                    controller: _pinController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 4,
+                    obscureText: true,
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
+                      hintText: '••••',
+                      hintStyle: const TextStyle(color: kMutedForeground),
+                      counterText: '',
+                      filled: true,
+                      fillColor: kMuted,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: kBorder),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextField(
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          maxLength: 10,
-                          onChanged: (_) => setState(() {}),
-                          decoration: InputDecoration(
-                            hintText: 'Enter mobile number',
-                            hintStyle: const TextStyle(color: kMutedForeground),
-                            counterText: '',
-                            filled: true,
-                            fillColor: kMuted,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              borderSide: const BorderSide(color: kBorder),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              borderSide: const BorderSide(color: kBorder),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              borderSide: const BorderSide(color: kPrimary),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          ),
-                        ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: kBorder),
                       ),
-                    ],
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: kPrimary),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    ),
                   ),
 
+                  // Confirm PIN field (only in setup mode)
+                  if (!_isPinSet) ...[
+                    const SizedBox(height: 20),
+                    Text(
+                      AppLocalizations.of(context)!.loginLabelConfirmPin,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: kForeground,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _confirmPinController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 4,
+                      obscureText: true,
+                      onChanged: (_) => setState(() {}),
+                      decoration: InputDecoration(
+                        hintText: '••••',
+                        hintStyle: const TextStyle(color: kMutedForeground),
+                        counterText: '',
+                        filled: true,
+                        fillColor: kMuted,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: kBorder),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: kBorder),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: kPrimary),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      ),
+                    ),
+                  ],
+
+                  // Error Message
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: kRed, fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+
                   const SizedBox(height: 24),
+                  
+                  // Submit Button
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: isValid ? () => context.go('/otp') : null,
+                      onPressed: buttonEnabled ? _handleAction : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: kPrimary,
                         foregroundColor: Colors.white,
@@ -119,58 +246,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         elevation: 4,
                         shadowColor: kPrimary.withOpacity(0.4),
                       ),
-                      child: const Text('Send OTP', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-                  GestureDetector(
-                    onTap: () => setState(() => _remember = !_remember),
-                    child: Row(
-                      children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          width: 20,
-                          height: 20,
-                          decoration: BoxDecoration(
-                            color: _remember ? kPrimary : Colors.transparent,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: _remember ? kPrimary : kBorder, width: 2),
-                          ),
-                          child: _remember
-                              ? const Icon(Icons.check_rounded, size: 13, color: Colors.white)
-                              : null,
-                        ),
-                        const SizedBox(width: 10),
-                        const Text('Remember me on this device',
-                            style: TextStyle(fontSize: 13, color: kMutedForeground)),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 32),
-                  Row(
-                    children: [
-                      const Expanded(child: Divider(color: kBorder)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text('OR', style: TextStyle(fontSize: 12, color: Colors.grey[500], fontWeight: FontWeight.w600)),
-                      ),
-                      const Expanded(child: Divider(color: kBorder)),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.fingerprint_rounded, color: kPrimary),
-                      label: const Text('Login with Biometrics',
-                          style: TextStyle(color: kForeground, fontWeight: FontWeight.w600)),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                        side: const BorderSide(color: kBorder),
+                      child: Text(
+                        _isPinSet ? AppLocalizations.of(context)!.loginButtonUnlock : AppLocalizations.of(context)!.loginButtonSetPin,
+                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
                       ),
                     ),
                   ),

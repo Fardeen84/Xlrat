@@ -4,8 +4,8 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../Models/AppNotification.dart';
-import '../Models/CustomerModelas.dart';
+import '../models/AppNotification.dart';
+import '../models/CustomerModelas.dart';
 
 final notificationsProvider = StateProvider<List<AppNotification>>((ref) => mockNotifications);
 

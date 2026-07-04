@@ -2,8 +2,8 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../Models/CustomerModelas.dart';
-import '../Models/job.dart';
+import '../models/CustomerModelas.dart';
+import '../models/job.dart';
 
 final jobsProvider = StateProvider<List<Job>>((ref) => mockJobs);
 

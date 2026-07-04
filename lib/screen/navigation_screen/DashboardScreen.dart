@@ -1,370 +1,564 @@
 // lib/screens/dashboard_screen.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:xlrat/l10n/app_localizations.dart';
 
-import '../../Models/Billing model/invoice.dart';
-import '../../Providers/NavigationProvider.dart';
-import '../../Providers/billing_providers.dart';
-import '../../Providers/inventoryProvider.dart';
-// import '../../Providers/jobsProvider.dart';        // Job card - commented out
-import '../../Providers/notificationsProvider.dart';
+import '../../models/billing_model/invoice.dart';
+import '../../models/InventoryItem.dart';
+import '../../providers/NavigationProvider.dart';
+import '../../providers/billing_providers.dart';
+import '../../providers/inventoryProvider.dart';
+import '../../models/job.dart';
+import '../../providers/jobsProvider.dart';
+import '../../providers/notificationsProvider.dart';
+import '../../providers/profile_provider.dart';
+import '../../providers/customersProvider.dart';
 
 import '../../core/Theme.dart';
 import '../../widgets/StatusBadge.dart';
 
-
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final unreadCount  = ref.watch(unreadCountProvider);
-    final lowStock     = ref.watch(lowStockItemsProvider);
-    // final jobs      = ref.watch(jobsProvider);   // Job card - commented out
-    final invoicesAsync = ref.watch(invoiceListProvider);
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
 
-    final statCards = [
-      _StatCard(
-        label: "Today's Sales",
-        value: '₹31,400',
-        sub: '↑ +12% vs yesterday',
-        icon: Icons.currency_rupee_rounded,
-        color: Colors.blue,
-        iconBg: const Color(0xFFE3F2FD),
-      ),
-      _StatCard(
-        label: 'Pending Jobs',
-        value: '7',
-        sub: '3 urgent',
-        icon: Icons.access_time_rounded,
-        color: Colors.blue,
-        iconBg: const Color(0xFFE3F2FD),
-      ),
-      _StatCard(
-        label: 'Completed',
-        value: '19',
-        sub: 'Today',
-        icon: Icons.check_circle_rounded,
-        color: Colors.blue,
-        iconBg: const Color(0xFFE3F2FD),
-      ),
-      _StatCard(
-        label: 'Total Customers',
-        value: '1,284',
-        sub: '↑ +8 this week',
-        icon: Icons.people_rounded,
-        color: Colors.blue,
-        iconBg:const Color(0xFFE3F2FD),
-      ),
-    ];
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  final _searchCtrl = TextEditingController();
+  Timer? _debounce;
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final unreadCount = ref.watch(unreadCountProvider);
+    final lowStock = ref.watch(lowStockItemsProvider);
+    final invoicesAsync = ref.watch(invoiceListProvider);
+    final jobs = ref.watch(jobsProvider);
+    final todaySummaryAsync = ref.watch(todaySummaryProvider);
+    final customers = ref.watch(customersProvider);
+    final garageName = ref.watch(profileProvider);
+    final displayName = garageName.isNotEmpty ? garageName : 'My Garage';
+
+    final searchQuery = ref.watch(dashboardSearchQueryProvider);
+    final searchResultsAsync = ref.watch(dashboardSearchResultsProvider);
 
     return Scaffold(
       backgroundColor: kBackground,
-      body: CustomScrollView(
-        slivers: [
-          // ── Header ────────────────────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF1565C0), Color(0xFF0D47A1)],
-                ),
-              ),
-              padding: const EdgeInsets.fromLTRB(16, 52, 16, 20),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _greeting(),
-                            style: TextStyle(color: Colors.blue[200], fontSize: 13),
-                          ),
-                          const Text(
-                            'Fradeen Garage',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
-                      GestureDetector(
-                        onTap: () => context.push('/notifications'),
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            Container(
-                              width: 42,
-                              height: 42,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: const Icon(
-                                Icons.notifications_rounded,
-                                color: Colors.white,
-                                size: 22,
-                              ),
-                            ),
-                            if (unreadCount > 0)
-                              Positioned(
-                                top: -4,
-                                right: -4,
-                                child: Container(
-                                  width: 20,
-                                  height: 20,
-                                  decoration: BoxDecoration(
-                                    color: kOrange,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      unreadCount.toString(),
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  // Search bar
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 20,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: const Row(
-                      children: [
-                        Padding(
-                          padding: EdgeInsets.only(left: 14),
-                          child: Icon(
-                            Icons.search_rounded,
-                            color: kMutedForeground,
-                            size: 20,
-                          ),
-                        ),
-                        Expanded(
-                          child: TextField(
-                            decoration: InputDecoration(
-                              hintText: 'Search customer or vehicle...',
-                              hintStyle: TextStyle(
-                                color: kMutedForeground,
-                                fontSize: 14,
-                              ),
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 14,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // ── Body ──────────────────────────────────────────────────────────
-          SliverPadding(
-            padding: const EdgeInsets.all(16),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-
-                // Stat Cards
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                  childAspectRatio: 1.4,
-                  children: statCards
-                      .map((card) => _buildStatCard(card))
-                      .toList(),
-                ),
-
-                // Low Stock Alert
-                if (lowStock.isNotEmpty) ...[
-                  const SizedBox(height: 14),
-                  _LowStockBanner(
-                    count: lowStock.length,
-                    onTap: () => context.push('/reports'),
-                  ),
-                ],
-
-                const SizedBox(height: 16),
-
-                // Quick Actions
-                const Text(
-                  'Quick actions',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: kForeground,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Row(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isPC = constraints.maxWidth > 1100;
+          if (isPC) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildQuickAction(
-                      'Add customer',
-                      Icons.person_add_rounded,
-                      const Color(0xFFE3F2FD),
-                      Colors.blue,
-                          (){},
-                    ),
-                    const SizedBox(width: 10),
-                    _buildQuickAction(
-                      'New job card',
-                      Icons.add_task_rounded,
-                      const Color(0xFFE3F2FD),
-                      Colors.blue,
-                          () => context.push('/new-job'),
-                    ),
-                    const SizedBox(width: 10),
-                    _buildQuickAction(
-                      'Create invoice',
-                      Icons.receipt_long_rounded,
-                      const Color(0xFFE3F2FD),
-                      Colors.blue,
-                          () => context.push('/billing'),
+                    _buildPCLayout(
+                      context,
+                      ref,
+                      unreadCount,
+                      lowStock,
+                      invoicesAsync,
+                      jobs,
+                      todaySummaryAsync,
+                      customers.length,
                     ),
                   ],
                 ),
+              ),
+            );
+          } else {
+            return _buildMobileLayout(
+              context,
+              ref,
+              unreadCount,
+              lowStock,
+              invoicesAsync,
+              jobs,
+              todaySummaryAsync,
+              customers.length,
+              displayName,
+              searchQuery,
+              searchResultsAsync,
+            );
+          }
+        },
+      ),
+    );
+  }
 
-                const SizedBox(height: 20),
+  // ── PC Layout ──────────────────────────────────────────────────────────────
+  Widget _buildPCLayout(
+    BuildContext context,
+    WidgetRef ref,
+    int unreadCount,
+    List<InventoryItem> lowStock,
+    AsyncValue<List<Invoice>> invoicesAsync,
+    List<Job> jobs,
+    AsyncValue<({double total, int count})> todaySummaryAsync,
+    int totalCustomers,
+  ) {
+    final activeJobs = jobs.where((j) => j.status != 'completed').toList();
+    final todaySalesStr = todaySummaryAsync.maybeWhen(
+      data: (summary) => formatCurrency(summary.total.round()),
+      orElse: () => '₹0',
+    );
+    final todaySalesSub = todaySummaryAsync.maybeWhen(
+      data: (summary) => AppLocalizations.of(context)!.dashboardStatBillsGenerated(summary.count),
+      orElse: () => AppLocalizations.of(context)!.dashboardStatBillsGenerated(0),
+    );
+    final pendingCount = jobs.where((j) => j.status == 'pending').length;
+    final inProgressCount = jobs.where((j) => j.status == 'in-progress').length;
 
-                // ── Recent Bills ──────────────────────────────────────────
-                _SectionHeader(
-                  title: 'Recent bills',
-                  actionLabel: 'View all',
-                  onAction: () => context.push('/billing'),
-                ),
-                const SizedBox(height: 10),
-
-                invoicesAsync.when(
-                  loading: () => const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(24),
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  ),
-                  error: (e, _) => Center(
-                    child: Text(
-                      'Could not load bills',
-                      style: TextStyle(
-                        color: kMutedForeground,
-                        fontSize: 13,
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Main Area (2/3 width) ──
+          Expanded(
+            flex: 2,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Stats Grid (1 row of 4 cards)
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard(
+                        _StatCard(
+                          label: AppLocalizations.of(context)!.dashboardStatTodaysSales,
+                          value: todaySalesStr,
+                          sub: todaySalesSub,
+                          icon: Icons.currency_rupee_rounded,
+                          color: Colors.blue,
+                          iconBg: const Color(0xFFE3F2FD),
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildStatCard(
+                        _StatCard(
+                          label: AppLocalizations.of(context)!.dashboardStatPendingJobs,
+                          value: '$pendingCount',
+                          sub: AppLocalizations.of(context)!.dashboardStatInProgressCount(inProgressCount),
+                          icon: Icons.access_time_rounded,
+                          color: Colors.orange,
+                          iconBg: const Color(0xFFFFF3E0),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildStatCard(
+                        _StatCard(
+                          label: AppLocalizations.of(context)!.dashboardStatCompletedJobs,
+                          value:
+                              '${jobs.where((j) => j.status == 'completed').length}',
+                          sub: AppLocalizations.of(context)!.dashboardStatCompletedToday,
+                          icon: Icons.check_circle_rounded,
+                          color: Colors.green,
+                          iconBg: const Color(0xFFE8F5E9),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildStatCard(
+                        _StatCard(
+                          label: AppLocalizations.of(context)!.dashboardStatTotalCustomers,
+                          value: '$totalCustomers',
+                          sub: AppLocalizations.of(context)!.dashboardStatRegistered,
+                          icon: Icons.people_rounded,
+                          color: Colors.blue,
+                          iconBg: const Color(0xFFE3F2FD),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // Active Jobs Table
+                Container(
+                  decoration: BoxDecoration(
+                    color: kCard,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: kBorder, width: 0.8),
                   ),
-                  data: (invoices) {
-                    if (invoices.isEmpty) {
-                      return const _EmptyBills();
-                    }
-                    return Column(
-                      children: invoices
-                          .take(4)
-                          .map(
-                            (inv) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: _BillCard(
-                            invoice: inv,
-                            onTap: () => context.push(
-                              '/billing/invoice/${inv.id}',
-                            ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(
+                          AppLocalizations.of(context)!.dashboardSectionActiveJobs,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: kForeground,
                           ),
                         ),
-                      )
-                          .toList(),
-                    );
-                  },
+                      ),
+                      if (activeJobs.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Center(child: Text(AppLocalizations.of(context)!.dashboardNoActiveJobs)),
+                        )
+                      else
+                        SizedBox(
+                          width: double.infinity,
+                          child: DataTable(
+                            columns: const [
+                              DataColumn(label: Text('Customer')),
+                              DataColumn(label: Text('Vehicle')),
+                              DataColumn(label: Text('Status')),
+                              DataColumn(label: Text('Amount')),
+                              DataColumn(label: Text('Action')),
+                            ],
+                            rows: activeJobs.take(5).map((job) {
+                              return DataRow(
+                                cells: [
+                                  DataCell(
+                                    Text(
+                                      job.customer,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  DataCell(
+                                    Text('${job.vehicle} (${job.brand})'),
+                                  ),
+                                  DataCell(StatusBadge(status: job.status)),
+                                  DataCell(Text(formatCurrency(job.amount))),
+                                  DataCell(
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.arrow_forward_rounded,
+                                        color: kPrimary,
+                                        size: 18,
+                                      ),
+                                      onPressed: () {
+                                        ref
+                                                .read(
+                                                  selectedJobProvider.notifier,
+                                                )
+                                                .state =
+                                            job;
+                                        context.push('/job-detail');
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
+                const SizedBox(height: 24),
 
-                // ── Recent Jobs (COMMENTED OUT) ───────────────────────────
-                //
-                // const SizedBox(height: 20),
-                // _SectionHeader(
-                //   title: 'Recent jobs',
-                //   actionLabel: 'View all',
-                //   onAction: () => ref
-                //       .read(navigationProvider.notifier)
-                //       .setScreen(AppScreen.jobs),
-                // ),
-                // const SizedBox(height: 10),
-                // ...jobs.take(3).map((job) => Padding(
-                //   padding: const EdgeInsets.only(bottom: 8),
-                //   child: GarageCard(
-                //     onTap: () => AppScreen.jobDetail,
-                //     child: Row(
-                //       children: [
-                //         VehicleIcon(type: job.vehicleType),
-                //         const SizedBox(width: 12),
-                //         Expanded(
-                //           child: Column(
-                //             crossAxisAlignment: CrossAxisAlignment.start,
-                //             children: [
-                //               Text(job.customer,
-                //                   style: const TextStyle(
-                //                     fontWeight: FontWeight.w800,
-                //                     fontSize: 14,
-                //                     color: kForeground,
-                //                   )),
-                //               const SizedBox(height: 2),
-                //               Text('${job.vehicle} · ${job.brand}',
-                //                   style: const TextStyle(
-                //                     fontSize: 12,
-                //                     color: kMutedForeground,
-                //                   )),
-                //             ],
-                //           ),
-                //         ),
-                //         Column(
-                //           crossAxisAlignment: CrossAxisAlignment.end,
-                //           children: [
-                //             StatusBadge(status: job.status),
-                //             const SizedBox(height: 4),
-                //             Text(formatCurrency(job.amount),
-                //                 style: const TextStyle(
-                //                   fontWeight: FontWeight.w800,
-                //                   fontSize: 13,
-                //                 )),
-                //           ],
-                //         ),
-                //       ],
-                //     ),
-                //   ),
-                // )),
+                // Recent Activity (Recent Invoices)
+                Container(
+                  decoration: BoxDecoration(
+                    color: kCard,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: kBorder, width: 0.8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Recent Invoices / Bills',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: kForeground,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => context.push('/InvoiceHistory'),
+                              child: const Text('View All'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      invoicesAsync.when(
+                        loading: () => const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(24),
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                        error: (e, _) => const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(24),
+                            child: Text('Could not load invoices'),
+                          ),
+                        ),
+                        data: (invoices) {
+                          if (invoices.isEmpty) {
+                            return const Padding(
+                              padding: EdgeInsets.all(24),
+                              child: Center(child: Text('No invoices yet')),
+                            );
+                          }
+                          return Column(
+                            children: invoices.take(4).map((inv) {
+                              return _BillCard(
+                                invoice: inv,
+                                onTap: () => context.push('/invoice/${inv.id}'),
+                              );
+                            }).toList(),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 24),
 
-                const SizedBox(height: 80),
-              ]),
+          // ── Side Area (1/3 width) ──
+          Expanded(
+            flex: 1,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Today's Billing Summary Card
+                todaySummaryAsync.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => const SizedBox(),
+                  data: (summary) => Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF1565C0), Color(0xFF0D47A1)],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blue.withOpacity(0.2),
+                          blurRadius: 15,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Today's Summary",
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          formatCurrency(summary.total.round()),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          "${summary.count} invoices generated today",
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Quick Actions Panel
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: kCard,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: kBorder, width: 0.8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Quick Actions',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: kForeground,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildPCQuickActionRow(
+                        'Add customer',
+                        Icons.person_add_rounded,
+                        const Color(0xFFE3F2FD),
+                        Colors.blue,
+                        () => context.go('/customers'),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildPCQuickActionRow(
+                        'New job card',
+                        Icons.add_task_rounded,
+                        const Color(0xFFE8F5E9),
+                        Colors.green,
+                        () => context.push('/new-job'),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildPCQuickActionRow(
+                        'Create invoice',
+                        Icons.receipt_long_rounded,
+                        const Color(0xFFFFF3E0),
+                        Colors.orange,
+                        () => context.push('/billing'),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Low Stock Warnings List
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: kCard,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: kBorder, width: 0.8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            AppLocalizations.of(context)!.dashboardSectionLowStockAlert,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: kForeground,
+                            ),
+                          ),
+                          if (lowStock.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade100,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${lowStock.length}',
+                                style: TextStyle(
+                                  color: Colors.red.shade700,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (lowStock.isEmpty)
+                        Text(
+                          AppLocalizations.of(context)!.dashboardNoLowStock,
+                          style: const TextStyle(
+                            color: kMutedForeground,
+                            fontSize: 12,
+                          ),
+                        )
+                      else
+                        Column(
+                          children: List.generate(lowStock.take(5).length, (
+                            idx,
+                          ) {
+                            final item = lowStock[idx];
+                            return Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item.name,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w700,
+                                              color: kForeground,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Stock: ${item.stock} ${item.unit} (Min: ${item.minStock})',
+                                            style: const TextStyle(
+                                              fontSize: 10,
+                                              color: kMutedForeground,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => context.go('/inventory'),
+                                      child: const Text(
+                                        'Restock',
+                                        style: TextStyle(fontSize: 11),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (idx < lowStock.take(5).length - 1)
+                                  const Divider(color: kBorder, height: 16),
+                              ],
+                            );
+                          }),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -372,7 +566,497 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  // ── Stat card builder ──────────────────────────────────────────────────────
+  Widget _buildPCQuickActionRow(
+    String label,
+    IconData icon,
+    Color iconBg,
+    MaterialColor iconColor,
+    VoidCallback onTap,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          border: Border.all(color: kBorder, width: 0.8),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 18, color: iconColor.shade700),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: kForeground,
+              ),
+            ),
+            const Spacer(),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: kMutedForeground,
+              size: 18,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Mobile Layout ──────────────────────────────────────────────────────────
+  Widget _buildMobileLayout(
+    BuildContext context,
+    WidgetRef ref,
+    int unreadCount,
+    List<InventoryItem> lowStock,
+    AsyncValue<List<Invoice>> invoicesAsync,
+    List<Job> jobs,
+    AsyncValue<({double total, int count})> todaySummaryAsync,
+    int totalCustomers,
+    String garageName,
+    String searchQuery,
+    AsyncValue<List<Invoice>> searchResultsAsync,
+  ) {
+    final todaySalesStr = todaySummaryAsync.maybeWhen(
+      data: (summary) => formatCurrency(summary.total.round()),
+      orElse: () => '₹0',
+    );
+    final todaySalesSub = todaySummaryAsync.maybeWhen(
+      data: (summary) => AppLocalizations.of(context)!.dashboardStatBillsGenerated(summary.count),
+      orElse: () => AppLocalizations.of(context)!.dashboardStatBillsGenerated(0),
+    );
+    final pendingCount = jobs.where((j) => j.status == 'pending').length;
+    final inProgressCount = jobs.where((j) => j.status == 'in-progress').length;
+
+    final statCards = [
+      _StatCard(
+        label: AppLocalizations.of(context)!.dashboardStatTodaysSales,
+        value: todaySalesStr,
+        sub: todaySalesSub,
+        icon: Icons.currency_rupee_rounded,
+        color: Colors.blue,
+        iconBg: const Color(0xFFE3F2FD),
+      ),
+      _StatCard(
+        label: AppLocalizations.of(context)!.dashboardStatPendingJobs,
+        value: '$pendingCount',
+        sub: AppLocalizations.of(context)!.dashboardStatInProgressCount(inProgressCount),
+        icon: Icons.access_time_rounded,
+        color: Colors.orange,
+        iconBg: const Color(0xFFFFF3E0),
+      ),
+      _StatCard(
+        label: AppLocalizations.of(context)!.dashboardStatCompleted,
+        value: '${jobs.where((j) => j.status == 'completed').length}',
+        sub: AppLocalizations.of(context)!.dashboardStatCompletedToday,
+        icon: Icons.check_circle_rounded,
+        color: Colors.green,
+        iconBg: const Color(0xFFE8F5E9),
+      ),
+      _StatCard(
+        label: AppLocalizations.of(context)!.dashboardStatTotalCustomers,
+        value: '$totalCustomers',
+        sub: AppLocalizations.of(context)!.dashboardStatRegistered,
+        icon: Icons.people_rounded,
+        color: Colors.blue,
+        iconBg: const Color(0xFFE3F2FD),
+      ),
+    ];
+
+    return CustomScrollView(
+      slivers: [
+        // Header
+        SliverToBoxAdapter(
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF1565C0), Color(0xFF0D47A1)],
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 52, 16, 20),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _greeting(),
+                          style: TextStyle(
+                            color: Colors.blue[200],
+                            fontSize: 13,
+                          ),
+                        ),
+                        Text(
+                          garageName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                    GestureDetector(
+                      onTap: () => context.push('/notifications'),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(
+                              Icons.notifications_rounded,
+                              color: Colors.white,
+                              size: 22,
+                            ),
+                          ),
+                          if (unreadCount > 0)
+                            Positioned(
+                              top: -4,
+                              right: -4,
+                              child: Container(
+                                width: 20,
+                                height: 20,
+                                decoration: BoxDecoration(
+                                  color: kOrange,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    unreadCount.toString(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                // Search bar
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(left: 14),
+                        child: Icon(
+                          Icons.search_rounded,
+                          color: kMutedForeground,
+                          size: 20,
+                        ),
+                      ),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchCtrl,
+                          onChanged: (val) {
+                            setState(() {});
+                            if (_debounce?.isActive ?? false) _debounce!.cancel();
+                            _debounce = Timer(const Duration(milliseconds: 300), () {
+                              ref.read(dashboardSearchQueryProvider.notifier).state = val;
+                            });
+                          },
+                          decoration: InputDecoration(
+                            hintText: AppLocalizations.of(context)!.dashboardSearchHint,
+                            hintStyle: const TextStyle(
+                              color: kMutedForeground,
+                              fontSize: 14,
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 14,
+                            ),
+                            suffixIcon: _searchCtrl.text.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear_rounded, size: 18, color: kMutedForeground),
+                                    onPressed: () {
+                                      _searchCtrl.clear();
+                                      ref.read(dashboardSearchQueryProvider.notifier).state = '';
+                                      setState(() {});
+                                    },
+                                  )
+                                : null,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (searchQuery.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    constraints: const BoxConstraints(maxHeight: 250),
+                    child: searchResultsAsync.when(
+                      loading: () => const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                      error: (err, stack) => Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text('Error: $err', style: const TextStyle(color: kRed)),
+                      ),
+                      data: (results) {
+                        if (results.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Center(
+                              child: Text(
+                                'No matching invoices found',
+                                style: TextStyle(color: kMutedForeground, fontSize: 13),
+                              ),
+                            ),
+                          );
+                        }
+                        return ListView.separated(
+                          shrinkWrap: true,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          itemCount: results.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1, color: kBorder),
+                          itemBuilder: (context, index) {
+                            final invoice = results[index];
+                            return ListTile(
+                              leading: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: kMuted,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(Icons.receipt_long_rounded, color: kPrimary, size: 18),
+                              ),
+                              title: Text(
+                                invoice.invoiceNumber,
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: kForeground),
+                              ),
+                              subtitle: Text(
+                                '${invoice.customer?.name ?? 'Unknown Customer'} • ${invoice.vehicle?.vehicleNumber ?? 'No Vehicle'}',
+                                style: const TextStyle(fontSize: 11, color: kMutedForeground),
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        formatCurrency(invoice.grandTotal.round()),
+                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kForeground),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        invoice.paymentStatus.label,
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: invoice.paymentStatus == PaymentStatus.paid ? kGreen : kOrange,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    icon: const Icon(Icons.person_outline_rounded, color: kMutedForeground, size: 20),
+                                    onPressed: () {
+                                      context.push('/customer-detail/${invoice.customerId}');
+                                    },
+                                    tooltip: 'View Customer',
+                                  ),
+                                ],
+                              ),
+                              onTap: () {
+                                context.push('/invoice/${invoice.id}');
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+
+        // Body
+        SliverPadding(
+          padding: const EdgeInsets.all(16),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              // Stat Cards
+              Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: _buildStatCard(statCards[0])),
+                      const SizedBox(width: 10),
+                      Expanded(child: _buildStatCard(statCards[1])),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(child: _buildStatCard(statCards[2])),
+                      const SizedBox(width: 10),
+                      Expanded(child: _buildStatCard(statCards[3])),
+                    ],
+                  ),
+                ],
+              ),
+
+              // Low Stock Alert
+              if (lowStock.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                _LowStockBanner(
+                  count: lowStock.length,
+                  onTap: () => context.push('/reports'),
+                ),
+              ],
+
+              const SizedBox(height: 16),
+
+              // Quick Actions
+              Text(
+                AppLocalizations.of(context)!.dashboardQuickActions,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: kForeground,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  _buildQuickAction(
+                    'Add customer',
+                    Icons.person_add_rounded,
+                    const Color(0xFFE3F2FD),
+                    Colors.blue,
+                    () {},
+                  ),
+                  const SizedBox(width: 10),
+                  _buildQuickAction(
+                    'New job card',
+                    Icons.add_task_rounded,
+                    const Color(0xFFE3F2FD),
+                    Colors.blue,
+                    () => context.push('/new-job'),
+                  ),
+                  const SizedBox(width: 10),
+                  _buildQuickAction(
+                    'Create invoice',
+                    Icons.receipt_long_rounded,
+                    const Color(0xFFE3F2FD),
+                    Colors.blue,
+                    () => context.push('/billing'),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // Recent Bills
+              _SectionHeader(
+                title: 'Recent bills',
+                actionLabel: 'View all',
+                onAction: () => context.push('/billing'),
+              ),
+              const SizedBox(height: 10),
+
+              invoicesAsync.when(
+                loading: () => const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+                error: (e, _) => const Center(
+                  child: Text(
+                    'Could not load bills',
+                    style: TextStyle(color: kMutedForeground, fontSize: 13),
+                  ),
+                ),
+                data: (invoices) {
+                  if (invoices.isEmpty) {
+                    return const _EmptyBills();
+                  }
+                  return Column(
+                    children: invoices
+                        .take(4)
+                        .map(
+                          (inv) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _BillCard(
+                              invoice: inv,
+                              onTap: () => context.push('/invoice/${inv.id}'),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  );
+                },
+              ),
+              const SizedBox(height: 80),
+            ]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
   Widget _buildStatCard(_StatCard card) {
     return Container(
       padding: const EdgeInsets.all(14),
@@ -386,6 +1070,7 @@ class DashboardScreen extends ConsumerWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,  // ADD THIS
         children: [
           Container(
             width: 36,
@@ -396,7 +1081,7 @@ class DashboardScreen extends ConsumerWidget {
             ),
             child: Icon(card.icon, size: 18, color: card.color.shade700),
           ),
-          const Spacer(),
+          const SizedBox(height: 12),  // REPLACE Spacer() with this
           Text(
             card.value,
             style: const TextStyle(
@@ -405,37 +1090,19 @@ class DashboardScreen extends ConsumerWidget {
               color: kForeground,
             ),
           ),
-          const SizedBox(height: 1),
-          Text(
-            card.label,
-            style: const TextStyle(
-              fontSize: 11,
-              color: kMutedForeground,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            card.sub,
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.green.shade600,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+          // ... rest unchanged
         ],
       ),
     );
   }
 
-  // ── Quick action button ────────────────────────────────────────────────────
   Widget _buildQuickAction(
-      String label,
-      IconData icon,
-      Color iconBg,
-      MaterialColor iconColor,
-      VoidCallback onTap,
-      ) {
+    String label,
+    IconData icon,
+    Color iconBg,
+    MaterialColor iconColor,
+    VoidCallback onTap,
+  ) {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
@@ -474,7 +1141,6 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  // ── Greeting helper ────────────────────────────────────────────────────────
   String _greeting() {
     final hour = DateTime.now().hour;
     if (hour < 12) return 'Good morning,';
@@ -483,7 +1149,7 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-// ── Low Stock Banner ───────────────────────────────────────────────────────────
+// ── Low Stock Banner ─────────────────────────────────────────────────────────
 class _LowStockBanner extends StatelessWidget {
   final int count;
   final VoidCallback onTap;
@@ -495,7 +1161,6 @@ class _LowStockBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        //color: const Color(0xFFFFF8E1),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.red.shade200),
       ),
@@ -520,7 +1185,7 @@ class _LowStockBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Low stock alert',
+                  AppLocalizations.of(context)!.dashboardLowStockAlert,
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
                     color: Colors.orange.shade900,
@@ -529,11 +1194,8 @@ class _LowStockBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '$count items need restocking',
-                  style: TextStyle(
-                    color: Colors.orange.shade700,
-                    fontSize: 11,
-                  ),
+                  AppLocalizations.of(context)!.dashboardItemsNeedRestocking(count),
+                  style: TextStyle(color: Colors.orange.shade700, fontSize: 11),
                 ),
               ],
             ),
@@ -541,12 +1203,11 @@ class _LowStockBanner extends StatelessWidget {
           GestureDetector(
             onTap: onTap,
             child: Text(
-              'View',
+              AppLocalizations.of(context)!.dashboardActionView,
               style: TextStyle(
                 color: Colors.orange.shade700,
                 fontWeight: FontWeight.w800,
                 fontSize: 12,
-
               ),
             ),
           ),
@@ -556,7 +1217,7 @@ class _LowStockBanner extends StatelessWidget {
   }
 }
 
-// ── Section Header ────────────────────────────────────────────────────────────
+// ── Section Header ───────────────────────────────────────────────────────────
 class _SectionHeader extends StatelessWidget {
   final String title;
   final String actionLabel;
@@ -597,7 +1258,7 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-// ── Bill Card ─────────────────────────────────────────────────────────────────
+// ── Bill Card ────────────────────────────────────────────────────────────────
 class _BillCard extends StatelessWidget {
   final Invoice invoice;
   final VoidCallback onTap;
@@ -624,15 +1285,11 @@ class _BillCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: kBorder, width: 0.8),
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 8,
-            ),
+            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8),
           ],
         ),
         child: Row(
           children: [
-            // Avatar
             Container(
               width: 42,
               height: 42,
@@ -652,7 +1309,6 @@ class _BillCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            // Info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -667,7 +1323,7 @@ class _BillCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${invoice.invoiceNumber}  ''}',
+                    invoice.invoiceNumber,
                     style: const TextStyle(
                       fontSize: 11,
                       color: kMutedForeground,
@@ -676,7 +1332,6 @@ class _BillCard extends StatelessWidget {
                 ],
               ),
             ),
-            // Amount + Badge
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -749,7 +1404,7 @@ class _BillCard extends StatelessWidget {
   }
 }
 
-// ── Empty Bills placeholder ───────────────────────────────────────────────────
+// ── Empty Bills placeholder ──────────────────────────────────────────────────
 class _EmptyBills extends StatelessWidget {
   const _EmptyBills();
 
@@ -760,7 +1415,11 @@ class _EmptyBills extends StatelessWidget {
       alignment: Alignment.center,
       child: Column(
         children: [
-          Icon(Icons.receipt_long_outlined, size: 36, color: kMutedForeground),
+          const Icon(
+            Icons.receipt_long_outlined,
+            size: 36,
+            color: kMutedForeground,
+          ),
           const SizedBox(height: 8),
           const Text(
             'No bills yet',
@@ -776,7 +1435,6 @@ class _EmptyBills extends StatelessWidget {
   }
 }
 
-// ── _StatCard data class ──────────────────────────────────────────────────────
 class _StatCard {
   final String label;
   final String value;

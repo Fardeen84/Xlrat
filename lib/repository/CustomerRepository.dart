@@ -1,9 +1,9 @@
 
-import '../Local Database/billing_database.dart';
-import '../Models/Billing model/BillingCustomer.dart';
+import '../local_database/billing_database.dart';
+import '../models/billing_model/BillingCustomer.dart';
 
 /// All database access for billing customers goes through this class.
-/// UI and Providers never touch the DB directly.
+/// UI and providers never touch the DB directly.
 class CustomerRepository {
   CustomerRepository(this._db);
 

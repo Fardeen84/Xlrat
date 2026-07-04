@@ -2,14 +2,15 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../Local Database/billing_database.dart';
-import '../Models/Billing model/BillingCustomer.dart';
-import '../Models/Billing model/BillingVehicle.dart';
-import '../Models/Billing model/InvoiceItem.dart';
-import '../Models/Billing model/invoice.dart';
-import '../Repository/BillingRepository.dart';
-import '../Repository/CustomerRepository.dart';
-import '../Repository/VehicleRepository.dart';
+import '../local_database/billing_database.dart';
+import '../models/billing_model/BillingCustomer.dart';
+import '../models/billing_model/BillingVehicle.dart';
+import '../models/billing_model/InvoiceItem.dart';
+import '../models/billing_model/invoice.dart';
+import '../repository/BillingRepository.dart';
+import '../repository/CustomerRepository.dart';
+import '../repository/VehicleRepository.dart';
+import 'ReminderService.dart';
 
 // ─── Database singleton ───────────────────────────────────────────────────────
 
@@ -17,7 +18,12 @@ final billingDatabaseProvider = Provider<BillingDatabase>(
       (ref) => BillingDatabase.instance,
 );
 
-// ─── Repository providers ─────────────────────────────────────────────────────
+final Provider<ReminderService> reminderServiceProvider = Provider<ReminderService>((ref) {
+  final billingRepo = ref.watch(billingRepositoryProvider);
+  return ReminderService(billingRepo);
+});
+
+// ─── repository providers ─────────────────────────────────────────────────────
 
 final customerRepositoryProvider = Provider<CustomerRepository>(
       (ref) => CustomerRepository(ref.watch(billingDatabaseProvider)),
@@ -27,8 +33,17 @@ final vehicleRepositoryProvider = Provider<VehicleRepository>(
       (ref) => VehicleRepository(ref.watch(billingDatabaseProvider)),
 );
 
-final billingRepositoryProvider = Provider<BillingRepository>(
-      (ref) => BillingRepository(ref.watch(billingDatabaseProvider)),
+final Provider<BillingRepository> billingRepositoryProvider = Provider<BillingRepository>(
+      (ref) => BillingRepository(
+        ref.watch(billingDatabaseProvider),
+        onInvoiceCreated: (invoice) {
+          try {
+            ref.read(reminderServiceProvider).scheduleReminderForInvoice(invoice);
+          } catch (e) {
+            print('Failed to trigger reminder callback: $e');
+          }
+        },
+      ),
 );
 
 // ─── Customer providers ───────────────────────────────────────────────────────
@@ -84,10 +99,21 @@ final invoiceListProvider = FutureProvider.autoDispose<List<Invoice>>((ref) {
   return repo.getInvoices();
 });
 
+final reportsInvoicesProvider = FutureProvider.autoDispose<List<Invoice>>((ref) {
+  final repo = ref.watch(billingRepositoryProvider);
+  return repo.getInvoices();
+});
+
 final invoiceDetailProvider =
 FutureProvider.autoDispose.family<Invoice?, int>((ref, id) {
   final repo = ref.watch(billingRepositoryProvider);
   return repo.getInvoice(id);
+});
+
+final invoicesByCustomerProvider =
+FutureProvider.autoDispose.family<List<Invoice>, int>((ref, customerId) {
+  final repo = ref.watch(billingRepositoryProvider);
+  return repo.getInvoicesByCustomer(customerId);
 });
 
 final todaySummaryProvider =
@@ -288,3 +314,12 @@ class InvoiceDraft {
         notes: notes ?? this.notes,
       );
 }
+
+final dashboardSearchQueryProvider = StateProvider<String>((ref) => '');
+
+final dashboardSearchResultsProvider = FutureProvider<List<Invoice>>((ref) async {
+  final query = ref.watch(dashboardSearchQueryProvider);
+  if (query.trim().isEmpty) return const [];
+  final repo = ref.read(billingRepositoryProvider);
+  return repo.searchInvoices(query);
+});
