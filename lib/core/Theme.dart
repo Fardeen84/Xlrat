@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xlrat/l10n/app_localizations.dart';
-import '../providers/billing_providers.dart';
+import '../providers/profile_provider.dart';
 
 ThemeMode gThemeMode = ThemeMode.light;
 
@@ -52,7 +52,7 @@ ThemeData buildTheme() {
     ),
     scaffoldBackgroundColor: kBackground,
     fontFamily: 'Roboto',
-    appBarTheme: const AppBarTheme(
+    appBarTheme: AppBarTheme(
       backgroundColor: kCard,
       elevation: 0,
       scrolledUnderElevation: 1,
@@ -87,7 +87,7 @@ ThemeData buildTheme() {
     ),
     dataTableTheme: DataTableThemeData(
       headingRowColor: WidgetStateProperty.all(const Color(0xFFF0F4FF)),
-      headingTextStyle: const TextStyle(
+      headingTextStyle: TextStyle(
         fontWeight: FontWeight.w700,
         color: kForeground,
         fontSize: 12,
@@ -98,7 +98,7 @@ ThemeData buildTheme() {
         }
         return kCard;
       }),
-      dataTextStyle: const TextStyle(
+      dataTextStyle: TextStyle(
         color: kForeground,
         fontSize: 12,
       ),
@@ -111,11 +111,11 @@ ThemeData buildTheme() {
       fillColor: kMuted,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: kBorder),
+        borderSide: BorderSide(color: kBorder),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: kBorder),
+        borderSide: BorderSide(color: kBorder),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
