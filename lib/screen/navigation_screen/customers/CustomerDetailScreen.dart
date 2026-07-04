@@ -10,6 +10,7 @@ import '../../../models/billing_model/BillingVehicle.dart';
 import '../../../models/billing_model/InvoiceItem.dart';
 import '../../../models/billing_model/invoice.dart';
 import '../../../providers/billing_providers.dart';
+import '../../../widgets/EmptyStateView.dart';
 
 class CustomerDetailScreen extends ConsumerStatefulWidget {
   final int customerId;
@@ -436,9 +437,12 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
                         ),
                         const SizedBox(height: 12),
                         if (vehiclesList.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 20),
-                            child: Text('No vehicles added for this customer yet.', style: TextStyle(color: kMutedForeground, fontSize: 13)),
+                          EmptyStateView(
+                            icon: Icons.directions_car_rounded,
+                            title: 'No Vehicles Added',
+                            description: 'Add vehicles for this customer to map them to invoices and job cards.',
+                            ctaLabel: 'Add Vehicle',
+                            onCtaPressed: () => _showAddVehicleDialog(context),
                           )
                         else
                           ...vehiclesList.map((v) => Padding(
@@ -487,22 +491,15 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
                           ),
                           data: (invoicesList) {
                             if (invoicesList.isEmpty) {
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 40),
-                                child: Column(
-                                  children: [
-                                    Container(
-                                      width: 48,
-                                      height: 48,
-                                      decoration: BoxDecoration(color: kMuted, borderRadius: BorderRadius.circular(14)),
-                                      child: const Icon(Icons.receipt_long_rounded, size: 22, color: kMutedForeground),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    const Text('Koi invoice nahi mila', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kForeground)),
-                                    const SizedBox(height: 4),
-                                    const Text('Is customer ke liye koi record nahi hai', style: TextStyle(fontSize: 12, color: kMutedForeground)),
-                                  ],
-                                ),
+                              return EmptyStateView(
+                                icon: Icons.receipt_long_rounded,
+                                title: 'No Invoices Created',
+                                description: 'Create an invoice to bill this customer for parts and services.',
+                                ctaLabel: 'Create Invoice',
+                                onCtaPressed: () {
+                                  ref.read(selectedCustomerProvider.notifier).state = customer;
+                                  context.go('/billing');
+                                },
                               );
                             }
 
@@ -551,9 +548,10 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
                           ),
                           data: (invoicesList) {
                             if (invoicesList.isEmpty) {
-                              return const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 20),
-                                child: Text('No timeline history available.', style: TextStyle(color: kMutedForeground, fontSize: 13)),
+                              return const EmptyStateView(
+                                icon: Icons.history_rounded,
+                                title: 'No History',
+                                description: 'Service timeline history will appear here once invoices are created.',
                               );
                             }
                             return Column(

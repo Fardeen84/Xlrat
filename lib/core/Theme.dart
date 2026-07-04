@@ -95,7 +95,7 @@ ThemeData buildTheme() {
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: kPrimary, width: 2),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     ),
   );
 }

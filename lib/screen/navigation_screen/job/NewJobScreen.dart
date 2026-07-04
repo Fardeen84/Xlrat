@@ -5,11 +5,13 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme.dart';
 import '../../../widgets/StatusBadge.dart';
+import '../../../widgets/QuickAddSheets.dart';
 import '../../../models/job.dart';
 import '../../../models/billing_model/BillingCustomer.dart';
 import '../../../models/billing_model/BillingVehicle.dart';
 import '../../../providers/billing_providers.dart';
 import '../../../providers/jobsProvider.dart';
+import '../../../providers/newJobFormProvider.dart';
 
 class NewJobScreen extends ConsumerStatefulWidget {
   const NewJobScreen({super.key});
@@ -33,9 +35,68 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    final state = ref.read(newJobFormProvider);
+    _step = state.step;
+    _selectedCustomer = state.customer;
+    _selectedVehicle = state.vehicle;
+    _mechanic = state.mechanic;
+    _complaintController.text = state.complaint;
+    _complaintController.addListener(() {
+      _updateState(complaint: _complaintController.text);
+    });
+  }
+
+  @override
   void dispose() {
     _complaintController.dispose();
     super.dispose();
+  }
+
+  void _updateState({
+    int? step,
+    BillingCustomer? customer,
+    BillingVehicle? vehicle,
+    String? complaint,
+    String? mechanic,
+  }) {
+    ref.read(newJobFormProvider.notifier).update((state) => state.copyWith(
+          step: step ?? _step,
+          customer: customer ?? _selectedCustomer,
+          vehicle: vehicle ?? _selectedVehicle,
+          complaint: complaint ?? _complaintController.text,
+          mechanic: mechanic ?? _mechanic,
+        ));
+  }
+
+  void _changeStep(int step) {
+    setState(() {
+      _step = step;
+    });
+    _updateState(step: step);
+  }
+
+  void _selectCustomer(BillingCustomer customer) {
+    setState(() {
+      _selectedCustomer = customer;
+      _step = 2;
+    });
+    _updateState(step: 2, customer: customer);
+  }
+
+  void _selectVehicle(BillingVehicle vehicle) {
+    setState(() {
+      _selectedVehicle = vehicle;
+    });
+    _updateState(vehicle: vehicle);
+  }
+
+  void _selectMechanic(String mechanic) {
+    setState(() {
+      _mechanic = mechanic;
+    });
+    _updateState(mechanic: mechanic);
   }
 
   @override
@@ -64,7 +125,10 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded, color: kForeground),
-          onPressed: () => context.go('/jobs'),
+          onPressed: () {
+            ref.invalidate(newJobFormProvider);
+            context.go('/jobs');
+          },
         ),
         title: const Text('New Job Card',
             style: TextStyle(fontWeight: FontWeight.w800, color: kForeground, fontSize: 16)),
@@ -173,18 +237,38 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                         padding: EdgeInsets.all(24.0),
                         child: CircularProgressIndicator(),
                       ))
-                    else if (filteredCustomers.isEmpty)
-                      const Center(child: Padding(
-                        padding: EdgeInsets.all(24.0),
-                        child: Text('No customers found', style: TextStyle(color: kMutedForeground)),
-                      ))
-                    else
+                    else ...[
+                      if (_searchQuery.isNotEmpty && !filteredCustomers.any((c) => c.name.toLowerCase().contains(_searchQuery.toLowerCase()) || c.mobile.contains(_searchQuery)))
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: GarageCard(
+                            color: kPrimary.withOpacity(0.05),
+                            onTap: () {
+                              QuickAddSheets.showAddCustomer(context, ref, onSaved: (newCust) {
+                                _selectCustomer(newCust);
+                              });
+                            },
+                            child: const Row(children: [
+                              CircleAvatar(
+                                radius: 18,
+                                backgroundColor: kPrimary,
+                                child: Icon(Icons.person_add_rounded, color: Colors.white, size: 18),
+                              ),
+                              SizedBox(width: 12),
+                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Text('Quick Add Customer', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kPrimary)),
+                                Text('Create new customer record', style: TextStyle(fontSize: 12, color: kMutedForeground)),
+                              ])),
+                              Icon(Icons.chevron_right_rounded, color: kPrimary),
+                            ]),
+                          ),
+                        ),
                       ...filteredCustomers.map((c) {
                         final initials = c.name.trim().split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join('').toUpperCase();
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 8),
                           child: GarageCard(
-                            onTap: () => setState(() { _selectedCustomer = c; _step = 2; }),
+                            onTap: () => _selectCustomer(c),
                             child: Row(children: [
                               AvatarWidget(initials: initials.isEmpty ? '?' : initials),
                               const SizedBox(width: 12),
@@ -197,6 +281,23 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                           ),
                         );
                       }),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8, top: 8),
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            QuickAddSheets.showAddCustomer(context, ref, onSaved: (newCust) {
+                              _selectCustomer(newCust);
+                            });
+                          },
+                          icon: const Icon(Icons.person_add_rounded, size: 16),
+                          label: const Text('Quick Add Customer'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(48),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
 
                   // Step 2: Vehicle
@@ -220,8 +321,27 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                       ]),
                     ),
                     const SizedBox(height: 16),
-                    const Text('Select Vehicle',
-                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kForeground)),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Select Vehicle',
+                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kForeground)),
+                        TextButton.icon(
+                          onPressed: () {
+                            QuickAddSheets.showAddVehicle(
+                              context,
+                              ref,
+                              customerId: _selectedCustomer!.id!,
+                              onSaved: (newVehicle) {
+                                _selectVehicle(newVehicle);
+                              },
+                            );
+                          },
+                          icon: const Icon(Icons.add_rounded, size: 16),
+                          label: const Text('Quick Add Vehicle'),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 8),
                     if (vehiclesAsync != null && vehiclesAsync.isLoading)
                       const Center(child: Padding(
@@ -236,40 +356,34 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                             child: Text('No vehicles added for this customer yet.', style: TextStyle(color: kMutedForeground)),
                           )),
                           const SizedBox(height: 8),
-                          // Allow typing vehicle registration or navigating to add it
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: kPrimary),
-                            ),
-                            child: InkWell(
-                              onTap: () {
-                                // Navigate to customer details to add a vehicle
-                                context.push('/customer-detail/${_selectedCustomer!.id}');
-                              },
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.add_rounded, color: kPrimary, size: 18),
-                                  SizedBox(width: 6),
-                                  Text('Add Vehicle in Customer Details',
-                                      style: TextStyle(color: kPrimary, fontWeight: FontWeight.w700)),
-                                ],
-                              ),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              QuickAddSheets.showAddVehicle(
+                                context,
+                                ref,
+                                customerId: _selectedCustomer!.id!,
+                                onSaved: (newVehicle) {
+                                  _selectVehicle(newVehicle);
+                                },
+                              );
+                            },
+                            icon: const Icon(Icons.add_rounded, size: 16),
+                            label: const Text('Quick Add Vehicle'),
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(48),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                           ),
                         ],
                       )
-                    else
+                    else ...[
                       ...vehicles.map((v) {
                         final isSelected = _selectedVehicle?.id == v.id;
                         final type = v.fuelType.toLowerCase().contains('diesel') || v.fuelType.toLowerCase().contains('petrol') ? 'car' : 'bike';
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 8),
                           child: GestureDetector(
-                            onTap: () => setState(() => _selectedVehicle = v),
+                            onTap: () => _selectVehicle(v),
                             child: Container(
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
@@ -278,33 +392,85 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                                 border: Border.all(color: isSelected ? kPrimary : kBorder),
                               ),
                               child: Row(children: [
-                                VehicleIcon(type: type),
-                                const SizedBox(width: 10),
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? Colors.white : const Color(0xFFF5F7FA),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    type == 'bike' ? Icons.motorcycle_rounded : Icons.directions_car_rounded,
+                                    color: isSelected ? kPrimary : kMutedForeground,
+                                    size: 18,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
                                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                  Text(v.vehicleNumber, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                                  Text('${v.vehicleBrand} ${v.vehicleModel}', style: const TextStyle(fontSize: 12, color: kMutedForeground)),
+                                  Text('${v.vehicleBrand} ${v.vehicleModel}',
+                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                                  Text(v.vehicleNumber,
+                                      style: const TextStyle(fontSize: 12, color: kPrimary, fontWeight: FontWeight.bold)),
                                 ])),
                                 if (isSelected)
-                                  const Icon(Icons.check_rounded, color: kPrimary, size: 20),
+                                  const Icon(Icons.check_circle_rounded, color: kPrimary, size: 20)
+                                else
+                                  const Icon(Icons.circle_outlined, color: kBorder, size: 20),
                               ]),
                             ),
                           ),
                         );
                       }),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _selectedVehicle != null ? () => setState(() => _step = 3) : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: kPrimary,
-                          foregroundColor: Colors.white,
-                          disabledBackgroundColor: kPrimary.withOpacity(0.4),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8, top: 8),
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            QuickAddSheets.showAddVehicle(
+                              context,
+                              ref,
+                              customerId: _selectedCustomer!.id!,
+                              onSaved: (newVehicle) {
+                                _selectVehicle(newVehicle);
+                              },
+                            );
+                          },
+                          icon: const Icon(Icons.add_rounded, size: 16),
+                          label: const Text('Add Another Vehicle'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(48),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
                         ),
-                        child: const Text('Continue', style: TextStyle(fontWeight: FontWeight.w700)),
                       ),
+                    ],
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => _changeStep(1),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            child: const Text('Back'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _selectedVehicle == null ? null : () => _changeStep(3),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: kPrimary,
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor: kPrimary.withOpacity(0.4),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            child: const Text('Continue', style: TextStyle(fontWeight: FontWeight.w700)),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
 
@@ -339,7 +505,7 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: GestureDetector(
-                          onTap: () => setState(() => _mechanic = m.$1),
+                          onTap: () => _selectMechanic(m.$1),
                           child: Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
@@ -395,47 +561,62 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          final repo = ref.read(jobRepositoryProvider);
-                          final nextJobNumber = await repo.generateNextJobNumber();
-                          final type = _selectedVehicle != null
-                              ? (_selectedVehicle!.vehicleModel.toLowerCase().contains('bullet') ||
-                                      _selectedVehicle!.vehicleModel.toLowerCase().contains('activa') ||
-                                      _selectedVehicle!.vehicleBrand.toLowerCase().contains('honda') ||
-                                      _selectedVehicle!.vehicleBrand.toLowerCase().contains('bajaj')
-                                  ? 'bike'
-                                  : 'car')
-                              : 'car';
-                          final job = Job(
-                            jobNumber: nextJobNumber,
-                            customer: _selectedCustomer?.name ?? 'Unknown',
-                            vehicle: _selectedVehicle?.vehicleNumber ?? 'Unknown',
-                            vehicleType: type,
-                            brand: _selectedVehicle != null ? '${_selectedVehicle!.vehicleBrand} ${_selectedVehicle!.vehicleModel}' : 'Unknown',
-                            complaint: _complaintController.text.trim(),
-                            mechanic: _mechanic.isNotEmpty ? _mechanic : 'Suresh K.',
-                            status: 'pending',
-                            date: DateFormat('dd MMM yyyy').format(DateTime.now()),
-                            amount: 0,
-                          );
-                          final router = GoRouter.of(context);
-                          final savedJob = await repo.createJob(job);
-                          ref.invalidate(jobsProvider);
-                          if (mounted) {
-                            router.go('/job-detail/${savedJob.id}');
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: kPrimary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => _changeStep(2),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            child: const Text('Back'),
+                          ),
                         ),
-                        child: const Text('Create Job Card', style: TextStyle(fontWeight: FontWeight.w800)),
-                      ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              final repo = ref.read(jobRepositoryProvider);
+                              final nextJobNumber = await repo.generateNextJobNumber();
+                              final type = _selectedVehicle != null
+                                  ? (_selectedVehicle!.vehicleModel.toLowerCase().contains('bullet') ||
+                                          _selectedVehicle!.vehicleModel.toLowerCase().contains('activa') ||
+                                          _selectedVehicle!.vehicleBrand.toLowerCase().contains('honda') ||
+                                          _selectedVehicle!.vehicleBrand.toLowerCase().contains('bajaj')
+                                      ? 'bike'
+                                      : 'car')
+                                  : 'car';
+                              final job = Job(
+                                jobNumber: nextJobNumber,
+                                customer: _selectedCustomer?.name ?? 'Unknown',
+                                vehicle: _selectedVehicle?.vehicleNumber ?? 'Unknown',
+                                vehicleType: type,
+                                brand: _selectedVehicle != null ? '${_selectedVehicle!.vehicleBrand} ${_selectedVehicle!.vehicleModel}' : 'Unknown',
+                                complaint: _complaintController.text.trim(),
+                                mechanic: _mechanic.isNotEmpty ? _mechanic : 'Suresh K.',
+                                status: 'pending',
+                                date: DateFormat('dd MMM yyyy').format(DateTime.now()),
+                                amount: 0,
+                              );
+                              final router = GoRouter.of(context);
+                              final savedJob = await repo.createJob(job);
+                              ref.invalidate(newJobFormProvider);
+                              ref.invalidate(jobsProvider);
+                              if (mounted) {
+                                router.go('/job-detail/${savedJob.id}');
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: kPrimary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            child: const Text('Create Job Card', style: TextStyle(fontWeight: FontWeight.w800)),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 40),
                   ],
@@ -447,4 +628,4 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
       ),
     );
   }
-}
+}

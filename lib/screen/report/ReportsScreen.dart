@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 import 'package:xlrat/l10n/app_localizations.dart';
 
 import '../../core/Theme.dart';
@@ -183,7 +184,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Revenue Bar Chart
+                    // Revenue Line Chart
                     GarageCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,7 +194,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           const SizedBox(height: 24),
                           SizedBox(
                             height: 180,
-                            child: _FlBarChart(data: chartData),
+                            child: _FlLineChart(data: chartData),
                           ),
                         ],
                       ),
@@ -224,36 +225,82 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 SizedBox(
                                   width: 120,
                                   height: 120,
-                                  child: CustomPaint(
-                                    painter: _DonutPainter(data: jobStatusData),
+                                  child: PieChart(
+                                    PieChartData(
+                                      pieTouchData: PieTouchData(
+                                        touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                                          if (!event.isInterestedForInteractions ||
+                                              pieTouchResponse == null ||
+                                              pieTouchResponse.touchedSection == null) {
+                                            return;
+                                          }
+                                          final touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                                          if (touchedIndex >= 0 && touchedIndex < jobStatusData.length) {
+                                            final status = jobStatusData[touchedIndex].$1.toLowerCase();
+                                            final filterVal = status == 'in progress' ? 'in-progress' : status;
+                                            ref.read(jobFilterProvider.notifier).state = filterVal;
+                                            context.go('/jobs');
+                                          }
+                                        },
+                                      ),
+                                      borderData: FlBorderData(show: false),
+                                      sectionsSpace: 2,
+                                      centerSpaceRadius: 36,
+                                      sections: jobStatusData.map((s) {
+                                        return PieChartSectionData(
+                                          color: s.$3,
+                                          value: s.$2.toDouble(),
+                                          title: '${s.$2}%',
+                                          radius: 20,
+                                          titleStyle: const TextStyle(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 24),
                                 Expanded(
                                   child: Column(
-                                    children: jobStatusData.map((s) => Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 4),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            width: 12,
-                                            height: 12,
-                                            decoration: BoxDecoration(
-                                              color: s.$3,
-                                              borderRadius: BorderRadius.circular(3),
+                                    children: jobStatusData.map((s) {
+                                      final status = s.$1.toLowerCase();
+                                      final filterVal = status == 'in progress' ? 'in-progress' : status;
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 4),
+                                        child: InkWell(
+                                          borderRadius: BorderRadius.circular(8),
+                                          onTap: () {
+                                            ref.read(jobFilterProvider.notifier).state = filterVal;
+                                            context.go('/jobs');
+                                          },
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                                            child: Row(
+                                              children: [
+                                                Container(
+                                                  width: 12,
+                                                  height: 12,
+                                                  decoration: BoxDecoration(
+                                                    color: s.$3,
+                                                    borderRadius: BorderRadius.circular(3),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Expanded(
+                                                  child: Text(s.$1,
+                                                      style: const TextStyle(fontSize: 12, color: kMutedForeground)),
+                                                ),
+                                                Text('${s.$2}%',
+                                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: kForeground)),
+                                              ],
                                             ),
                                           ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Text(s.$1,
-                                                style: const TextStyle(fontSize: 12, color: kMutedForeground)),
-                                          ),
-                                          Text('${s.$2}%',
-                                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: kForeground)),
-                                        ],
-                                      ),
-                                    ),
-                                    ).toList(),
+                                        ),
+                                      );
+                                    }).toList(),
                                   ),
                                 ),
                               ],
@@ -427,11 +474,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 }
 
-// ── FL Bar Chart Integration ──────────────────────────────────────────────────
+// ── FL Line Chart Integration ──────────────────────────────────────────────────
 
-class _FlBarChart extends StatelessWidget {
+class _FlLineChart extends StatelessWidget {
   final List<(String, double)> data;
-  const _FlBarChart({required this.data});
+  const _FlLineChart({required this.data});
 
   @override
   Widget build(BuildContext context) {
@@ -445,29 +492,21 @@ class _FlBarChart extends StatelessWidget {
     }
 
     final double maxVal = data.map((d) => d.$2).reduce((a, b) => a > b ? a : b);
-    final double maxY = maxVal == 0 ? 1000 : maxVal * 1.25;
+    final double maxY = maxVal == 0 ? 1000 : maxVal * 1.15;
 
-    return BarChart(
-      BarChartData(
-        alignment: BarChartAlignment.spaceAround,
-        maxY: maxY,
-        barTouchData: BarTouchData(
-          enabled: true,
-          touchTooltipData: BarTouchTooltipData(
-            getTooltipColor: (group) => kCard,
-            tooltipBorder: const BorderSide(color: kBorder, width: 1),
-            tooltipPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            tooltipMargin: 8,
-            getTooltipItem: (group, groupIndex, rod, rodIndex) {
-              return BarTooltipItem(
-                '₹${rod.toY.round()}',
-                const TextStyle(
-                  color: kForeground,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              );
-            },
+    final spots = data.asMap().entries.map((entry) {
+      return FlSpot(entry.key.toDouble(), entry.value.$2);
+    }).toList();
+
+    return LineChart(
+      LineChartData(
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: maxY > 0 ? maxY / 4 : 250,
+          getDrawingHorizontalLine: (value) => const FlLine(
+            color: kBorder,
+            strokeWidth: 0.5,
           ),
         ),
         titlesData: FlTitlesData(
@@ -495,92 +534,51 @@ class _FlBarChart extends StatelessWidget {
               reservedSize: 28,
             ),
           ),
-          leftTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          rightTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
+          leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        ),
+        borderData: FlBorderData(show: false),
+        minX: 0,
+        maxX: (data.length - 1).toDouble(),
+        minY: 0,
+        maxY: maxY,
+        lineTouchData: LineTouchData(
+          enabled: true,
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (spot) => kCard,
+            tooltipBorder: const BorderSide(color: kBorder, width: 1),
+            tooltipPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            getTooltipItems: (touchedSpots) {
+              return touchedSpots.map((spot) {
+                final dateLabel = data[spot.x.toInt()].$1;
+                return LineTooltipItem(
+                  '$dateLabel\n₹${spot.y.round()}',
+                  const TextStyle(
+                    color: kForeground,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                  ),
+                );
+              }).toList();
+            },
           ),
         ),
-        gridData: const FlGridData(show: false),
-        borderData: FlBorderData(show: false),
-        barGroups: data.asMap().entries.map((entry) {
-          final index = entry.key;
-          final val = entry.value.$2;
-          return BarChartGroupData(
-            x: index,
-            barRods: [
-              BarChartRodData(
-                toY: val,
-                color: kPrimary,
-                width: 14,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(4),
-                  topRight: Radius.circular(4),
-                ),
-              ),
-            ],
-          );
-        }).toList(),
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            color: kPrimary,
+            barWidth: 3,
+            isStrokeCapRound: true,
+            dotData: const FlDotData(show: true),
+            belowBarData: BarAreaData(
+              show: true,
+              color: kPrimary.withOpacity(0.1),
+            ),
+          ),
+        ],
       ),
     );
   }
-}
-
-// ── Donut Chart Painter ───────────────────────────────────────────────────────
-
-class _DonutPainter extends CustomPainter {
-  final List<(String, int, Color)> data;
-  _DonutPainter({required this.data});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final total = data.fold(0, (sum, d) => sum + d.$2);
-    if (total == 0) {
-      final paint = Paint()
-        ..color = Colors.grey.shade300
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 22;
-      canvas.drawArc(
-        Rect.fromCenter(
-          center: Offset(size.width / 2, size.height / 2),
-          width: size.width - 22,
-          height: size.height - 22,
-        ),
-        -1.5708,
-        6.2832,
-        false,
-        paint,
-      );
-      return;
-    }
-    double startAngle = -1.5708; // -90 degrees
-
-    for (final d in data) {
-      final sweep = (d.$2 / total) * 6.2832;
-      final paint = Paint()
-        ..color = d.$3
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 22;
-
-      canvas.drawArc(
-        Rect.fromCenter(
-          center: Offset(size.width / 2, size.height / 2),
-          width: size.width - 22,
-          height: size.height - 22,
-        ),
-        startAngle,
-        sweep - 0.05,
-        false,
-        paint,
-      );
-      startAngle += sweep;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

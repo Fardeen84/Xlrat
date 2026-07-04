@@ -5,6 +5,7 @@ import 'package:xlrat/l10n/app_localizations.dart';
 import '../../../core/Theme.dart';
 import '../../../models/billing_model/BillingCustomer.dart';
 import '../../../providers/billing_providers.dart';
+import '../../../widgets/QuickAddSheets.dart';
 import 'billing_shared.dart';
 
 enum SuggestSource { name, mobile }
@@ -73,7 +74,7 @@ class _BillingCustomerSectionState extends ConsumerState<BillingCustomerSection>
     if (!mounted) return;
     setState(() {
       _suggestions = result;
-      _showSuggestions = result.isNotEmpty;
+      _showSuggestions = true;
       _suggestSource = src;
     });
   }
@@ -253,52 +254,73 @@ class _BillingCustomerSectionState extends ConsumerState<BillingCustomerSection>
         ],
       ),
       child: Column(
-        children: _suggestions
-            .map(
-              (c) => InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () => _onSuggestionTapped(c),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE8F0FE),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Center(
-                          child: Text(
-                            c.name.isNotEmpty ? c.name[0].toUpperCase() : '?',
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: kPrimary),
+        children: [
+          ..._suggestions
+              .map(
+                (c) => InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => _onSuggestionTapped(c),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE8F0FE),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Center(
+                            child: Text(
+                              c.name.isNotEmpty ? c.name[0].toUpperCase() : '?',
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: kPrimary),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              c.name,
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kForeground),
-                            ),
-                            Text(
-                              c.mobile,
-                              style: const TextStyle(fontSize: 11, color: kMutedForeground),
-                            ),
-                          ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                c.name,
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kForeground),
+                              ),
+                              Text(
+                                c.mobile,
+                                style: const TextStyle(fontSize: 11, color: kMutedForeground),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const Icon(Icons.north_west_rounded, size: 14, color: kMutedForeground),
-                    ],
+                        const Icon(Icons.north_west_rounded, size: 14, color: kMutedForeground),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            )
-            .toList(),
+          InkWell(
+            onTap: () {
+              QuickAddSheets.showAddCustomer(context, ref, onSaved: (newCust) {
+                _onSuggestionTapped(newCust);
+              });
+            },
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                children: [
+                  Icon(Icons.person_add_rounded, size: 18, color: kPrimary),
+                  SizedBox(width: 12),
+                  Text(
+                    'Quick Add Customer',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: kPrimary),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -209,45 +209,121 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   }
 
   void _showAdjustStockDialog(BuildContext context, InventoryItem item, bool isAddition) {
-    final qtyCtrl = TextEditingController();
+    final qtyCtrl = TextEditingController(text: '1');
     final formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: kCard,
-        title: Text(isAddition ? 'Add Stock' : 'Deduct Stock', style: const TextStyle(fontWeight: FontWeight.w800, color: kForeground)),
-        content: Form(
-          key: formKey,
-          child: TextFormField(
-            controller: qtyCtrl,
-            decoration: const InputDecoration(labelText: 'Quantity', labelStyle: TextStyle(color: kMutedForeground)),
-            keyboardType: TextInputType.number,
-            style: const TextStyle(color: kForeground),
-            validator: (value) => (value == null || int.tryParse(value) == null || int.parse(value) <= 0) ? 'Please enter positive number' : null,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: kMutedForeground)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                final qty = int.parse(qtyCtrl.text.trim());
-                final newStock = isAddition ? (item.stock + qty) : (item.stock - qty).clamp(0, 999999);
-                await ref.read(inventoryRepositoryProvider).updateStock(item.id!, newStock);
-                ref.invalidate(inventoryListProvider);
-                if (context.mounted) {
-                  Navigator.pop(context);
-                }
-              }
-            },
-            child: const Text('Submit', style: TextStyle(color: Colors.white)),
-          ),
-        ],
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) {
+          int getQty() => int.tryParse(qtyCtrl.text) ?? 0;
+          void setQty(int val) {
+            qtyCtrl.text = val.clamp(1, 999999).toString();
+          }
+
+          return AlertDialog(
+            backgroundColor: kCard,
+            title: Text(isAddition ? 'Add Stock' : 'Deduct Stock', style: const TextStyle(fontWeight: FontWeight.w800, color: kForeground)),
+            content: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(item.name, style: const TextStyle(fontSize: 13, color: kMutedForeground)),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          final current = getQty();
+                          if (current > 1) {
+                            setStateDialog(() => setQty(current - 1));
+                          }
+                        },
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: kMuted,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(Icons.remove_rounded, color: kForeground),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      SizedBox(
+                        width: 80,
+                        child: TextFormField(
+                          controller: qtyCtrl,
+                          textAlign: TextAlign.center,
+                          keyboardType: TextInputType.number,
+                          style: const TextStyle(color: kForeground, fontSize: 18, fontWeight: FontWeight.bold),
+                          decoration: const InputDecoration(
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          validator: (value) => (value == null || int.tryParse(value) == null || int.parse(value) <= 0) ? 'Invalid' : null,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      GestureDetector(
+                        onTap: () {
+                          final current = getQty();
+                          setStateDialog(() => setQty(current + 1));
+                        },
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: kMuted,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(Icons.add_rounded, color: kForeground),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [5, 10, 20].map((step) => OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      ),
+                      onPressed: () {
+                        final current = getQty();
+                        setStateDialog(() => setQty(current + step));
+                      },
+                      child: Text('+$step'),
+                    )).toList(),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel', style: TextStyle(color: kMutedForeground)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
+                onPressed: () async {
+                  if (formKey.currentState!.validate()) {
+                    final qty = getQty();
+                    final newStock = isAddition ? (item.stock + qty) : (item.stock - qty).clamp(0, 999999);
+                    await ref.read(inventoryRepositoryProvider).updateStock(item.id!, newStock);
+                    ref.invalidate(inventoryListProvider);
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                    }
+                  }
+                },
+                child: const Text('Submit', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          );
+        }
       ),
     );
   }

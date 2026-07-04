@@ -10,6 +10,7 @@ import '../../../providers/jobsProvider.dart';
 import '../../../providers/billing_providers.dart';
 import '../../../core/Theme.dart';
 import '../../../widgets/StatusBadge.dart';
+import '../../../widgets/EmptyStateView.dart';
 
 
 class JobsScreen extends ConsumerWidget {
@@ -160,11 +161,12 @@ class JobsScreen extends ConsumerWidget {
           // Main Content
           Expanded(
             child: filteredJobs.isEmpty
-                ? Center(
-                    child: Text(
-                      AppLocalizations.of(context)!.jobsNoJobCards,
-                      style: const TextStyle(color: kMutedForeground, fontSize: 15),
-                    ),
+                ? EmptyStateView(
+                    icon: Icons.assignment_outlined,
+                    title: 'No Job Cards Found',
+                    description: 'Create a new job card to track service work, assigned mechanics, and vehicle status.',
+                    ctaLabel: 'New Job Card',
+                    onCtaPressed: () => context.push('/new-job'),
                   )
                 : SingleChildScrollView(
                     padding: const EdgeInsets.all(24),
@@ -353,8 +355,16 @@ class JobsScreen extends ConsumerWidget {
             ),
           ),
           Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+            child: filteredJobs.isEmpty
+                ? EmptyStateView(
+                    icon: Icons.assignment_outlined,
+                    title: 'No Job Cards Found',
+                    description: 'Create a new job card to track service work, assigned mechanics, and vehicle status.',
+                    ctaLabel: 'New Job Card',
+                    onCtaPressed: () => context.push('/new-job'),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
               itemCount: filteredJobs.length,
               separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (ctx, i) {

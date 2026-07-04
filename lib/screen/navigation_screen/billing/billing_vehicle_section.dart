@@ -6,6 +6,7 @@ import '../../../core/Theme.dart';
 import '../../../models/billing_model/BillingCustomer.dart';
 import '../../../models/billing_model/BillingVehicle.dart';
 import '../../../providers/billing_providers.dart';
+import '../../../widgets/QuickAddSheets.dart';
 import 'billing_shared.dart';
 
 class BillingVehicleSection extends ConsumerStatefulWidget {
@@ -181,7 +182,6 @@ class _BillingVehicleSectionState extends ConsumerState<BillingVehicleSection> {
         if (isExisting)
           vehiclesAsync.when(
             data: (vehs) {
-              if (vehs.isEmpty) return const SizedBox.shrink();
               BillingVehicle? safeValue;
               for (final v in vehs) {
                 if (v.id == _selectedVehicle?.id) {
@@ -189,38 +189,59 @@ class _BillingVehicleSectionState extends ConsumerState<BillingVehicleSection> {
                   break;
                 }
               }
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: DropdownButtonFormField<BillingVehicle>(
-                  value: safeValue,
-                  isExpanded: true,
-                  hint: Text(
-                    AppLocalizations.of(context)!.billingHintSavedVehicle,
-                    style: const TextStyle(color: kMutedForeground, fontSize: 12),
-                  ),
-                  decoration: InputDecoration(
-                    labelText: AppLocalizations.of(context)!.billingLabelSavedVehicles,
-                    prefixIcon: const Icon(Icons.bookmark_outline_rounded, size: 18, color: kMutedForeground),
-                    filled: true,
-                    fillColor: kMuted,
-                    border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide(color: kBorder)),
-                    enabledBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide(color: kBorder)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                  ),
-                  items: [
-                    DropdownMenuItem<BillingVehicle>(
-                      value: null,
-                      child: Text(AppLocalizations.of(context)!.billingLabelNewVehicle, style: const TextStyle(color: kPrimary, fontWeight: FontWeight.w700)),
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DropdownButtonFormField<BillingVehicle>(
+                    value: safeValue,
+                    isExpanded: true,
+                    hint: Text(
+                      AppLocalizations.of(context)!.billingHintSavedVehicle,
+                      style: const TextStyle(color: kMutedForeground, fontSize: 12),
                     ),
-                    ...vehs.map(
-                      (v) => DropdownMenuItem(
-                        value: v,
-                        child: Text(v.displayLabel, overflow: TextOverflow.ellipsis),
+                    decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context)!.billingLabelSavedVehicles,
+                      prefixIcon: const Icon(Icons.bookmark_outline_rounded, size: 18, color: kMutedForeground),
+                      filled: true,
+                      fillColor: kMuted,
+                      border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide(color: kBorder)),
+                      enabledBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide(color: kBorder)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    ),
+                    items: [
+                      DropdownMenuItem<BillingVehicle>(
+                        value: null,
+                        child: Text(AppLocalizations.of(context)!.billingLabelNewVehicle, style: const TextStyle(color: kPrimary, fontWeight: FontWeight.w700)),
                       ),
+                      ...vehs.map(
+                        (v) => DropdownMenuItem(
+                          value: v,
+                          child: Text(v.displayLabel, overflow: TextOverflow.ellipsis),
+                        ),
+                      ),
+                    ],
+                    onChanged: _onExistingVehicleSelected,
+                  ),
+                  const SizedBox(height: 4),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: () {
+                        QuickAddSheets.showAddVehicle(
+                          context,
+                          ref,
+                          customerId: customer.id!,
+                          onSaved: (newVehicle) {
+                            _onExistingVehicleSelected(newVehicle);
+                          },
+                        );
+                      },
+                      icon: const Icon(Icons.add_rounded, size: 16),
+                      label: const Text('Quick Add Vehicle'),
                     ),
-                  ],
-                  onChanged: _onExistingVehicleSelected,
-                ),
+                  ),
+                  const SizedBox(height: 4),
+                ],
               );
             },
             loading: () => const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator())),

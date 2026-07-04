@@ -10,6 +10,7 @@ import '../../../providers/billing_providers.dart';
 import '../../../providers/jobsProvider.dart';
 import '../../../core/Theme.dart';
 import '../../../widgets/StatusBadge.dart';
+import '../../../widgets/EmptyStateView.dart';
 
 class CustomersScreen extends ConsumerStatefulWidget {
   const CustomersScreen({super.key});
@@ -182,12 +183,20 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                 ),
                 // Scrollable List
                 Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    itemCount: customers.length + 1,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (ctx, i) {
-                      if (i == 0) {
+                  child: customers.isEmpty
+                      ? EmptyStateView(
+                          icon: Icons.people_outline_rounded,
+                          title: 'No Customers Found',
+                          description: 'Add customer records to view billing histories and vehicles.',
+                          ctaLabel: 'Add Customer',
+                          onCtaPressed: () => _showAddCustomerDialog(context),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          itemCount: customers.length + 1,
+                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          itemBuilder: (ctx, i) {
+                            if (i == 0) {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 4),
                           child: Text('${customers.length} customers',
@@ -276,12 +285,20 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
         ),
 
         Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-            itemCount: filtered.length + 1,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (ctx, i) {
-              if (i == 0) {
+          child: filtered.isEmpty
+              ? EmptyStateView(
+                  icon: Icons.people_outline_rounded,
+                  title: 'No Customers Found',
+                  description: 'Add customer records to view billing histories and vehicles.',
+                  ctaLabel: 'Add Customer',
+                  onCtaPressed: () => _showAddCustomerDialog(context),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                  itemCount: filtered.length + 1,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (ctx, i) {
+                    if (i == 0) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Text('${filtered.length} customers',
