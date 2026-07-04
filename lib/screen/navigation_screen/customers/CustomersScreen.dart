@@ -33,7 +33,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kCard,
-        title: const Text('Add Customer', style: TextStyle(fontWeight: FontWeight.w800, color: kForeground)),
+        title: Text('Add Customer', style: TextStyle(fontWeight: FontWeight.w800, color: kForeground)),
         content: Form(
           key: formKey,
           child: SingleChildScrollView(
@@ -42,31 +42,31 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
               children: [
                 TextFormField(
                   controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Name *', labelStyle: TextStyle(color: kMutedForeground)),
-                  style: const TextStyle(color: kForeground),
+                  decoration: InputDecoration(labelText: 'Name *', labelStyle: TextStyle(color: kMutedForeground)),
+                  style: TextStyle(color: kForeground),
                   validator: (value) => (value == null || value.trim().isEmpty) ? 'Please enter name' : null,
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: mobileController,
-                  decoration: const InputDecoration(labelText: 'Mobile *', labelStyle: TextStyle(color: kMutedForeground)),
+                  decoration: InputDecoration(labelText: 'Mobile *', labelStyle: TextStyle(color: kMutedForeground)),
                   keyboardType: TextInputType.phone,
-                  style: const TextStyle(color: kForeground),
+                  style: TextStyle(color: kForeground),
                   validator: (value) => (value == null || value.trim().isEmpty) ? 'Please enter mobile' : null,
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: emailController,
-                  decoration: const InputDecoration(labelText: 'Email (Optional)', labelStyle: TextStyle(color: kMutedForeground)),
+                  decoration: InputDecoration(labelText: 'Email (Optional)', labelStyle: TextStyle(color: kMutedForeground)),
                   keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(color: kForeground),
+                  style: TextStyle(color: kForeground),
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: addressController,
-                  decoration: const InputDecoration(labelText: 'Address (Optional)', labelStyle: TextStyle(color: kMutedForeground)),
+                  decoration: InputDecoration(labelText: 'Address (Optional)', labelStyle: TextStyle(color: kMutedForeground)),
                   maxLines: 2,
-                  style: const TextStyle(color: kForeground),
+                  style: TextStyle(color: kForeground),
                 ),
               ],
             ),
@@ -75,7 +75,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: kMutedForeground)),
+            child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
@@ -146,7 +146,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
         Expanded(
           flex: 4,
           child: Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(right: BorderSide(color: kBorder, width: 0.8)),
             ),
             child: Column(
@@ -160,7 +160,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(AppLocalizations.of(context)!.customersTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kForeground)),
+                          Text(AppLocalizations.of(context)!.customersTitle, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kForeground)),
                           ElevatedButton.icon(
                             onPressed: () => _showAddCustomerDialog(context),
                             icon: const Icon(Icons.person_add_rounded, color: Colors.white, size: 16),
@@ -200,7 +200,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 4),
                           child: Text('${customers.length} customers',
-                              style: const TextStyle(fontSize: 12, color: kMutedForeground, fontWeight: FontWeight.w600)),
+                              style: TextStyle(fontSize: 12, color: kMutedForeground, fontWeight: FontWeight.w600)),
                         );
                       }
                       final customer = customers[i - 1];
@@ -225,7 +225,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
           child: Container(
             color: kBackground,
             child: selectedCust == null
-                ? const Center(
+                ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -263,7 +263,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(AppLocalizations.of(context)!.customersTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kForeground)),
+                  Text(AppLocalizations.of(context)!.customersTitle, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kForeground)),
                   GestureDetector(
                     onTap: () => _showAddCustomerDialog(context),
                     child: Container(
@@ -302,7 +302,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Text('${filtered.length} customers',
-                      style: const TextStyle(fontSize: 12, color: kMutedForeground, fontWeight: FontWeight.w600)),
+                      style: TextStyle(fontSize: 12, color: kMutedForeground, fontWeight: FontWeight.w600)),
                 );
               }
               final customer = filtered[i - 1];
@@ -441,7 +441,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                   border: Border.all(color: kBorder),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.chat_rounded, color: kForeground, size: 20),
+                child: Icon(Icons.chat_rounded, color: kForeground, size: 20),
               ),
             ],
           ),
@@ -473,7 +473,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text('${v.vehicleBrand} ${v.vehicleModel}'.trim().isNotEmpty ? '${v.vehicleBrand} ${v.vehicleModel}' : 'Unknown Vehicle', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-                            Text(v.fuelType.isNotEmpty ? v.fuelType : 'Petrol', style: const TextStyle(fontSize: 11, color: kMutedForeground)),
+                            Text(v.fuelType.isNotEmpty ? v.fuelType : 'Petrol', style: TextStyle(fontSize: 11, color: kMutedForeground)),
                           ],
                         ),
                         const SizedBox(height: 2),
@@ -502,7 +502,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                     .toList();
 
                 if (filteredJobs.isEmpty) {
-                  return const Padding(
+                  return Padding(
                     padding: EdgeInsets.symmetric(vertical: 24),
                     child: Center(
                       child: Text(
@@ -525,7 +525,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                             children: [
                               Text(job.jobNumber, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
                               const SizedBox(height: 2),
-                              Text('${job.date} · ${job.brand}', style: const TextStyle(fontSize: 11, color: kMutedForeground)),
+                              Text('${job.date} · ${job.brand}', style: TextStyle(fontSize: 11, color: kMutedForeground)),
                             ],
                           ),
                           Column(
@@ -576,7 +576,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(dateStr, style: const TextStyle(fontSize: 11, color: kMutedForeground)),
+                            Text(dateStr, style: TextStyle(fontSize: 11, color: kMutedForeground)),
                             const SizedBox(height: 2),
                             Text(desc.isNotEmpty ? desc : 'Service Invoice', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                             const SizedBox(height: 4),
@@ -668,24 +668,24 @@ class _CustomerCard extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(customer.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kForeground)),
+                  Text(customer.name, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kForeground)),
                   const SizedBox(height: 2),
                   Row(
                     children: [
-                      const Icon(Icons.phone_rounded, size: 11, color: kMutedForeground),
+                      Icon(Icons.phone_rounded, size: 11, color: kMutedForeground),
                       const SizedBox(width: 3),
-                      Text(customer.mobile, style: const TextStyle(fontSize: 12, color: kMutedForeground)),
+                      Text(customer.mobile, style: TextStyle(fontSize: 12, color: kMutedForeground)),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.directions_car_rounded, size: 11, color: kMutedForeground),
+                      Icon(Icons.directions_car_rounded, size: 11, color: kMutedForeground),
                       const SizedBox(width: 3),
                       Text('$vehiclesCount vehicle${vehiclesCount != 1 ? 's' : ''}',
-                          style: const TextStyle(fontSize: 11, color: kMutedForeground)),
-                      const Text(' · ', style: TextStyle(color: kMutedForeground, fontSize: 11)),
-                      Text(dateStr, style: const TextStyle(fontSize: 11, color: kMutedForeground)),
+                          style: TextStyle(fontSize: 11, color: kMutedForeground)),
+                      Text(' · ', style: TextStyle(color: kMutedForeground, fontSize: 11)),
+                      Text(dateStr, style: TextStyle(fontSize: 11, color: kMutedForeground)),
                     ],
                   ),
                 ],
@@ -702,7 +702,7 @@ class _CustomerCard extends ConsumerWidget {
                         style: const TextStyle(color: kRed, fontSize: 11, fontWeight: FontWeight.w700)),
                   ),
                 const SizedBox(height: 4),
-                const Icon(Icons.chevron_right_rounded, color: kMutedForeground, size: 18),
+                Icon(Icons.chevron_right_rounded, color: kMutedForeground, size: 18),
               ],
             ),
           ],

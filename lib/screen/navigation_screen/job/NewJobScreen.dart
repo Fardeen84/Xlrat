@@ -124,13 +124,13 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
         backgroundColor: kCard,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: kForeground),
+          icon: Icon(Icons.arrow_back_rounded, color: kForeground),
           onPressed: () {
             ref.invalidate(newJobFormProvider);
             context.go('/jobs');
           },
         ),
-        title: const Text('New Job Card',
+        title: Text('New Job Card',
             style: TextStyle(fontWeight: FontWeight.w800, color: kForeground, fontSize: 16)),
       ),
       body: Column(
@@ -181,8 +181,8 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                     );
                   }),
                 ),
-                const SizedBox(height: 6),
-                const Row(
+                SizedBox(height: 6),
+                Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Customer', style: TextStyle(fontSize: 10, color: kMutedForeground)),
@@ -202,7 +202,7 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                 children: [
                   // Step 1: Customer
                   if (_step == 1) ...[
-                    const Text('Search Customer',
+                    Text('Search Customer',
                         style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kForeground)),
                     const SizedBox(height: 8),
                     Container(
@@ -213,14 +213,14 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Padding(
+                          Padding(
                             padding: EdgeInsets.only(left: 12),
                             child: Icon(Icons.search_rounded, color: kMutedForeground, size: 18),
                           ),
                           Expanded(
                             child: TextField(
                               onChanged: (val) => setState(() => _searchQuery = val.trim()),
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 hintText: 'Phone number or name...',
                                 border: InputBorder.none,
                                 contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 14),
@@ -248,7 +248,7 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                                 _selectCustomer(newCust);
                               });
                             },
-                            child: const Row(children: [
+                            child: Row(children: [
                               CircleAvatar(
                                 radius: 18,
                                 backgroundColor: kPrimary,
@@ -273,10 +273,10 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                               AvatarWidget(initials: initials.isEmpty ? '?' : initials),
                               const SizedBox(width: 12),
                               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Text(c.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kForeground)),
-                                Text(c.mobile, style: const TextStyle(fontSize: 12, color: kMutedForeground)),
+                                Text(c.name, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kForeground)),
+                                Text(c.mobile, style: TextStyle(fontSize: 12, color: kMutedForeground)),
                               ])),
-                              const Icon(Icons.chevron_right_rounded, color: kMutedForeground),
+                              Icon(Icons.chevron_right_rounded, color: kMutedForeground),
                             ]),
                           ),
                         );
@@ -316,7 +316,7 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                           Text(_selectedCustomer!.name,
                               style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
                           Text(_selectedCustomer!.mobile,
-                              style: const TextStyle(fontSize: 12, color: kMutedForeground)),
+                              style: TextStyle(fontSize: 12, color: kMutedForeground)),
                         ]),
                       ]),
                     ),
@@ -324,7 +324,7 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Select Vehicle',
+                        Text('Select Vehicle',
                             style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kForeground)),
                         TextButton.icon(
                           onPressed: () {
@@ -351,7 +351,7 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                     else if (vehicles.isEmpty)
                       Column(
                         children: [
-                          const Center(child: Padding(
+                          Center(child: Padding(
                             padding: EdgeInsets.all(24.0),
                             child: Text('No vehicles added for this customer yet.', style: TextStyle(color: kMutedForeground)),
                           )),
@@ -415,7 +415,7 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                                 if (isSelected)
                                   const Icon(Icons.check_circle_rounded, color: kPrimary, size: 20)
                                 else
-                                  const Icon(Icons.circle_outlined, color: kBorder, size: 20),
+                                  Icon(Icons.circle_outlined, color: kBorder, size: 20),
                               ]),
                             ),
                           ),
@@ -476,7 +476,7 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
 
                   // Step 3: Details
                   if (_step == 3) ...[
-                    const Text('Complaint / Problem Description',
+                    Text('Complaint / Problem Description',
                         style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kForeground)),
                     const SizedBox(height: 8),
                     Container(
@@ -488,7 +488,7 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                       child: TextField(
                         controller: _complaintController,
                         maxLines: 4,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           hintText: 'Describe the issue reported by customer...',
                           hintStyle: TextStyle(color: kMutedForeground),
                           border: InputBorder.none,
@@ -497,7 +497,7 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text('Assign Mechanic',
+                    Text('Assign Mechanic',
                         style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kForeground)),
                     const SizedBox(height: 8),
                     ..._mechanics.map((m) {
@@ -529,7 +529,7 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                               const SizedBox(width: 10),
                               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                 Text(m.$1, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                                const Text('Senior Mechanic',
+                                Text('Senior Mechanic',
                                     style: TextStyle(fontSize: 11, color: kMutedForeground)),
                               ])),
                               if (isSelected)
@@ -540,18 +540,18 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                       );
                     }),
                     const SizedBox(height: 8),
-                    const Text('Add Photos (Optional)',
+                    Text('Add Photos (Optional)',
                         style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kForeground)),
                     const SizedBox(height: 8),
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 28),
+                      padding: EdgeInsets.symmetric(vertical: 28),
                       decoration: BoxDecoration(
                         color: kCard,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: kBorder),
                       ),
-                      child: const Column(
+                      child: Column(
                         children: [
                           Icon(Icons.camera_alt_rounded, size: 28, color: kMutedForeground),
                           SizedBox(height: 6),

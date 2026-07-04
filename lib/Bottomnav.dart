@@ -23,7 +23,7 @@ class GarageBottomNav extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: kCard,
-        border: const Border(top: BorderSide(color: kBorder, width: 0.8)),
+        border: Border(top: BorderSide(color: kBorder, width: 0.8)),
         boxShadow: [
           BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -4)),
         ],

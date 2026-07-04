@@ -39,7 +39,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kCard,
-        title: const Text('Edit Customer', style: TextStyle(fontWeight: FontWeight.w800, color: kForeground)),
+        title: Text('Edit Customer', style: TextStyle(fontWeight: FontWeight.w800, color: kForeground)),
         content: Form(
           key: formKey,
           child: SingleChildScrollView(
@@ -48,31 +48,31 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
               children: [
                 TextFormField(
                   controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Name *', labelStyle: TextStyle(color: kMutedForeground)),
-                  style: const TextStyle(color: kForeground),
+                  decoration: InputDecoration(labelText: 'Name *', labelStyle: TextStyle(color: kMutedForeground)),
+                  style: TextStyle(color: kForeground),
                   validator: (value) => (value == null || value.trim().isEmpty) ? 'Please enter name' : null,
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: mobileController,
-                  decoration: const InputDecoration(labelText: 'Mobile *', labelStyle: TextStyle(color: kMutedForeground)),
+                  decoration: InputDecoration(labelText: 'Mobile *', labelStyle: TextStyle(color: kMutedForeground)),
                   keyboardType: TextInputType.phone,
-                  style: const TextStyle(color: kForeground),
+                  style: TextStyle(color: kForeground),
                   validator: (value) => (value == null || value.trim().isEmpty) ? 'Please enter mobile' : null,
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: emailController,
-                  decoration: const InputDecoration(labelText: 'Email (Optional)', labelStyle: TextStyle(color: kMutedForeground)),
+                  decoration: InputDecoration(labelText: 'Email (Optional)', labelStyle: TextStyle(color: kMutedForeground)),
                   keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(color: kForeground),
+                  style: TextStyle(color: kForeground),
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: addressController,
-                  decoration: const InputDecoration(labelText: 'Address (Optional)', labelStyle: TextStyle(color: kMutedForeground)),
+                  decoration: InputDecoration(labelText: 'Address (Optional)', labelStyle: TextStyle(color: kMutedForeground)),
                   maxLines: 2,
-                  style: const TextStyle(color: kForeground),
+                  style: TextStyle(color: kForeground),
                 ),
               ],
             ),
@@ -81,7 +81,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: kMutedForeground)),
+            child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
@@ -114,12 +114,12 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kCard,
-        title: const Text('Delete Customer', style: TextStyle(fontWeight: FontWeight.w800, color: kForeground)),
-        content: Text('Are you sure you want to delete ${customer.name}? This will also delete all their vehicles and invoices.', style: const TextStyle(color: kForeground)),
+        title: Text('Delete Customer', style: TextStyle(fontWeight: FontWeight.w800, color: kForeground)),
+        content: Text('Are you sure you want to delete ${customer.name}? This will also delete all their vehicles and invoices.', style: TextStyle(color: kForeground)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: kMutedForeground)),
+            child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: kRed),
@@ -153,7 +153,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kCard,
-        title: const Text('Add Vehicle', style: TextStyle(fontWeight: FontWeight.w800, color: kForeground)),
+        title: Text('Add Vehicle', style: TextStyle(fontWeight: FontWeight.w800, color: kForeground)),
         content: Form(
           key: formKey,
           child: SingleChildScrollView(
@@ -162,39 +162,39 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
               children: [
                 TextFormField(
                   controller: numberCtrl,
-                  decoration: const InputDecoration(labelText: 'Vehicle Number *', labelStyle: TextStyle(color: kMutedForeground)),
-                  style: const TextStyle(color: kForeground),
+                  decoration: InputDecoration(labelText: 'Vehicle Number *', labelStyle: TextStyle(color: kMutedForeground)),
+                  style: TextStyle(color: kForeground),
                   validator: (value) => (value == null || value.trim().isEmpty) ? 'Please enter vehicle number' : null,
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: brandCtrl,
-                  decoration: const InputDecoration(labelText: 'Brand', labelStyle: TextStyle(color: kMutedForeground)),
-                  style: const TextStyle(color: kForeground),
+                  decoration: InputDecoration(labelText: 'Brand', labelStyle: TextStyle(color: kMutedForeground)),
+                  style: TextStyle(color: kForeground),
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: modelCtrl,
-                  decoration: const InputDecoration(labelText: 'Model', labelStyle: TextStyle(color: kMutedForeground)),
-                  style: const TextStyle(color: kForeground),
+                  decoration: InputDecoration(labelText: 'Model', labelStyle: TextStyle(color: kMutedForeground)),
+                  style: TextStyle(color: kForeground),
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: fuelTypeCtrl,
-                  decoration: const InputDecoration(labelText: 'Fuel Type', labelStyle: TextStyle(color: kMutedForeground)),
-                  style: const TextStyle(color: kForeground),
+                  decoration: InputDecoration(labelText: 'Fuel Type', labelStyle: TextStyle(color: kMutedForeground)),
+                  style: TextStyle(color: kForeground),
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: engineNumberCtrl,
-                  decoration: const InputDecoration(labelText: 'Engine Number', labelStyle: TextStyle(color: kMutedForeground)),
-                  style: const TextStyle(color: kForeground),
+                  decoration: InputDecoration(labelText: 'Engine Number', labelStyle: TextStyle(color: kMutedForeground)),
+                  style: TextStyle(color: kForeground),
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: chassisNumberCtrl,
-                  decoration: const InputDecoration(labelText: 'Chassis Number', labelStyle: TextStyle(color: kMutedForeground)),
-                  style: const TextStyle(color: kForeground),
+                  decoration: InputDecoration(labelText: 'Chassis Number', labelStyle: TextStyle(color: kMutedForeground)),
+                  style: TextStyle(color: kForeground),
                 ),
               ],
             ),
@@ -203,7 +203,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: kMutedForeground)),
+            child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
@@ -255,7 +255,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
         error: (err, stack) => Center(child: Text('Error: $err', style: const TextStyle(color: kRed))),
         data: (customer) {
           if (customer == null) {
-            return const Center(child: Text('Customer not found', style: TextStyle(color: kMutedForeground)));
+            return Center(child: Text('Customer not found', style: TextStyle(color: kMutedForeground)));
           }
 
           final initials = customer.name.trim().split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join('').toUpperCase();
@@ -269,14 +269,14 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
                 elevation: 0,
                 surfaceTintColor: kCard,
                 leading: IconButton(
-                  icon: const Icon(Icons.arrow_back_rounded, color: kForeground),
+                  icon: Icon(Icons.arrow_back_rounded, color: kForeground),
                   onPressed: () => context.go('/customers'),
                 ),
-                title: const Text('Customer Details',
+                title: Text('Customer Details',
                     style: TextStyle(fontWeight: FontWeight.w800, color: kForeground, fontSize: 16)),
                 actions: [
                   PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert_rounded, color: kForeground),
+                    icon: Icon(Icons.more_vert_rounded, color: kForeground),
                     color: kCard,
                     onSelected: (val) {
                       if (val == 'edit') {
@@ -286,8 +286,8 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
                       }
                     },
                     itemBuilder: (context) => [
-                      const PopupMenuItem(value: 'edit', child: Text('Edit Customer', style: TextStyle(color: kForeground))),
-                      const PopupMenuItem(value: 'delete', child: Text('Delete Customer', style: TextStyle(color: kForeground))),
+                      PopupMenuItem(value: 'edit', child: Text('Edit Customer', style: TextStyle(color: kForeground))),
+                      PopupMenuItem(value: 'delete', child: Text('Delete Customer', style: TextStyle(color: kForeground))),
                     ],
                   ),
                 ],
@@ -409,7 +409,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
                               border: Border.all(color: kBorder),
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            child: const Icon(Icons.chat_rounded, color: kForeground, size: 20),
+                            child: Icon(Icons.chat_rounded, color: kForeground, size: 20),
                           ),
                         ],
                       ),
@@ -465,7 +465,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
                                                   : 'Unknown Vehicle',
                                               style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
                                             ),
-                                            Text(v.fuelType.isNotEmpty ? v.fuelType : 'Petrol', style: const TextStyle(fontSize: 11, color: kMutedForeground)),
+                                            Text(v.fuelType.isNotEmpty ? v.fuelType : 'Petrol', style: TextStyle(fontSize: 11, color: kMutedForeground)),
                                           ],
                                         ),
                                         const SizedBox(height: 2),
@@ -517,7 +517,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
                                           Text(inv.invoiceNumber, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
                                           const SizedBox(height: 2),
                                           Text('${DateFormat('dd MMM yyyy').format(inv.invoiceDate)} · ${inv.vehicle?.vehicleBrand ?? ''} ${inv.vehicle?.vehicleModel ?? ''}'.trim(),
-                                              style: const TextStyle(fontSize: 11, color: kMutedForeground)),
+                                              style: TextStyle(fontSize: 11, color: kMutedForeground)),
                                         ],
                                       ),
                                       Column(
@@ -585,7 +585,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              Text(dateStr, style: const TextStyle(fontSize: 11, color: kMutedForeground)),
+                                              Text(dateStr, style: TextStyle(fontSize: 11, color: kMutedForeground)),
                                               const SizedBox(height: 2),
                                               Text(description, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                                               const SizedBox(height: 4),

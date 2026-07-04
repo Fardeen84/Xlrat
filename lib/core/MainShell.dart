@@ -89,6 +89,7 @@ class _MainShellState extends ConsumerState<MainShell> {
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
     final screen = _locationToScreen(location);
+    final themeMode = ref.watch(themeModeProvider);
 
     // Sync GoRouter location with riverpod state provider post frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -265,8 +266,8 @@ class _MainShellState extends ConsumerState<MainShell> {
                       // Top Bar
                       Container(
                         height: 60,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        decoration: const BoxDecoration(
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        decoration: BoxDecoration(
                           color: kCard,
                           border: Border(bottom: BorderSide(color: kBorder, width: 0.8)),
                         ),
@@ -275,7 +276,7 @@ class _MainShellState extends ConsumerState<MainShell> {
                           children: [
                             Text(
                               _getPageTitle(screen),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w800,
                                 color: kForeground,
@@ -294,10 +295,23 @@ class _MainShellState extends ConsumerState<MainShell> {
                                   ),
                                 ),
                                 const SizedBox(width: 16),
+                                IconButton(
+                                  icon: Icon(
+                                    themeMode == ThemeMode.dark
+                                        ? Icons.light_mode_rounded
+                                        : Icons.dark_mode_rounded,
+                                    color: kForeground,
+                                  ),
+                                  onPressed: () {
+                                    ref.read(themeModeProvider.notifier).toggleTheme();
+                                  },
+                                  tooltip: 'Toggle theme mode',
+                                ),
+                                const SizedBox(width: 8),
                                 Stack(
                                   children: [
                                     IconButton(
-                                      icon: const Icon(Icons.notifications_rounded, color: kForeground),
+                                      icon: Icon(Icons.notifications_rounded, color: kForeground),
                                       onPressed: () => context.go('/notifications'),
                                     ),
                                     if (unreadNotifications > 0)
@@ -396,7 +410,7 @@ class _GarageBottomNav extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: kCard,
-        border: const Border(top: BorderSide(color: kBorder, width: 0.8)),
+        border: Border(top: BorderSide(color: kBorder, width: 0.8)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),

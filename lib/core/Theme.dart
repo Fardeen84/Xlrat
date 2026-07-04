@@ -1,19 +1,43 @@
-// lib/theme.dart
-import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xlrat/l10n/app_localizations.dart';
+import '../providers/billing_providers.dart';
+
+ThemeMode gThemeMode = ThemeMode.light;
 
 const kPrimary = Color(0xFF1565C0);
 const kPrimaryDark = Color(0xFF0D47A1);
 const kAccent = Color(0xFF0288D1);
 const kOrange = Color(0xFFFB8C00);
 const kGreen = Color(0xFF43A047);
-const kBackground = Color(0xFFF5F7FA);
-const kCard = Color(0xFFFFFFFF);
-const kForeground = Color(0xFF0F1923);
-const kMuted = Color(0xFFEEF1F6);
-const kMutedForeground = Color(0xFF637083);
-const kBorder = Color(0x1A0F1923);
 const kRed = Color(0xFFD32F2F);
+
+Color get kBackground => gThemeMode == ThemeMode.dark ? const Color(0xFF121212) : const Color(0xFFF5F7FA);
+Color get kCard => gThemeMode == ThemeMode.dark ? const Color(0xFF1E1E1E) : const Color(0xFFFFFFFF);
+Color get kForeground => gThemeMode == ThemeMode.dark ? const Color(0xFFE0E0E0) : const Color(0xFF0F1923);
+Color get kMuted => gThemeMode == ThemeMode.dark ? const Color(0xFF2C2C2E) : const Color(0xFFEEF1F6);
+Color get kMutedForeground => gThemeMode == ThemeMode.dark ? const Color(0xFF9E9E9E) : const Color(0xFF637083);
+Color get kBorder => gThemeMode == ThemeMode.dark ? const Color(0x33FFFFFF) : const Color(0x1A0F1923);
+
+final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return ThemeModeNotifier(prefs);
+});
+
+class ThemeModeNotifier extends StateNotifier<ThemeMode> {
+  final SharedPreferences _prefs;
+  ThemeModeNotifier(this._prefs) : super(ThemeMode.light) {
+    final mode = _prefs.getString('theme_mode') ?? 'light';
+    state = mode == 'dark' ? ThemeMode.dark : ThemeMode.light;
+    gThemeMode = state;
+  }
+
+  void toggleTheme() {
+    state = state == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    _prefs.setString('theme_mode', state == ThemeMode.dark ? 'dark' : 'light');
+    gThemeMode = state;
+  }
+}
 
 ThemeData buildTheme() {
   return ThemeData(
@@ -21,6 +45,7 @@ ThemeData buildTheme() {
     colorScheme: ColorScheme.fromSeed(
       seedColor: kPrimary,
       primary: kPrimary,
+      brightness: gThemeMode == ThemeMode.dark ? Brightness.dark : Brightness.light,
       background: kBackground,
       surface: kCard,
     ),

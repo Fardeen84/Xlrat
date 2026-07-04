@@ -56,7 +56,7 @@ class _BillingSummarySectionState extends ConsumerState<BillingSummarySection> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('GST', style: TextStyle(fontSize: 13, color: kMutedForeground)),
+                Text('GST', style: TextStyle(fontSize: 13, color: kMutedForeground)),
                 Row(
                   children: [0.0, 5.0, 12.0, 18.0, 28.0].map((g) {
                     final sel = draft.gstPercent == g;
@@ -86,25 +86,25 @@ class _BillingSummarySectionState extends ConsumerState<BillingSummarySection> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Discount (₹)', style: TextStyle(fontSize: 13, color: kMutedForeground)),
+                Text('Discount (₹)', style: TextStyle(fontSize: 13, color: kMutedForeground)),
                 SizedBox(
                   width: 110,
                   child: TextField(
                     controller: _discCtrl,
                     keyboardType: TextInputType.number,
                     textAlign: TextAlign.right,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kForeground),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kForeground),
                     decoration: InputDecoration(
                       hintText: '0',
-                      hintStyle: const TextStyle(color: kMutedForeground),
+                      hintStyle: TextStyle(color: kMutedForeground),
                       filled: true,
                       fillColor: kMuted,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kBorder)),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kBorder)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kBorder)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kBorder)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       isDense: true,
                       prefixText: '₹ ',
-                      prefixStyle: const TextStyle(color: kMutedForeground, fontSize: 13),
+                      prefixStyle: TextStyle(color: kMutedForeground, fontSize: 13),
                     ),
                     onChanged: (v) => notifier.setDiscount(double.tryParse(v) ?? 0),
                   ),
@@ -120,7 +120,7 @@ class _BillingSummarySectionState extends ConsumerState<BillingSummarySection> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Grand Total', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: kForeground)),
+              Text('Grand Total', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: kForeground)),
               Text(
                 formatCurrency(draft.grandTotal.round()),
                 style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kPrimary, letterSpacing: -0.5),

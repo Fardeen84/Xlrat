@@ -96,7 +96,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(AppLocalizations.of(context)!.reportsTitle,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kForeground)),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kForeground)),
                 const SizedBox(height: 10),
                 Row(
                   children: ['daily', 'weekly', 'monthly'].map((p) {
@@ -189,7 +189,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Revenue Trend',
+                          Text('Revenue Trend',
                               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: kForeground)),
                           const SizedBox(height: 24),
                           SizedBox(
@@ -206,11 +206,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Job Status Overview',
+                          Text('Job Status Overview',
                               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: kForeground)),
                           const SizedBox(height: 16),
                           if (totalJobsCount == 0)
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.symmetric(vertical: 24),
                               child: Center(
                                 child: Text(
@@ -291,10 +291,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                                 const SizedBox(width: 8),
                                                 Expanded(
                                                   child: Text(s.$1,
-                                                      style: const TextStyle(fontSize: 12, color: kMutedForeground)),
+                                                      style: TextStyle(fontSize: 12, color: kMutedForeground)),
                                                 ),
                                                 Text('${s.$2}%',
-                                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: kForeground)),
+                                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: kForeground)),
                                               ],
                                             ),
                                           ),
@@ -316,13 +316,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Padding(
+                          Padding(
                             padding: EdgeInsets.fromLTRB(16, 14, 16, 10),
                             child: Text('Top Customers',
                                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: kForeground)),
                           ),
                           if (topCustomers.isEmpty)
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.symmetric(vertical: 24),
                               child: Center(child: Text('No customer data available', style: TextStyle(color: kMutedForeground))),
                             )
@@ -334,13 +334,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                 decoration: BoxDecoration(
                                   border: Border(
-                                    top: i == 0 ? const BorderSide(color: kBorder, width: 0.5) : BorderSide.none,
-                                    bottom: const BorderSide(color: kBorder, width: 0.5),
+                                    top: i == 0 ? BorderSide(color: kBorder, width: 0.5) : BorderSide.none,
+                                    bottom: BorderSide(color: kBorder, width: 0.5),
                                   ),
                                 ),
                                 child: Row(
                                   children: [
-                                    Text('${i + 1}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: kMutedForeground)),
+                                    Text('${i + 1}', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: kMutedForeground)),
                                     const SizedBox(width: 12),
                                     AvatarWidget(initials: c.$4, size: 36),
                                     const SizedBox(width: 10),
@@ -348,8 +348,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Text(c.$1, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kForeground)),
-                                          Text('${c.$3} visits', style: const TextStyle(fontSize: 11, color: kMutedForeground)),
+                                          Text(c.$1, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kForeground)),
+                                          Text('${c.$3} visits', style: TextStyle(fontSize: 11, color: kMutedForeground)),
                                         ],
                                       ),
                                     ),
@@ -370,13 +370,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Padding(
+                          Padding(
                             padding: EdgeInsets.fromLTRB(16, 14, 16, 10),
                             child: Text('Most Used Parts',
                                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: kForeground)),
                           ),
                           if (topParts.isEmpty)
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.symmetric(vertical: 24),
                               child: Center(child: Text('No parts data available', style: TextStyle(color: kMutedForeground))),
                             )
@@ -387,7 +387,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               final pct = maxQty > 0 ? (p.$2 / maxQty).clamp(0.0, 1.0) : 0.0;
                               return Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                decoration: const BoxDecoration(
+                                decoration: BoxDecoration(
                                   border: Border(bottom: BorderSide(color: kBorder, width: 0.5)),
                                 ),
                                 child: Column(
@@ -395,7 +395,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(p.$1, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kForeground)),
+                                        Text(p.$1, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kForeground)),
                                         Text(formatCurrency(p.$3.round()),
                                             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: kPrimary)),
                                       ],
@@ -416,7 +416,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                         ),
                                         const SizedBox(width: 8),
                                         Text('${p.$2.round()} units',
-                                            style: const TextStyle(fontSize: 10, color: kMutedForeground)),
+                                            style: TextStyle(fontSize: 10, color: kMutedForeground)),
                                       ],
                                     ),
                                   ],
@@ -448,9 +448,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         ),
         child: Column(
           children: [
-            Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kForeground)),
+            Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kForeground)),
             const SizedBox(height: 2),
-            Text(label, style: const TextStyle(fontSize: 10, color: kMutedForeground)),
+            Text(label, style: TextStyle(fontSize: 10, color: kMutedForeground)),
             const SizedBox(height: 2),
             Text(change, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF15803D))),
           ],
@@ -483,7 +483,7 @@ class _FlLineChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (data.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'No data available',
           style: TextStyle(color: kMutedForeground, fontSize: 13),
@@ -504,7 +504,7 @@ class _FlLineChart extends StatelessWidget {
           show: true,
           drawVerticalLine: false,
           horizontalInterval: maxY > 0 ? maxY / 4 : 250,
-          getDrawingHorizontalLine: (value) => const FlLine(
+          getDrawingHorizontalLine: (value) => FlLine(
             color: kBorder,
             strokeWidth: 0.5,
           ),
@@ -521,7 +521,7 @@ class _FlLineChart extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 8.0),
                     child: Text(
                       data[index].$1,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: kMutedForeground,
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
@@ -547,14 +547,14 @@ class _FlLineChart extends StatelessWidget {
           enabled: true,
           touchTooltipData: LineTouchTooltipData(
             getTooltipColor: (spot) => kCard,
-            tooltipBorder: const BorderSide(color: kBorder, width: 1),
+            tooltipBorder: BorderSide(color: kBorder, width: 1),
             tooltipPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             getTooltipItems: (touchedSpots) {
               return touchedSpots.map((spot) {
                 final dateLabel = data[spot.x.toInt()].$1;
                 return LineTooltipItem(
                   '$dateLabel\n₹${spot.y.round()}',
-                  const TextStyle(
+                  TextStyle(
                     color: kForeground,
                     fontWeight: FontWeight.bold,
                     fontSize: 11,

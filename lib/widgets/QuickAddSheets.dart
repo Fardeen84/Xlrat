@@ -40,10 +40,10 @@ class QuickAddSheets {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Quick Add Customer',
+                    Text('Quick Add Customer',
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: kForeground)),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, color: kMutedForeground),
+                      icon: Icon(Icons.close_rounded, color: kMutedForeground),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -55,7 +55,7 @@ class QuickAddSheets {
                     labelText: 'Customer Name *',
                     prefixIcon: Icon(Icons.person_outline_rounded, size: 18),
                   ),
-                  style: const TextStyle(color: kForeground),
+                  style: TextStyle(color: kForeground),
                   validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter name' : null,
                 ),
                 const SizedBox(height: 12),
@@ -66,7 +66,7 @@ class QuickAddSheets {
                     prefixIcon: Icon(Icons.phone_outlined, size: 18),
                   ),
                   keyboardType: TextInputType.phone,
-                  style: const TextStyle(color: kForeground),
+                  style: TextStyle(color: kForeground),
                   validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter mobile number' : null,
                 ),
                 const SizedBox(height: 12),
@@ -77,7 +77,7 @@ class QuickAddSheets {
                     prefixIcon: Icon(Icons.mail_outline_rounded, size: 18),
                   ),
                   keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(color: kForeground),
+                  style: TextStyle(color: kForeground),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -87,7 +87,7 @@ class QuickAddSheets {
                     prefixIcon: Icon(Icons.location_on_outlined, size: 18),
                   ),
                   maxLines: 2,
-                  style: const TextStyle(color: kForeground),
+                  style: TextStyle(color: kForeground),
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
@@ -156,10 +156,10 @@ class QuickAddSheets {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Quick Add Vehicle',
+                    Text('Quick Add Vehicle',
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: kForeground)),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, color: kMutedForeground),
+                      icon: Icon(Icons.close_rounded, color: kMutedForeground),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -171,7 +171,7 @@ class QuickAddSheets {
                     labelText: 'Vehicle Number (e.g. MH12AB1234) *',
                     prefixIcon: Icon(Icons.pin_outlined, size: 18),
                   ),
-                  style: const TextStyle(color: kForeground),
+                  style: TextStyle(color: kForeground),
                   textCapitalization: TextCapitalization.characters,
                   validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter vehicle number' : null,
                 ),
@@ -182,7 +182,7 @@ class QuickAddSheets {
                     labelText: 'Brand (e.g. Maruti, Honda) *',
                     prefixIcon: Icon(Icons.directions_car_filled_outlined, size: 18),
                   ),
-                  style: const TextStyle(color: kForeground),
+                  style: TextStyle(color: kForeground),
                   validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter brand' : null,
                 ),
                 const SizedBox(height: 12),
@@ -192,7 +192,7 @@ class QuickAddSheets {
                     labelText: 'Model (e.g. Swift, City) *',
                     prefixIcon: Icon(Icons.model_training_outlined, size: 18),
                   ),
-                  style: const TextStyle(color: kForeground),
+                  style: TextStyle(color: kForeground),
                   validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter model' : null,
                 ),
                 const SizedBox(height: 12),
@@ -202,7 +202,7 @@ class QuickAddSheets {
                     labelText: 'Fuel Type (e.g. Petrol, Diesel, CNG)',
                     prefixIcon: Icon(Icons.local_gas_station_outlined, size: 18),
                   ),
-                  style: const TextStyle(color: kForeground),
+                  style: TextStyle(color: kForeground),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -211,7 +211,7 @@ class QuickAddSheets {
                     labelText: 'Engine Number (Optional)',
                     prefixIcon: Icon(Icons.settings_outlined, size: 18),
                   ),
-                  style: const TextStyle(color: kForeground),
+                  style: TextStyle(color: kForeground),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -220,7 +220,7 @@ class QuickAddSheets {
                     labelText: 'Chassis Number (Optional)',
                     prefixIcon: Icon(Icons.tag_rounded, size: 18),
                   ),
-                  style: const TextStyle(color: kForeground),
+                  style: TextStyle(color: kForeground),
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(

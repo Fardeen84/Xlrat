@@ -90,7 +90,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kCard,
-        title: const Text('Add Part', style: TextStyle(fontWeight: FontWeight.w800, color: kForeground)),
+        title: Text('Add Part', style: TextStyle(fontWeight: FontWeight.w800, color: kForeground)),
         content: Form(
           key: formKey,
           child: SingleChildScrollView(
@@ -99,21 +99,21 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
               children: [
                 TextFormField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: 'Name *', labelStyle: TextStyle(color: kMutedForeground)),
-                  style: const TextStyle(color: kForeground),
+                  decoration: InputDecoration(labelText: 'Name *', labelStyle: TextStyle(color: kMutedForeground)),
+                  style: TextStyle(color: kForeground),
                   validator: (value) => (value == null || value.trim().isEmpty) ? 'Please enter name' : null,
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: skuCtrl,
-                  decoration: const InputDecoration(labelText: 'SKU (Optional)', labelStyle: TextStyle(color: kMutedForeground)),
-                  style: const TextStyle(color: kForeground),
+                  decoration: InputDecoration(labelText: 'SKU (Optional)', labelStyle: TextStyle(color: kMutedForeground)),
+                  style: TextStyle(color: kForeground),
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: categoryCtrl,
-                  decoration: const InputDecoration(labelText: 'Category *', labelStyle: TextStyle(color: kMutedForeground)),
-                  style: const TextStyle(color: kForeground),
+                  decoration: InputDecoration(labelText: 'Category *', labelStyle: TextStyle(color: kMutedForeground)),
+                  style: TextStyle(color: kForeground),
                   validator: (value) => (value == null || value.trim().isEmpty) ? 'Please enter category' : null,
                 ),
                 const SizedBox(height: 8),
@@ -122,9 +122,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                     Expanded(
                       child: TextFormField(
                         controller: stockCtrl,
-                        decoration: const InputDecoration(labelText: 'Stock', labelStyle: TextStyle(color: kMutedForeground)),
+                        decoration: InputDecoration(labelText: 'Stock', labelStyle: TextStyle(color: kMutedForeground)),
                         keyboardType: TextInputType.number,
-                        style: const TextStyle(color: kForeground),
+                        style: TextStyle(color: kForeground),
                         validator: (value) => (value == null || int.tryParse(value) == null) ? 'Invalid' : null,
                       ),
                     ),
@@ -132,8 +132,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                     Expanded(
                       child: TextFormField(
                         controller: unitCtrl,
-                        decoration: const InputDecoration(labelText: 'Unit', labelStyle: TextStyle(color: kMutedForeground)),
-                        style: const TextStyle(color: kForeground),
+                        decoration: InputDecoration(labelText: 'Unit', labelStyle: TextStyle(color: kMutedForeground)),
+                        style: TextStyle(color: kForeground),
                       ),
                     ),
                   ],
@@ -144,9 +144,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                     Expanded(
                       child: TextFormField(
                         controller: purchaseCtrl,
-                        decoration: const InputDecoration(labelText: 'Purchase Price', labelStyle: TextStyle(color: kMutedForeground)),
+                        decoration: InputDecoration(labelText: 'Purchase Price', labelStyle: TextStyle(color: kMutedForeground)),
                         keyboardType: TextInputType.number,
-                        style: const TextStyle(color: kForeground),
+                        style: TextStyle(color: kForeground),
                         validator: (value) => (value == null || int.tryParse(value) == null) ? 'Invalid' : null,
                       ),
                     ),
@@ -154,9 +154,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                     Expanded(
                       child: TextFormField(
                         controller: sellingCtrl,
-                        decoration: const InputDecoration(labelText: 'Selling Price', labelStyle: TextStyle(color: kMutedForeground)),
+                        decoration: InputDecoration(labelText: 'Selling Price', labelStyle: TextStyle(color: kMutedForeground)),
                         keyboardType: TextInputType.number,
-                        style: const TextStyle(color: kForeground),
+                        style: TextStyle(color: kForeground),
                         validator: (value) => (value == null || int.tryParse(value) == null) ? 'Invalid' : null,
                       ),
                     ),
@@ -165,9 +165,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: minStockCtrl,
-                  decoration: const InputDecoration(labelText: 'Min Stock', labelStyle: TextStyle(color: kMutedForeground)),
+                  decoration: InputDecoration(labelText: 'Min Stock', labelStyle: TextStyle(color: kMutedForeground)),
                   keyboardType: TextInputType.number,
-                  style: const TextStyle(color: kForeground),
+                  style: TextStyle(color: kForeground),
                   validator: (value) => (value == null || int.tryParse(value) == null) ? 'Invalid' : null,
                 ),
               ],
@@ -177,7 +177,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: kMutedForeground)),
+            child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
@@ -223,13 +223,13 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
           return AlertDialog(
             backgroundColor: kCard,
-            title: Text(isAddition ? 'Add Stock' : 'Deduct Stock', style: const TextStyle(fontWeight: FontWeight.w800, color: kForeground)),
+            title: Text(isAddition ? 'Add Stock' : 'Deduct Stock', style: TextStyle(fontWeight: FontWeight.w800, color: kForeground)),
             content: Form(
               key: formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(item.name, style: const TextStyle(fontSize: 13, color: kMutedForeground)),
+                  Text(item.name, style: TextStyle(fontSize: 13, color: kMutedForeground)),
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -248,7 +248,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                             color: kMuted,
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: const Icon(Icons.remove_rounded, color: kForeground),
+                          child: Icon(Icons.remove_rounded, color: kForeground),
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -258,7 +258,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                           controller: qtyCtrl,
                           textAlign: TextAlign.center,
                           keyboardType: TextInputType.number,
-                          style: const TextStyle(color: kForeground, fontSize: 18, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: kForeground, fontSize: 18, fontWeight: FontWeight.bold),
                           decoration: const InputDecoration(
                             contentPadding: EdgeInsets.zero,
                           ),
@@ -278,7 +278,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                             color: kMuted,
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: const Icon(Icons.add_rounded, color: kForeground),
+                          child: Icon(Icons.add_rounded, color: kForeground),
                         ),
                       ),
                     ],
@@ -304,7 +304,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel', style: TextStyle(color: kMutedForeground)),
+                child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
@@ -343,7 +343,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kCard,
-        title: const Text('Edit Part', style: TextStyle(fontWeight: FontWeight.w800, color: kForeground)),
+        title: Text('Edit Part', style: TextStyle(fontWeight: FontWeight.w800, color: kForeground)),
         content: Form(
           key: formKey,
           child: SingleChildScrollView(
@@ -352,21 +352,21 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
               children: [
                 TextFormField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: 'Name *', labelStyle: TextStyle(color: kMutedForeground)),
-                  style: const TextStyle(color: kForeground),
+                  decoration: InputDecoration(labelText: 'Name *', labelStyle: TextStyle(color: kMutedForeground)),
+                  style: TextStyle(color: kForeground),
                   validator: (value) => (value == null || value.trim().isEmpty) ? 'Please enter name' : null,
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: skuCtrl,
-                  decoration: const InputDecoration(labelText: 'SKU (Optional)', labelStyle: TextStyle(color: kMutedForeground)),
-                  style: const TextStyle(color: kForeground),
+                  decoration: InputDecoration(labelText: 'SKU (Optional)', labelStyle: TextStyle(color: kMutedForeground)),
+                  style: TextStyle(color: kForeground),
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: categoryCtrl,
-                  decoration: const InputDecoration(labelText: 'Category *', labelStyle: TextStyle(color: kMutedForeground)),
-                  style: const TextStyle(color: kForeground),
+                  decoration: InputDecoration(labelText: 'Category *', labelStyle: TextStyle(color: kMutedForeground)),
+                  style: TextStyle(color: kForeground),
                   validator: (value) => (value == null || value.trim().isEmpty) ? 'Please enter category' : null,
                 ),
                 const SizedBox(height: 8),
@@ -375,9 +375,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                     Expanded(
                       child: TextFormField(
                         controller: stockCtrl,
-                        decoration: const InputDecoration(labelText: 'Stock', labelStyle: TextStyle(color: kMutedForeground)),
+                        decoration: InputDecoration(labelText: 'Stock', labelStyle: TextStyle(color: kMutedForeground)),
                         keyboardType: TextInputType.number,
-                        style: const TextStyle(color: kForeground),
+                        style: TextStyle(color: kForeground),
                         validator: (value) => (value == null || int.tryParse(value) == null) ? 'Invalid' : null,
                       ),
                     ),
@@ -385,8 +385,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                     Expanded(
                       child: TextFormField(
                         controller: unitCtrl,
-                        decoration: const InputDecoration(labelText: 'Unit', labelStyle: TextStyle(color: kMutedForeground)),
-                        style: const TextStyle(color: kForeground),
+                        decoration: InputDecoration(labelText: 'Unit', labelStyle: TextStyle(color: kMutedForeground)),
+                        style: TextStyle(color: kForeground),
                       ),
                     ),
                   ],
@@ -397,9 +397,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                     Expanded(
                       child: TextFormField(
                         controller: purchaseCtrl,
-                        decoration: const InputDecoration(labelText: 'Purchase Price', labelStyle: TextStyle(color: kMutedForeground)),
+                        decoration: InputDecoration(labelText: 'Purchase Price', labelStyle: TextStyle(color: kMutedForeground)),
                         keyboardType: TextInputType.number,
-                        style: const TextStyle(color: kForeground),
+                        style: TextStyle(color: kForeground),
                         validator: (value) => (value == null || int.tryParse(value) == null) ? 'Invalid' : null,
                       ),
                     ),
@@ -407,9 +407,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                     Expanded(
                       child: TextFormField(
                         controller: sellingCtrl,
-                        decoration: const InputDecoration(labelText: 'Selling Price', labelStyle: TextStyle(color: kMutedForeground)),
+                        decoration: InputDecoration(labelText: 'Selling Price', labelStyle: TextStyle(color: kMutedForeground)),
                         keyboardType: TextInputType.number,
-                        style: const TextStyle(color: kForeground),
+                        style: TextStyle(color: kForeground),
                         validator: (value) => (value == null || int.tryParse(value) == null) ? 'Invalid' : null,
                       ),
                     ),
@@ -418,9 +418,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: minStockCtrl,
-                  decoration: const InputDecoration(labelText: 'Min Stock', labelStyle: TextStyle(color: kMutedForeground)),
+                  decoration: InputDecoration(labelText: 'Min Stock', labelStyle: TextStyle(color: kMutedForeground)),
                   keyboardType: TextInputType.number,
-                  style: const TextStyle(color: kForeground),
+                  style: TextStyle(color: kForeground),
                   validator: (value) => (value == null || int.tryParse(value) == null) ? 'Invalid' : null,
                 ),
               ],
@@ -430,7 +430,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: kMutedForeground)),
+            child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
@@ -509,7 +509,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                   children: [
                     Text(
                       AppLocalizations.of(context)!.inventoryTitle,
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kForeground),
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kForeground),
                     ),
                     ElevatedButton.icon(
                       onPressed: () => _showAddPartDialog(context),
@@ -577,7 +577,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       child: DataTable(
                         showCheckboxColumn: false,
                         headingRowColor: WidgetStateProperty.all(kMuted.withOpacity(0.4)),
-                        headingTextStyle: const TextStyle(fontWeight: FontWeight.bold, color: kForeground),
+                        headingTextStyle: TextStyle(fontWeight: FontWeight.bold, color: kForeground),
                         sortColumnIndex: _sortColumnIndex,
                         sortAscending: _sortAscending,
                         columns: [
@@ -673,12 +673,12 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                                       tooltip: 'Add Stock',
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.remove_circle_outline_rounded, size: 18, color: kMutedForeground),
+                                      icon: Icon(Icons.remove_circle_outline_rounded, size: 18, color: kMutedForeground),
                                       onPressed: () => _showAdjustStockDialog(context, item, false),
                                       tooltip: 'Deduct Stock',
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.edit_rounded, size: 18, color: kMutedForeground),
+                                      icon: Icon(Icons.edit_rounded, size: 18, color: kMutedForeground),
                                       onPressed: () => _showEditPartDialog(context, item),
                                       tooltip: 'Edit Part',
                                     ),
@@ -760,16 +760,16 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(AppLocalizations.of(context)!.inventoryTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kForeground)),
+                    Text(AppLocalizations.of(context)!.inventoryTitle, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kForeground)),
                     Row(
                       children: [
                         PopupMenuButton<int>(
-                          icon: const Icon(Icons.filter_list_rounded, color: kMutedForeground, size: 20),
+                          icon: Icon(Icons.filter_list_rounded, color: kMutedForeground, size: 20),
                           color: kCard,
                           onSelected: (val) => setState(() => _selectedTab = val),
                           itemBuilder: (context) => [
-                            const PopupMenuItem(value: 0, child: Text('All Parts', style: TextStyle(color: kForeground))),
-                            const PopupMenuItem(value: 1, child: Text('Low Stock Only', style: TextStyle(color: kForeground))),
+                            PopupMenuItem(value: 0, child: Text('All Parts', style: TextStyle(color: kForeground))),
+                            PopupMenuItem(value: 1, child: Text('Low Stock Only', style: TextStyle(color: kForeground))),
                           ],
                         ),
                         const SizedBox(width: 8),
@@ -854,23 +854,23 @@ class _InventoryCard extends ConsumerWidget {
               children: [
                 ListTile(
                   leading: const Icon(Icons.add_circle_outline_rounded, color: kPrimary),
-                  title: const Text('Add Stock', style: TextStyle(color: kForeground)),
+                  title: Text('Add Stock', style: TextStyle(color: kForeground)),
                   onTap: () {
                     Navigator.pop(context);
                     onAdjustStock(context, item, true);
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.remove_circle_outline_rounded, color: kMutedForeground),
-                  title: const Text('Deduct Stock', style: TextStyle(color: kForeground)),
+                  leading: Icon(Icons.remove_circle_outline_rounded, color: kMutedForeground),
+                  title: Text('Deduct Stock', style: TextStyle(color: kForeground)),
                   onTap: () {
                     Navigator.pop(context);
                     onAdjustStock(context, item, false);
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.edit_rounded, color: kMutedForeground),
-                  title: const Text('Edit Part', style: TextStyle(color: kForeground)),
+                  leading: Icon(Icons.edit_rounded, color: kMutedForeground),
+                  title: Text('Edit Part', style: TextStyle(color: kForeground)),
                   onTap: () {
                     Navigator.pop(context);
                     onEdit(context, item);
@@ -897,25 +897,25 @@ class _InventoryCard extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: kForeground)),
+                Text(item.name, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: kForeground)),
                 const SizedBox(height: 2),
                 Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(color: kMuted, borderRadius: BorderRadius.circular(6)),
-                      child: Text(item.category, style: const TextStyle(fontSize: 10, color: kMutedForeground, fontWeight: FontWeight.w600)),
+                      child: Text(item.category, style: TextStyle(fontSize: 10, color: kMutedForeground, fontWeight: FontWeight.w600)),
                     ),
                     const SizedBox(width: 6),
-                    Text('SKU: ${item.sku}', style: const TextStyle(fontSize: 10, color: kMutedForeground)),
+                    Text('SKU: ${item.sku}', style: TextStyle(fontSize: 10, color: kMutedForeground)),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Text('Sell: ${formatCurrency(item.selling)}', style: const TextStyle(fontSize: 11, color: kForeground, fontWeight: FontWeight.w700)),
+                    Text('Sell: ${formatCurrency(item.selling)}', style: TextStyle(fontSize: 11, color: kForeground, fontWeight: FontWeight.w700)),
                     const SizedBox(width: 8),
-                    Text('Cost: ${formatCurrency(item.purchase)}', style: const TextStyle(fontSize: 11, color: kMutedForeground)),
+                    Text('Cost: ${formatCurrency(item.purchase)}', style: TextStyle(fontSize: 11, color: kMutedForeground)),
                   ],
                 ),
               ],
@@ -939,7 +939,7 @@ class _InventoryCard extends ConsumerWidget {
                   child: const Text('Low Stock', style: TextStyle(fontSize: 10, color: kRed, fontWeight: FontWeight.w700)),
                 )
               else
-                Text('Min: ${item.minStock}', style: const TextStyle(fontSize: 10, color: kMutedForeground)),
+                Text('Min: ${item.minStock}', style: TextStyle(fontSize: 10, color: kMutedForeground)),
             ],
           ),
         ],

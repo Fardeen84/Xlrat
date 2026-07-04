@@ -221,7 +221,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         padding: const EdgeInsets.all(16.0),
                         child: Text(
                           AppLocalizations.of(context)!.dashboardSectionActiveJobs,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
                             color: kForeground,
@@ -303,7 +303,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
+                            Text(
                               'Recent Invoices / Bills',
                               style: TextStyle(
                                 fontSize: 15,
@@ -431,7 +431,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Quick Actions',
                         style: TextStyle(
                           fontSize: 14,
@@ -485,7 +485,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         children: [
                           Text(
                             AppLocalizations.of(context)!.dashboardSectionLowStockAlert,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
                               color: kForeground,
@@ -516,7 +516,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       if (lowStock.isEmpty)
                         Text(
                           AppLocalizations.of(context)!.dashboardNoLowStock,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: kMutedForeground,
                             fontSize: 12,
                           ),
@@ -540,7 +540,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                         children: [
                                           Text(
                                             item.name,
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 12,
                                               fontWeight: FontWeight.w700,
                                               color: kForeground,
@@ -548,7 +548,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                           ),
                                           Text(
                                             'Stock: ${item.stock} ${item.unit} (Min: ${item.minStock})',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 10,
                                               color: kMutedForeground,
                                             ),
@@ -566,7 +566,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                   ],
                                 ),
                                 if (idx < lowStock.take(5).length - 1)
-                                  const Divider(color: kBorder, height: 16),
+                                  Divider(color: kBorder, height: 16),
                               ],
                             );
                           }),
@@ -612,14 +612,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             const SizedBox(width: 12),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: kForeground,
               ),
             ),
             const Spacer(),
-            const Icon(
+            Icon(
               Icons.chevron_right_rounded,
               color: kMutedForeground,
               size: 18,
@@ -790,7 +790,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.only(left: 14),
                         child: Icon(
                           Icons.search_rounded,
@@ -810,7 +810,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           },
                           decoration: InputDecoration(
                             hintText: AppLocalizations.of(context)!.dashboardSearchHint,
-                            hintStyle: const TextStyle(
+                            hintStyle: TextStyle(
                               color: kMutedForeground,
                               fontSize: 14,
                             ),
@@ -821,7 +821,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             ),
                             suffixIcon: _searchCtrl.text.isNotEmpty
                                 ? IconButton(
-                                    icon: const Icon(Icons.clear_rounded, size: 18, color: kMutedForeground),
+                                    icon: Icon(Icons.clear_rounded, size: 18, color: kMutedForeground),
                                     onPressed: () {
                                       _searchCtrl.clear();
                                       ref.read(dashboardSearchQueryProvider.notifier).state = '';
@@ -864,7 +864,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                       data: (results) {
                         if (results.isEmpty) {
-                          return const Padding(
+                          return Padding(
                             padding: EdgeInsets.all(16.0),
                             child: Center(
                               child: Text(
@@ -878,7 +878,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           shrinkWrap: true,
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           itemCount: results.length,
-                          separatorBuilder: (_, __) => const Divider(height: 1, color: kBorder),
+                          separatorBuilder: (_, __) => Divider(height: 1, color: kBorder),
                           itemBuilder: (context, index) {
                             final invoice = results[index];
                             return ListTile(
@@ -893,11 +893,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               ),
                               title: Text(
                                 invoice.invoiceNumber,
-                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: kForeground),
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: kForeground),
                               ),
                               subtitle: Text(
                                 '${invoice.customer?.name ?? 'Unknown Customer'} • ${invoice.vehicle?.vehicleNumber ?? 'No Vehicle'}',
-                                style: const TextStyle(fontSize: 11, color: kMutedForeground),
+                                style: TextStyle(fontSize: 11, color: kMutedForeground),
                               ),
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -908,7 +908,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                     children: [
                                       Text(
                                         formatCurrency(invoice.grandTotal.round()),
-                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kForeground),
+                                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kForeground),
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
@@ -923,7 +923,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                   ),
                                   const SizedBox(width: 8),
                                   IconButton(
-                                    icon: const Icon(Icons.person_outline_rounded, color: kMutedForeground, size: 20),
+                                    icon: Icon(Icons.person_outline_rounded, color: kMutedForeground, size: 20),
                                     onPressed: () {
                                       context.push('/customer-detail/${invoice.customerId}');
                                     },
@@ -986,7 +986,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               // Quick Actions
               Text(
                 AppLocalizations.of(context)!.dashboardQuickActions,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
                   color: kForeground,
@@ -1038,7 +1038,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                 ),
-                error: (e, _) => const Center(
+                error: (e, _) => Center(
                   child: Text(
                     'Could not load bills',
                     style: TextStyle(color: kMutedForeground, fontSize: 13),
@@ -1100,7 +1100,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           const SizedBox(height: 12),  // REPLACE Spacer() with this
           Text(
             card.value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w900,
               color: kForeground,
@@ -1144,7 +1144,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               Text(
                 label,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: kForeground,
@@ -1252,7 +1252,7 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w800,
             color: kForeground,
@@ -1331,7 +1331,7 @@ class _BillCard extends StatelessWidget {
                 children: [
                   Text(
                     invoice.customer?.name ?? '—',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 13,
                       color: kForeground,
@@ -1340,7 +1340,7 @@ class _BillCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     invoice.invoiceNumber,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       color: kMutedForeground,
                     ),
@@ -1353,7 +1353,7 @@ class _BillCard extends StatelessWidget {
               children: [
                 Text(
                   amount,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 13,
                     color: kForeground,
@@ -1431,13 +1431,13 @@ class _EmptyBills extends StatelessWidget {
       alignment: Alignment.center,
       child: Column(
         children: [
-          const Icon(
+          Icon(
             Icons.receipt_long_outlined,
             size: 36,
             color: kMutedForeground,
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'No bills yet',
             style: TextStyle(
               fontSize: 13,

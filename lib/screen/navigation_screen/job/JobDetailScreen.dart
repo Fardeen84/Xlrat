@@ -29,7 +29,7 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setStateDialog) => AlertDialog(
           backgroundColor: kCard,
-          title: const Text('Edit Job Card', style: TextStyle(fontWeight: FontWeight.w800, color: kForeground)),
+          title: Text('Edit Job Card', style: TextStyle(fontWeight: FontWeight.w800, color: kForeground)),
           content: Form(
             key: formKey,
             child: SingleChildScrollView(
@@ -38,16 +38,16 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
                 children: [
                   TextFormField(
                     controller: complaintCtrl,
-                    decoration: const InputDecoration(labelText: 'Complaint Description', labelStyle: TextStyle(color: kMutedForeground)),
+                    decoration: InputDecoration(labelText: 'Complaint Description', labelStyle: TextStyle(color: kMutedForeground)),
                     maxLines: 3,
-                    style: const TextStyle(color: kForeground),
+                    style: TextStyle(color: kForeground),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   DropdownButtonFormField<String>(
                     initialValue: selectedMechanic.isNotEmpty ? selectedMechanic : 'Suresh K.',
-                    decoration: const InputDecoration(labelText: 'Mechanic', labelStyle: TextStyle(color: kMutedForeground)),
+                    decoration: InputDecoration(labelText: 'Mechanic', labelStyle: TextStyle(color: kMutedForeground)),
                     dropdownColor: kCard,
-                    items: const [
+                    items: [
                       DropdownMenuItem(value: 'Suresh K.', child: Text('Suresh K.', style: TextStyle(color: kForeground))),
                       DropdownMenuItem(value: 'Ramesh V.', child: Text('Ramesh V.', style: TextStyle(color: kForeground))),
                       DropdownMenuItem(value: 'Kiran M.', child: Text('Kiran M.', style: TextStyle(color: kForeground))),
@@ -56,12 +56,12 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
                       if (v != null) setStateDialog(() => selectedMechanic = v);
                     },
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   DropdownButtonFormField<String>(
                     initialValue: selectedStatus,
-                    decoration: const InputDecoration(labelText: 'Status', labelStyle: TextStyle(color: kMutedForeground)),
+                    decoration: InputDecoration(labelText: 'Status', labelStyle: TextStyle(color: kMutedForeground)),
                     dropdownColor: kCard,
-                    items: const [
+                    items: [
                       DropdownMenuItem(value: 'pending', child: Text('Pending', style: TextStyle(color: kForeground))),
                       DropdownMenuItem(value: 'in-progress', child: Text('In Progress', style: TextStyle(color: kForeground))),
                       DropdownMenuItem(value: 'completed', child: Text('Completed', style: TextStyle(color: kForeground))),
@@ -73,9 +73,9 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: amountCtrl,
-                    decoration: const InputDecoration(labelText: 'Estimate Amount', labelStyle: TextStyle(color: kMutedForeground)),
+                    decoration: InputDecoration(labelText: 'Estimate Amount', labelStyle: TextStyle(color: kMutedForeground)),
                     keyboardType: TextInputType.number,
-                    style: const TextStyle(color: kForeground),
+                    style: TextStyle(color: kForeground),
                     validator: (value) => (value == null || int.tryParse(value) == null) ? 'Please enter a valid amount' : null,
                   ),
                 ],
@@ -85,7 +85,7 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: kMutedForeground)),
+              child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
@@ -146,15 +146,15 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
             child: Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back_rounded, color: kForeground),
+                  icon: Icon(Icons.arrow_back_rounded, color: kForeground),
                   onPressed: () => context.go('/jobs'),
                 ),
                 Expanded(
                   child: Text(job.jobNumber,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: kForeground)),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: kForeground)),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.edit_rounded, color: kForeground, size: 18),
+                  icon: Icon(Icons.edit_rounded, color: kForeground, size: 18),
                   onPressed: () => _showEditJobDialog(context, job),
                   tooltip: 'Edit Job Card',
                 ),
@@ -222,11 +222,11 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
 
                   GarageCard(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      const Text('CUSTOMER COMPLAINT',
+                      Text('CUSTOMER COMPLAINT',
                           style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kMutedForeground, letterSpacing: 0.8)),
                       const SizedBox(height: 8),
                       Text(job.complaint.isNotEmpty ? job.complaint : 'No complaint description provided.',
-                          style: const TextStyle(fontSize: 14, color: kForeground, height: 1.5)),
+                          style: TextStyle(fontSize: 14, color: kForeground, height: 1.5)),
                     ]),
                   ),
 
@@ -234,7 +234,7 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
 
                   GarageCard(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      const Text('JOB DETAILS',
+                      Text('JOB DETAILS',
                           style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kMutedForeground, letterSpacing: 0.8)),
                       const SizedBox(height: 10),
                       Row(
@@ -252,7 +252,7 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
                           StatusBadge(status: job.status),
                         ],
                       ),
-                      const Divider(color: kBorder),
+                      Divider(color: kBorder),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -345,7 +345,7 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
                     border: Border.all(color: kBorder),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(Icons.share_rounded, color: kForeground, size: 20),
+                  child: Icon(Icons.share_rounded, color: kForeground, size: 20),
                 ),
               ),
             ]),

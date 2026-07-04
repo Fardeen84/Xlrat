@@ -89,7 +89,7 @@ class JobsScreen extends ConsumerWidget {
               children: [
                 Text(
                   AppLocalizations.of(context)!.jobsTitle,
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kForeground),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kForeground),
                 ),
                 ElevatedButton.icon(
                   onPressed: () => context.push("/new-job"),
@@ -188,7 +188,7 @@ class JobsScreen extends ConsumerWidget {
                             child: DataTable(
                               showCheckboxColumn: false,
                               headingRowColor: WidgetStateProperty.all(kMuted.withValues(alpha: 0.4)),
-                              headingTextStyle: const TextStyle(fontWeight: FontWeight.bold, color: kForeground),
+                              headingTextStyle: TextStyle(fontWeight: FontWeight.bold, color: kForeground),
                               columns: [
                                 DataColumn(label: Text(AppLocalizations.of(context)!.jobsColJobId)),
                                 DataColumn(label: Text(AppLocalizations.of(context)!.jobsColCustomer)),
@@ -320,7 +320,7 @@ class JobsScreen extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(AppLocalizations.of(context)!.jobsTitle,
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kForeground)),
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kForeground)),
                     GestureDetector(
                       onTap: () {
                         context.push("/new-job");
@@ -445,7 +445,7 @@ class _JobCard extends StatelessWidget {
                               Flexible(
                                 child: Text(
                                   job.customer,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                       fontWeight: FontWeight.w800, fontSize: 14, color: kForeground),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -470,10 +470,10 @@ class _JobCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text('${job.vehicle} · ${job.brand}', style: const TextStyle(fontSize: 12, color: kMutedForeground)),
+                Text('${job.vehicle} · ${job.brand}', style: TextStyle(fontSize: 12, color: kMutedForeground)),
                 const SizedBox(height: 2),
                 Text(job.complaint,
-                    style: const TextStyle(fontSize: 12, color: kMutedForeground),
+                    style: TextStyle(fontSize: 12, color: kMutedForeground),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 8),
@@ -490,11 +490,11 @@ class _JobCard extends StatelessWidget {
                           child: const Icon(Icons.build_rounded, size: 12, color: kPrimary),
                         ),
                         const SizedBox(width: 6),
-                        Text(job.mechanic, style: const TextStyle(fontSize: 11, color: kMutedForeground)),
+                        Text(job.mechanic, style: TextStyle(fontSize: 11, color: kMutedForeground)),
                       ],
                     ),
                     Text(formatCurrency(job.amount),
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kForeground)),
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kForeground)),
                   ],
                 ),
               ],

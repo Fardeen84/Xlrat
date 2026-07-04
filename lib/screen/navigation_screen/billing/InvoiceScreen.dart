@@ -60,10 +60,10 @@ class _InvoiceBody extends StatelessWidget {
           child: Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.arrow_back_rounded, color: kForeground),
+                icon: Icon(Icons.arrow_back_rounded, color: kForeground),
                 onPressed: () => context.push('/InvoiceHistory'),
               ),
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Invoice',
                   style: TextStyle(
@@ -166,7 +166,7 @@ class _InvoiceBody extends StatelessWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('BILL TO',
+                                  Text('BILL TO',
                                       style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w800,
@@ -175,19 +175,19 @@ class _InvoiceBody extends StatelessWidget {
                                       )),
                                   const SizedBox(height: 6),
                                   Text(customer?.name ?? '—',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w800,
                                         color: kForeground,
                                       )),
                                   if (customer?.mobile.isNotEmpty == true)
                                     Text('+91 ${customer!.mobile}',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                             fontSize: 12,
                                             color: kMutedForeground)),
                                   if (customer?.email.isNotEmpty == true)
                                     Text(customer!.email,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                             fontSize: 12,
                                             color: kMutedForeground)),
                                   if (vehicle != null) ...[
@@ -205,7 +205,7 @@ class _InvoiceBody extends StatelessWidget {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                const Text('INVOICE NO.',
+                                Text('INVOICE NO.',
                                     style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w800,
@@ -214,7 +214,7 @@ class _InvoiceBody extends StatelessWidget {
                                     )),
                                 const SizedBox(height: 6),
                                 Text(invoice.invoiceNumber,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w800,
                                       color: kForeground,
@@ -222,7 +222,7 @@ class _InvoiceBody extends StatelessWidget {
                                 Text(
                                   DateFormat('dd MMM yyyy')
                                       .format(invoice.invoiceDate),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                       fontSize: 11, color: kMutedForeground),
                                 ),
                                 const SizedBox(height: 4),
@@ -240,11 +240,11 @@ class _InvoiceBody extends StatelessWidget {
                         ),
 
                         const SizedBox(height: 20),
-                        const Divider(color: kBorder),
+                        Divider(color: kBorder),
                         const SizedBox(height: 12),
 
                         // Table Header
-                        const Row(
+                        Row(
                           children: [
                             Expanded(
                                 flex: 6,
@@ -292,7 +292,7 @@ class _InvoiceBody extends StatelessWidget {
                         // Line Items
                         ...invoice.items.map((item) => _LineItemRow(item: item)),
 
-                        const Divider(color: kBorder),
+                        Divider(color: kBorder),
                         const SizedBox(height: 12),
 
                         // Totals
@@ -313,12 +313,12 @@ class _InvoiceBody extends StatelessWidget {
                                 _TotalRow(
                                     'Discount',
                                     '- ${formatCurrency(invoice.discount.round())}'),
-                              const Divider(color: kBorder),
+                              Divider(color: kBorder),
                               Row(
                                 mainAxisAlignment:
                                 MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text('Grand Total',
+                                  Text('Grand Total',
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w800,
@@ -344,12 +344,12 @@ class _InvoiceBody extends StatelessWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.payment_rounded,
+                              Icon(Icons.payment_rounded,
                                   size: 14, color: kMutedForeground),
                               const SizedBox(width: 4),
                               Text(
                                 'Payment via ${invoice.paymentMethod.label}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 12, color: kMutedForeground),
                               ),
                             ],
@@ -367,13 +367,13 @@ class _InvoiceBody extends StatelessWidget {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(invoice.notes,
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 12, color: kForeground)),
                           ),
                         ],
 
                         const SizedBox(height: 20),
-                        const Text(
+                        Text(
                           'Thank you for choosing Asian Auto Repair!',
                           textAlign: TextAlign.center,
                           style: TextStyle(
@@ -619,13 +619,13 @@ class _LineItemRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(item.itemName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     color: kForeground,
                     fontWeight: FontWeight.w500,
                   )),
               Text(item.unit,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 10, color: kMutedForeground)),
             ],
           ),
@@ -638,7 +638,7 @@ class _LineItemRow extends StatelessWidget {
                 : item.quantity.toStringAsFixed(1),
             textAlign: TextAlign.center,
             style:
-            const TextStyle(fontSize: 12, color: kMutedForeground),
+            TextStyle(fontSize: 12, color: kMutedForeground),
           ),
         ),
         Expanded(
@@ -647,7 +647,7 @@ class _LineItemRow extends StatelessWidget {
             '₹${item.price.toInt()}',
             textAlign: TextAlign.right,
             style:
-            const TextStyle(fontSize: 12, color: kMutedForeground),
+            TextStyle(fontSize: 12, color: kMutedForeground),
           ),
         ),
         Expanded(
@@ -655,7 +655,7 @@ class _LineItemRow extends StatelessWidget {
           child: Text(
             '₹${item.total.toInt()}',
             textAlign: TextAlign.right,
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 12, fontWeight: FontWeight.w700, color: kForeground),
           ),
         ),
@@ -676,10 +676,10 @@ class _TotalRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label,
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 12, color: kMutedForeground)),
         Text(value,
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: kForeground)),

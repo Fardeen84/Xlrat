@@ -30,10 +30,10 @@ class NotificationsScreen extends ConsumerWidget {
             child: Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back_rounded, color: kForeground),
+                  icon: Icon(Icons.arrow_back_rounded, color: kForeground),
                   onPressed: () => context.go('/dashboard'),
                 ),
-                const Expanded(
+                Expanded(
                   child: Text('Notifications',
                       style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: kForeground)),
                 ),
@@ -48,7 +48,7 @@ class NotificationsScreen extends ConsumerWidget {
 
           Expanded(
             child: notifications.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       'No notifications',
                       style: TextStyle(color: kMutedForeground, fontSize: 14),
@@ -61,13 +61,13 @@ class NotificationsScreen extends ConsumerWidget {
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8),
                           child: Text('NEW (${unread.length})',
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800,
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800,
                                   color: kMutedForeground, letterSpacing: 0.8)),
                         ),
                         ...unread.map((n) => _NotifCard(notif: n, isNew: true)),
                       ],
                       if (read.isNotEmpty) ...[
-                        const Padding(
+                        Padding(
                           padding: EdgeInsets.only(top: 16, bottom: 8),
                           child: Text('EARLIER',
                               style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800,
@@ -140,10 +140,10 @@ class _NotifCard extends ConsumerWidget {
                       )),
                   const SizedBox(height: 3),
                   Text(notif.body,
-                      style: const TextStyle(fontSize: 12, color: kMutedForeground, height: 1.4)),
+                      style: TextStyle(fontSize: 12, color: kMutedForeground, height: 1.4)),
                   const SizedBox(height: 6),
                   Text(notif.time,
-                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kMutedForeground)),
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kMutedForeground)),
                 ],
               ),
             ),
@@ -159,4 +159,4 @@ class _NotifCard extends ConsumerWidget {
       ),
     );
   }
-}
+}

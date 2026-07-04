@@ -86,7 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: kCard,
         body: Center(
           child: CircularProgressIndicator(color: kPrimary),
@@ -145,7 +145,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // PIN field
                   Text(
                     _isPinSet ? AppLocalizations.of(context)!.loginLabelPin : AppLocalizations.of(context)!.loginLabelEnterPin,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                       color: kForeground,
@@ -160,17 +160,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
                       hintText: '••••',
-                      hintStyle: const TextStyle(color: kMutedForeground),
+                      hintStyle: TextStyle(color: kMutedForeground),
                       counterText: '',
                       filled: true,
                       fillColor: kMuted,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: kBorder),
+                        borderSide: BorderSide(color: kBorder),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: kBorder),
+                        borderSide: BorderSide(color: kBorder),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -185,7 +185,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 20),
                     Text(
                       AppLocalizations.of(context)!.loginLabelConfirmPin,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: kForeground,
@@ -200,17 +200,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       onChanged: (_) => setState(() {}),
                       decoration: InputDecoration(
                         hintText: '••••',
-                        hintStyle: const TextStyle(color: kMutedForeground),
+                        hintStyle: TextStyle(color: kMutedForeground),
                         counterText: '',
                         filled: true,
                         fillColor: kMuted,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: kBorder),
+                          borderSide: BorderSide(color: kBorder),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: kBorder),
+                          borderSide: BorderSide(color: kBorder),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),

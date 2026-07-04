@@ -149,20 +149,20 @@ class _BillingCustomerSectionState extends ConsumerState<BillingCustomerSection>
             _pushNewCustomerToDraft();
             await _search(val, SuggestSource.name);
           },
-          style: const TextStyle(fontSize: 14, color: kForeground),
+          style: TextStyle(fontSize: 14, color: kForeground),
           decoration: InputDecoration(
             labelText: AppLocalizations.of(context)!.billingLabelCustomerName,
-            prefixIcon: const Icon(Icons.person_outline_rounded, size: 18, color: kMutedForeground),
+            prefixIcon: Icon(Icons.person_outline_rounded, size: 18, color: kMutedForeground),
             suffixIcon: anyInput
                 ? GestureDetector(
                     onTap: _clearAll,
-                    child: const Icon(Icons.close_rounded, size: 16, color: kMutedForeground),
+                    child: Icon(Icons.close_rounded, size: 16, color: kMutedForeground),
                   )
                 : null,
             filled: true,
             fillColor: kMuted,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kBorder)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kBorder)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kBorder)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kBorder)),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimary, width: 2)),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           ),
@@ -187,12 +187,12 @@ class _BillingCustomerSectionState extends ConsumerState<BillingCustomerSection>
           style: TextStyle(fontSize: 14, color: !_isExisting ? kForeground : kMutedForeground),
           decoration: InputDecoration(
             labelText: AppLocalizations.of(context)!.billingLabelMobileNumber,
-            prefixIcon: const Icon(Icons.phone_outlined, size: 18, color: kMutedForeground),
+            prefixIcon: Icon(Icons.phone_outlined, size: 18, color: kMutedForeground),
             filled: true,
             fillColor: !_isExisting ? kMuted : kMuted.withOpacity(0.5),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kBorder)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kBorder)),
-            disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kBorder)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kBorder)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kBorder)),
+            disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kBorder)),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimary, width: 2)),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           ),
@@ -285,16 +285,16 @@ class _BillingCustomerSectionState extends ConsumerState<BillingCustomerSection>
                             children: [
                               Text(
                                 c.name,
-                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kForeground),
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kForeground),
                               ),
                               Text(
                                 c.mobile,
-                                style: const TextStyle(fontSize: 11, color: kMutedForeground),
+                                style: TextStyle(fontSize: 11, color: kMutedForeground),
                               ),
                             ],
                           ),
                         ),
-                        const Icon(Icons.north_west_rounded, size: 14, color: kMutedForeground),
+                        Icon(Icons.north_west_rounded, size: 14, color: kMutedForeground),
                       ],
                     ),
                   ),

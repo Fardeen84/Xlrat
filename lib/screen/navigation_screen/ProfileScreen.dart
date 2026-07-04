@@ -32,6 +32,7 @@ class ProfileScreen extends ConsumerWidget {
 
     final l10n = AppLocalizations.of(context)!;
     final locale = ref.watch(localeProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
     final customersAsync = ref.watch(customerListProvider);
     final jobsAsync = ref.watch(jobsProvider);
@@ -49,7 +50,12 @@ class ProfileScreen extends ConsumerWidget {
       ]),
       _Section('App Settings', [
         _Item(Icons.print_rounded, 'Printer Settings', 'Bluetooth thermal'),
-        _Item(Icons.palette_rounded, 'Theme & Display', 'Light mode'),
+        _Item(
+          Icons.palette_rounded,
+          'Theme & Display',
+          themeMode == ThemeMode.dark ? 'Dark Mode' : 'Light Mode',
+          id: 'theme',
+        ),
         _Item(Icons.notifications_rounded, 'Notifications', 'All enabled'),
         _Item(Icons.language_rounded, l10n.profileLanguageSetting, locale.languageCode == 'en' ? 'English' : 'हिंदी', id: 'language'),
       ]),
@@ -147,7 +153,7 @@ class ProfileScreen extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.only(left: 4, bottom: 8),
                   child: Text(section.title.toUpperCase(),
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800,
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800,
                           color: kMutedForeground, letterSpacing: 0.8)),
                 ),
                 Container(
@@ -175,10 +181,10 @@ class ProfileScreen extends ConsumerWidget {
                               child: Icon(item.icon, size: 18, color: kPrimary),
                             ),
                             title: Text(item.label,
-                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kForeground)),
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kForeground)),
                             subtitle: Text(item.sub,
-                                style: const TextStyle(fontSize: 12, color: kMutedForeground)),
-                            trailing: const Icon(Icons.chevron_right_rounded, color: kMutedForeground),
+                                style: TextStyle(fontSize: 12, color: kMutedForeground)),
+                            trailing: Icon(Icons.chevron_right_rounded, color: kMutedForeground),
                             onTap: () {
                               if (item.id == 'workshop') {
                                 _showEditGarageNameDialog(context, ref, displayName);
@@ -188,11 +194,13 @@ class ProfileScreen extends ConsumerWidget {
                                 _showEditAddressDialog(context, ref, profile.address);
                               } else if (item.id == 'language') {
                                 _showLanguageDialog(context, ref);
+                              } else if (item.id == 'theme') {
+                                ref.read(themeModeProvider.notifier).toggleTheme();
                               }
                             },
                           ),
                           if (i < section.items.length - 1)
-                            const Divider(height: 1, indent: 70, color: kBorder),
+                            Divider(height: 1, indent: 70, color: kBorder),
                         ],
                       );
                     }).toList(),
@@ -374,9 +382,9 @@ class ProfileScreen extends ConsumerWidget {
   Widget _statItem(String value, String label) => Expanded(
     child: Column(
       children: [
-        Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kForeground)),
+        Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kForeground)),
         const SizedBox(height: 2),
-        Text(label, style: const TextStyle(fontSize: 10, color: kMutedForeground)),
+        Text(label, style: TextStyle(fontSize: 10, color: kMutedForeground)),
       ],
     ),
   );

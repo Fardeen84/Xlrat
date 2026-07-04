@@ -182,7 +182,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                     const SizedBox(height: 20),
                     _sectionLabel('Customer & Vehicle'),
                     const SizedBox(height: 10),
-                    const BillingCard(
+                    BillingCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -254,12 +254,12 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  decoration: const BoxDecoration(
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  decoration: BoxDecoration(
                     color: kCard,
                     border: Border(bottom: BorderSide(color: kBorder, width: 0.8)),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
                       Icon(Icons.picture_as_pdf_rounded, color: kPrimary, size: 20),
                       SizedBox(width: 8),
@@ -311,7 +311,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             const SizedBox(height: 20),
             _sectionLabel(AppLocalizations.of(context)!.billingCustomerSection + " & " + AppLocalizations.of(context)!.billingVehicleSection),
             const SizedBox(height: 10),
-            const BillingCard(
+            BillingCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -374,7 +374,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
 
   Widget _sectionLabel(String text) => Text(
         text,
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kMutedForeground, letterSpacing: 0.3),
+        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kMutedForeground, letterSpacing: 0.3),
       );
 }
 
@@ -397,11 +397,11 @@ class _Header extends StatelessWidget {
         ),
         child: Row(children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: kForeground),
+            icon: Icon(Icons.arrow_back_rounded, color: kForeground),
             onPressed: () => context.pop(),
           ),
           Expanded(
-            child: Text(AppLocalizations.of(context)!.billingTitle, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: kForeground, letterSpacing: -0.3)),
+            child: Text(AppLocalizations.of(context)!.billingTitle, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: kForeground, letterSpacing: -0.3)),
           ),
           GestureDetector(
             onTap: onHistory,
@@ -409,9 +409,9 @@ class _Header extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(color: kMuted, borderRadius: BorderRadius.circular(12)),
               child: Row(children: [
-                const Icon(Icons.history_rounded, size: 15, color: kMutedForeground),
+                Icon(Icons.history_rounded, size: 15, color: kMutedForeground),
                 const SizedBox(width: 5),
-                Text(AppLocalizations.of(context)!.billingHistory, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kMutedForeground)),
+                Text(AppLocalizations.of(context)!.billingHistory, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kMutedForeground)),
               ]),
             ),
           ),
@@ -454,12 +454,12 @@ class _DateCard extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(AppLocalizations.of(context)!.billingInvoiceDate, style: const TextStyle(fontSize: 11, color: kMutedForeground, fontWeight: FontWeight.w500)),
+              Text(AppLocalizations.of(context)!.billingInvoiceDate, style: TextStyle(fontSize: 11, color: kMutedForeground, fontWeight: FontWeight.w500)),
               const SizedBox(height: 2),
-              Text(DateFormat('dd MMMM yyyy').format(date), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kForeground)),
+              Text(DateFormat('dd MMMM yyyy').format(date), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kForeground)),
             ]),
             const Spacer(),
-            const Icon(Icons.edit_calendar_rounded, size: 16, color: kMutedForeground),
+            Icon(Icons.edit_calendar_rounded, size: 16, color: kMutedForeground),
           ]),
         ),
       );
@@ -474,9 +474,9 @@ class _PaymentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => BillingCard(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(AppLocalizations.of(context)!.billingPayment, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: kForeground)),
+          Text(AppLocalizations.of(context)!.billingPayment, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: kForeground)),
           const SizedBox(height: 14),
-          Text(AppLocalizations.of(context)!.billingStatus, style: const TextStyle(fontSize: 11, color: kMutedForeground, fontWeight: FontWeight.w600, letterSpacing: 0.3)),
+          Text(AppLocalizations.of(context)!.billingStatus, style: TextStyle(fontSize: 11, color: kMutedForeground, fontWeight: FontWeight.w600, letterSpacing: 0.3)),
           const SizedBox(height: 8),
           Row(
             children: PaymentStatus.values.map((s) {
@@ -505,7 +505,7 @@ class _PaymentCard extends StatelessWidget {
             }).toList(),
           ),
           const SizedBox(height: 14),
-          Text(AppLocalizations.of(context)!.billingMethod, style: const TextStyle(fontSize: 11, color: kMutedForeground, fontWeight: FontWeight.w600, letterSpacing: 0.3)),
+          Text(AppLocalizations.of(context)!.billingMethod, style: TextStyle(fontSize: 11, color: kMutedForeground, fontWeight: FontWeight.w600, letterSpacing: 0.3)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -568,7 +568,7 @@ class _NotesCard extends StatelessWidget {
         child: TextField(
           controller: ctrl,
           maxLines: 3,
-          style: const TextStyle(fontSize: 13, color: kForeground),
+          style: TextStyle(fontSize: 13, color: kForeground),
           decoration: InputDecoration(
             hintText: AppLocalizations.of(context)!.billingNotesHint,
             hintStyle: TextStyle(color: kMutedForeground),
@@ -610,7 +610,7 @@ class _SaveBar extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: kBorder),
               ),
-              child: const Icon(Icons.refresh_rounded, color: kMutedForeground, size: 20),
+              child: Icon(Icons.refresh_rounded, color: kMutedForeground, size: 20),
             ),
           ),
           const SizedBox(width: 12),

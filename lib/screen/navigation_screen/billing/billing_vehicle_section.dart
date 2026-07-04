@@ -197,15 +197,15 @@ class _BillingVehicleSectionState extends ConsumerState<BillingVehicleSection> {
                     isExpanded: true,
                     hint: Text(
                       AppLocalizations.of(context)!.billingHintSavedVehicle,
-                      style: const TextStyle(color: kMutedForeground, fontSize: 12),
+                      style: TextStyle(color: kMutedForeground, fontSize: 12),
                     ),
                     decoration: InputDecoration(
                       labelText: AppLocalizations.of(context)!.billingLabelSavedVehicles,
-                      prefixIcon: const Icon(Icons.bookmark_outline_rounded, size: 18, color: kMutedForeground),
+                      prefixIcon: Icon(Icons.bookmark_outline_rounded, size: 18, color: kMutedForeground),
                       filled: true,
                       fillColor: kMuted,
-                      border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide(color: kBorder)),
-                      enabledBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide(color: kBorder)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide(color: kBorder)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12)), borderSide: BorderSide(color: kBorder)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                     ),
                     items: [
@@ -254,14 +254,14 @@ class _BillingVehicleSectionState extends ConsumerState<BillingVehicleSection> {
           focusNode: _vehNumFocus,
           inputFormatters: [UpperCaseFormatter()],
           onChanged: _onVehNumChanged,
-          style: const TextStyle(fontSize: 14, color: kForeground),
+          style: TextStyle(fontSize: 14, color: kForeground),
           decoration: InputDecoration(
             labelText: AppLocalizations.of(context)!.billingLabelVehicleNumber,
-            prefixIcon: const Icon(Icons.pin_outlined, size: 18, color: kMutedForeground),
+            prefixIcon: Icon(Icons.pin_outlined, size: 18, color: kMutedForeground),
             filled: true,
             fillColor: kMuted,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kBorder)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kBorder)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kBorder)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: kBorder)),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimary, width: 2)),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           ),
@@ -287,7 +287,7 @@ class _BillingVehicleSectionState extends ConsumerState<BillingVehicleSection> {
           children: [
             Text(
               AppLocalizations.of(context)!.billingLabelFuelType,
-              style: const TextStyle(fontSize: 11, color: kMutedForeground, fontWeight: FontWeight.w600, letterSpacing: 0.3),
+              style: TextStyle(fontSize: 11, color: kMutedForeground, fontWeight: FontWeight.w600, letterSpacing: 0.3),
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -368,11 +368,11 @@ class _BillingVehicleSectionState extends ConsumerState<BillingVehicleSection> {
                           children: [
                             Text(
                               c.name,
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kForeground),
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kForeground),
                             ),
                             Text(
                               c.mobile,
-                              style: const TextStyle(fontSize: 11, color: kMutedForeground),
+                              style: TextStyle(fontSize: 11, color: kMutedForeground),
                             ),
                             if (c.id != null && _vehicleSuggestMap.containsKey(c.id))
                               Text(
@@ -382,7 +382,7 @@ class _BillingVehicleSectionState extends ConsumerState<BillingVehicleSection> {
                           ],
                         ),
                       ),
-                      const Icon(Icons.north_west_rounded, size: 14, color: kMutedForeground),
+                      Icon(Icons.north_west_rounded, size: 14, color: kMutedForeground),
                     ],
                   ),
                 ),

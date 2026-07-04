@@ -110,7 +110,7 @@ class SectionHeader extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: kForeground)),
+        Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: kForeground)),
         if (action != null)
           GestureDetector(
             onTap: onAction,
@@ -200,7 +200,7 @@ class GarageSearchBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Padding(
+          Padding(
             padding: EdgeInsets.only(left: 12),
             child: Icon(Icons.search_rounded, color: kMutedForeground, size: 18),
           ),
@@ -209,13 +209,13 @@ class GarageSearchBar extends StatelessWidget {
               onChanged: onChanged,
               decoration: InputDecoration(
                 hintText: hint,
-                hintStyle: const TextStyle(color: kMutedForeground, fontSize: 14),
+                hintStyle: TextStyle(color: kMutedForeground, fontSize: 14),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                 suffixIcon: value.isNotEmpty
                     ? GestureDetector(
                   onTap: () => onChanged(''),
-                  child: const Icon(Icons.close_rounded, color: kMutedForeground, size: 16),
+                  child: Icon(Icons.close_rounded, color: kMutedForeground, size: 16),
                 )
                     : null,
               ),

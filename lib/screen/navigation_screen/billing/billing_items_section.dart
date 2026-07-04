@@ -35,7 +35,7 @@ class BillingItemsSection extends ConsumerWidget {
           children: [
             Text(
               AppLocalizations.of(context)!.billingItemsHeader,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kMutedForeground, letterSpacing: 0.3),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kMutedForeground, letterSpacing: 0.3),
             ),
             GestureDetector(
               onTap: () => _showItemSheet(context, ref),
@@ -78,12 +78,12 @@ class BillingItemsSection extends ConsumerWidget {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(color: kMuted, borderRadius: BorderRadius.circular(14)),
-                    child: const Icon(Icons.receipt_long_rounded, size: 22, color: kMutedForeground),
+                    child: Icon(Icons.receipt_long_rounded, size: 22, color: kMutedForeground),
                   ),
                   const SizedBox(height: 10),
-                  Text(AppLocalizations.of(context)!.billingNoItemsTitle, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kForeground)),
+                  Text(AppLocalizations.of(context)!.billingNoItemsTitle, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kForeground)),
                   const SizedBox(height: 4),
-                  Text(AppLocalizations.of(context)!.billingNoItemsSubtitle, style: const TextStyle(fontSize: 12, color: kMutedForeground)),
+                  Text(AppLocalizations.of(context)!.billingNoItemsSubtitle, style: TextStyle(fontSize: 12, color: kMutedForeground)),
                 ],
               ),
             ),
@@ -126,7 +126,7 @@ class BillingItemsSection extends ConsumerWidget {
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: kMuted,
                     borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
                   ),
@@ -135,11 +135,11 @@ class BillingItemsSection extends ConsumerWidget {
                     children: [
                       Text(
                         '${items.length} item${items.length == 1 ? '' : 's'}',
-                        style: const TextStyle(fontSize: 12, color: kMutedForeground, fontWeight: FontWeight.w500),
+                        style: TextStyle(fontSize: 12, color: kMutedForeground, fontWeight: FontWeight.w500),
                       ),
                       Text(
                         formatCurrency(items.fold<double>(0, (s, e) => s + e.total).round()),
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: kForeground),
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: kForeground),
                       ),
                     ],
                   ),
@@ -152,7 +152,7 @@ class BillingItemsSection extends ConsumerWidget {
   }
 }
 
-const _hStyle = TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kMutedForeground, letterSpacing: 0.6);
+_hStyle = TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kMutedForeground, letterSpacing: 0.6);
 
 class _ItemRow extends StatelessWidget {
   final InvoiceItem item;
@@ -163,7 +163,7 @@ class _ItemRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(
         children: [
-          const Divider(height: 1, color: kBorder, indent: 16, endIndent: 16),
+          Divider(height: 1, color: kBorder, indent: 16, endIndent: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
@@ -176,7 +176,7 @@ class _ItemRow extends StatelessWidget {
                     children: [
                       Text(
                         item.itemName,
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kForeground),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kForeground),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -186,7 +186,7 @@ class _ItemRow extends StatelessWidget {
                         decoration: BoxDecoration(color: kMuted, borderRadius: BorderRadius.circular(6)),
                         child: Text(
                           item.unit,
-                          style: const TextStyle(fontSize: 10, color: kMutedForeground, fontWeight: FontWeight.w500),
+                          style: TextStyle(fontSize: 10, color: kMutedForeground, fontWeight: FontWeight.w500),
                         ),
                       ),
                     ],
@@ -197,14 +197,14 @@ class _ItemRow extends StatelessWidget {
                   child: Text(
                     item.quantity % 1 == 0 ? '${item.quantity.toInt()}' : item.quantity.toStringAsFixed(1),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 13, color: kMutedForeground, fontWeight: FontWeight.w500),
+                    style: TextStyle(fontSize: 13, color: kMutedForeground, fontWeight: FontWeight.w500),
                   ),
                 ),
                 Expanded(
                   child: Text(
                     '₹${item.price.toInt()}',
                     textAlign: TextAlign.right,
-                    style: const TextStyle(fontSize: 12, color: kMutedForeground),
+                    style: TextStyle(fontSize: 12, color: kMutedForeground),
                   ),
                   flex: 2,
                 ),
@@ -212,7 +212,7 @@ class _ItemRow extends StatelessWidget {
                   child: Text(
                     formatCurrency(item.total.round()),
                     textAlign: TextAlign.right,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kForeground),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kForeground),
                   ),
                   flex: 2,
                 ),
@@ -321,7 +321,7 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
     final inventory = inventoryAsync.value ?? [];
     final bottom = MediaQuery.of(context).viewInsets.bottom;
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: kCard,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -345,14 +345,14 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Item Add Karo', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: kForeground)),
+                Text('Item Add Karo', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: kForeground)),
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
                   child: Container(
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(color: kMuted, borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.close_rounded, size: 16, color: kMutedForeground),
+                    child: Icon(Icons.close_rounded, size: 16, color: kMutedForeground),
                   ),
                 ),
               ],
@@ -360,7 +360,7 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
             const SizedBox(height: 16),
 
             // Quick picks (horizontal scroll)
-            const Text(
+            Text(
               'Quick Pick',
               style: TextStyle(fontSize: 11, color: kMutedForeground, fontWeight: FontWeight.w600, letterSpacing: 0.3),
             ),
@@ -477,12 +477,12 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
                                       children: [
                                         Text(
                                           option.name,
-                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kForeground),
+                                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kForeground),
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
                                           'SKU: ${option.sku} • Stock: ${option.stock} ${option.unit}',
-                                          style: const TextStyle(fontSize: 11, color: kMutedForeground),
+                                          style: TextStyle(fontSize: 11, color: kMutedForeground),
                                         ),
                                       ],
                                     ),
@@ -516,11 +516,11 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
                     onChanged: (_) => setState(() {}),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     value: _unit,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Unit',
                       filled: true,
                       fillColor: kMuted,
@@ -560,7 +560,7 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
                         children: [
                           Text(
                             '${_qtyCtrl.text.isEmpty ? '0' : _qtyCtrl.text} $_unit  ×  ₹${_priceCtrl.text.isEmpty ? '0' : _priceCtrl.text}',
-                            style: const TextStyle(fontSize: 13, color: kMutedForeground),
+                            style: TextStyle(fontSize: 13, color: kMutedForeground),
                           ),
                           Text(
                             formatCurrency(_total.round()),

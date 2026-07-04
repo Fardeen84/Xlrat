@@ -51,7 +51,7 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: kCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
+        title: Text(
           'Export Data',
           style: TextStyle(
             fontSize: 17,
@@ -59,7 +59,7 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
             color: kForeground,
           ),
         ),
-        content: const Text(
+        content: Text(
           'Choose the format in which you want to export your invoices.',
           style: TextStyle(fontSize: 14, color: kMutedForeground),
         ),
@@ -110,7 +110,7 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
                 const SizedBox(height: 10),
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text(
+                  child: Text(
                     'Cancel',
                     style: TextStyle(
                       color: kMutedForeground,
@@ -319,7 +319,7 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: kCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
+        title: Text(
           'Delete Invoice',
           style: TextStyle(
               fontSize: 17, fontWeight: FontWeight.w800, color: kForeground),
@@ -327,12 +327,12 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
         content: Text(
           'Are you sure you want to delete invoice ${invoice.invoiceNumber}? '
               'This action cannot be undone.',
-          style: const TextStyle(fontSize: 14, color: kMutedForeground),
+          style: TextStyle(fontSize: 14, color: kMutedForeground),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel',
+            child: Text('Cancel',
                 style: TextStyle(color: kMutedForeground, fontWeight: FontWeight.w600)),
           ),
           TextButton(
@@ -411,10 +411,10 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
               elevation: 0,
               scrolledUnderElevation: 1,
               leading: IconButton(
-                icon: const Icon(Icons.arrow_back_rounded, color: kForeground),
+                icon: Icon(Icons.arrow_back_rounded, color: kForeground),
                 onPressed: () => context.pop(),
               ),
-              title: const Text(
+              title: Text(
                 'Invoice History',
                 style: TextStyle(
                   fontSize: 17,
@@ -547,7 +547,7 @@ class _HistorySearchBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Padding(
+          Padding(
             padding: EdgeInsets.only(left: 12),
             child: Icon(Icons.search_rounded, color: kMutedForeground, size: 18),
           ),
@@ -555,11 +555,11 @@ class _HistorySearchBar extends StatelessWidget {
             child: TextField(
               controller: controller,
               onChanged: onChanged,
-              style: const TextStyle(fontSize: 14, color: kForeground),
+              style: TextStyle(fontSize: 14, color: kForeground),
               decoration: InputDecoration(
                 hintText: 'Search invoice, customer, vehicle…',
                 hintStyle:
-                const TextStyle(color: kMutedForeground, fontSize: 13),
+                TextStyle(color: kMutedForeground, fontSize: 13),
                 border: InputBorder.none,
                 contentPadding:
                 const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
@@ -567,7 +567,7 @@ class _HistorySearchBar extends StatelessWidget {
                 suffixIcon: value.isNotEmpty
                     ? GestureDetector(
                   onTap: onClear,
-                  child: const Icon(Icons.close_rounded,
+                  child: Icon(Icons.close_rounded,
                       color: kMutedForeground, size: 16),
                 )
                     : null,
@@ -767,7 +767,7 @@ class _InvoiceCard extends StatelessWidget {
                             children: [
                               Text(
                                 invoice.customer?.name ?? 'Unknown Customer',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w800,
                                   color: kForeground,
@@ -778,7 +778,7 @@ class _InvoiceCard extends StatelessWidget {
                               const SizedBox(height: 2),
                               Text(
                                 invoice.invoiceNumber,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   color: kMutedForeground,
                                   fontWeight: FontWeight.w500,
@@ -819,7 +819,7 @@ class _InvoiceCard extends StatelessWidget {
                   ),
 
                   // ── Divider ───────────────────────────────────────────────
-                  const Divider(height: 1, color: kBorder, indent: 14, endIndent: 14),
+                  Divider(height: 1, color: kBorder, indent: 14, endIndent: 14),
 
                   // ── Card Details Row ──────────────────────────────────────
                   Padding(
@@ -869,7 +869,7 @@ class _InvoiceCard extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                const Text(
+                                Text(
                                   'Amount',
                                   style: TextStyle(
                                     fontSize: 10,
@@ -936,7 +936,7 @@ class _CardPopupMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_horiz_rounded, color: kMutedForeground, size: 18),
+      icon: Icon(Icons.more_horiz_rounded, color: kMutedForeground, size: 18),
       padding: EdgeInsets.zero,
       iconSize: 18,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -953,7 +953,7 @@ class _CardPopupMenu extends StatelessWidget {
         }
       },
       itemBuilder: (context) => [
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'view',
           child: Row(
             children: [
@@ -963,7 +963,7 @@ class _CardPopupMenu extends StatelessWidget {
             ],
           ),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'edit',
           child: Row(
             children: [
@@ -1140,7 +1140,7 @@ class _InfoTile extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 10,
                   color: kMutedForeground,
                   fontWeight: FontWeight.w500,
@@ -1148,7 +1148,7 @@ class _InfoTile extends StatelessWidget {
               ),
               Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   color: kForeground,
                   fontWeight: FontWeight.w600,
@@ -1203,7 +1203,7 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               isFiltered ? 'No results found' : 'No invoices found',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
                 color: kForeground,
@@ -1215,7 +1215,7 @@ class _EmptyState extends StatelessWidget {
                   ? 'Try adjusting your search or filter'
                   : 'Create your first invoice to get started',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 color: kMutedForeground,
               ),
@@ -1369,7 +1369,7 @@ class _ErrorState extends StatelessWidget {
                   size: 34, color: kRed),
             ),
             const SizedBox(height: 18),
-            const Text(
+            Text(
               'Something went wrong',
               style: TextStyle(
                   fontSize: 16, fontWeight: FontWeight.w800, color: kForeground),
@@ -1378,7 +1378,7 @@ class _ErrorState extends StatelessWidget {
             Text(
               error,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12, color: kMutedForeground),
+              style: TextStyle(fontSize: 12, color: kMutedForeground),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
