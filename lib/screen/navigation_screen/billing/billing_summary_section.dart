@@ -37,7 +37,8 @@ class _BillingSummarySectionState extends ConsumerState<BillingSummarySection> {
         if (_discCtrl.text.isNotEmpty) _discCtrl.clear();
       } else {
         final currentVal = double.tryParse(_discCtrl.text) ?? 0.0;
-        if (currentVal != next.discount) {
+        final maxAllowed = next.subTotal + next.gst;
+        if (currentVal != next.discount && currentVal <= maxAllowed) {
           _discCtrl.text = next.discount.toStringAsFixed(0);
         }
       }
@@ -45,6 +46,10 @@ class _BillingSummarySectionState extends ConsumerState<BillingSummarySection> {
 
     final draft = ref.watch(invoiceDraftProvider);
     final notifier = ref.read(invoiceDraftProvider.notifier);
+
+    final typedDiscount = double.tryParse(_discCtrl.text) ?? 0.0;
+    final maxDiscount = draft.subTotal + draft.gst;
+    final hasDiscountError = typedDiscount > maxDiscount;
 
     return BillingCard(
       child: Column(
@@ -83,32 +88,48 @@ class _BillingSummarySectionState extends ConsumerState<BillingSummarySection> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text('Discount (₹)', style: TextStyle(fontSize: 13, color: kMutedForeground)),
-                SizedBox(
-                  width: 110,
-                  child: TextField(
-                    controller: _discCtrl,
-                    keyboardType: TextInputType.number,
-                    textAlign: TextAlign.right,
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kForeground),
-                    decoration: InputDecoration(
-                      hintText: '0',
-                      hintStyle: TextStyle(color: kMutedForeground),
-                      filled: true,
-                      fillColor: kMuted,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kBorder)),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kBorder)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      isDense: true,
-                      prefixText: '₹ ',
-                      prefixStyle: TextStyle(color: kMutedForeground, fontSize: 13),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Discount (₹)', style: TextStyle(fontSize: 13, color: kMutedForeground)),
+                    SizedBox(
+                      width: 110,
+                      child: TextField(
+                        controller: _discCtrl,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.right,
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kForeground),
+                        decoration: InputDecoration(
+                          hintText: '0',
+                          hintStyle: TextStyle(color: kMutedForeground),
+                          filled: true,
+                          fillColor: kMuted,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kBorder)),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kBorder)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          isDense: true,
+                          prefixText: '₹ ',
+                          prefixStyle: TextStyle(color: kMutedForeground, fontSize: 13),
+                        ),
+                        onChanged: (v) => notifier.setDiscount(double.tryParse(v) ?? 0),
+                      ),
                     ),
-                    onChanged: (v) => notifier.setDiscount(double.tryParse(v) ?? 0),
-                  ),
+                  ],
                 ),
+                if (hasDiscountError) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    "Discount can't exceed ₹${maxDiscount.toStringAsFixed(0)}",
+                    style: const TextStyle(
+                      color: kRed,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

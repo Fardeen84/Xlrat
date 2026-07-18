@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/NavigationProvider.dart';
 import '../providers/notificationsProvider.dart';
+import '../providers/billing_providers.dart';
 import '../core/theme.dart';
 
 class MainShell extends ConsumerStatefulWidget {
@@ -17,19 +18,61 @@ class MainShell extends ConsumerStatefulWidget {
 
 class _MainShellState extends ConsumerState<MainShell> {
   static const _sidebarTabs = [
-    _NavTab('/dashboard', Icons.dashboard_rounded, 'Dashboard', AppScreen.dashboard),
-    _NavTab('/customers', Icons.people_rounded, 'Customers', AppScreen.customers),
+    _NavTab(
+      '/dashboard',
+      Icons.dashboard_rounded,
+      'Dashboard',
+      AppScreen.dashboard,
+    ),
+    _NavTab(
+      '/customers',
+      Icons.people_rounded,
+      'Customers',
+      AppScreen.customers,
+    ),
     _NavTab('/jobs', Icons.assignment_rounded, 'Jobs', AppScreen.jobs),
-    _NavTab('/inventory', Icons.inventory_2_rounded, 'Inventory', AppScreen.inventory),
+    _NavTab(
+      '/inventory',
+      Icons.inventory_2_rounded,
+      'Inventory',
+      AppScreen.inventory,
+    ),
+    _NavTab(
+      '/secondhand-inventory',
+      Icons.recycling_rounded,
+      'Second Hand',
+      AppScreen.secondHandInventory,
+    ),
     _NavTab('/reports', Icons.bar_chart_rounded, 'Reports', AppScreen.reports),
     _NavTab('/profile', Icons.person_rounded, 'Profile', AppScreen.profile),
   ];
 
   static const _mobileTabs = [
-    _NavTab('/dashboard', Icons.dashboard_rounded, 'Dashboard', AppScreen.dashboard),
-    _NavTab('/customers', Icons.people_rounded, 'Customers', AppScreen.customers),
+    _NavTab(
+      '/dashboard',
+      Icons.dashboard_rounded,
+      'Dashboard',
+      AppScreen.dashboard,
+    ),
+    _NavTab(
+      '/customers',
+      Icons.people_rounded,
+      'Customers',
+      AppScreen.customers,
+    ),
     _NavTab('/jobs', Icons.assignment_rounded, 'Jobs', AppScreen.jobs),
-    _NavTab('/inventory', Icons.inventory_2_rounded, 'Inventory', AppScreen.inventory),
+    _NavTab(
+      '/inventory',
+      Icons.inventory_2_rounded,
+      'Inventory',
+      AppScreen.inventory,
+    ),
+    _NavTab(
+      '/secondhand-inventory',
+      Icons.recycling_rounded,
+      'Second Hand',
+      AppScreen.secondHandInventory,
+    ),
     _NavTab('/profile', Icons.person_rounded, 'Profile', AppScreen.profile),
   ];
 
@@ -44,12 +87,14 @@ class _MainShellState extends ConsumerState<MainShell> {
     if (location == '/') return AppScreen.splash;
     if (location == '/login') return AppScreen.login;
     if (location.startsWith('/dashboard')) return AppScreen.dashboard;
-    if (location.startsWith('/customer-detail')) return AppScreen.customerDetail;
+    if (location.startsWith('/customer-detail'))
+      return AppScreen.customerDetail;
     if (location.startsWith('/customers')) return AppScreen.customers;
     if (location.startsWith('/job-detail')) return AppScreen.jobDetail;
     if (location.startsWith('/new-job')) return AppScreen.newJob;
     if (location.startsWith('/jobs')) return AppScreen.jobs;
     if (location.startsWith('/inventory')) return AppScreen.inventory;
+    if (location.startsWith('/secondhand-inventory')) return AppScreen.secondHandInventory;
     if (location.startsWith('/billing')) return AppScreen.billing;
     if (location.startsWith('/InvoiceHistory')) return AppScreen.reports;
     if (location.startsWith('/invoice')) return AppScreen.invoice;
@@ -64,24 +109,40 @@ class _MainShellState extends ConsumerState<MainShell> {
         location == '/customers' ||
         location == '/jobs' ||
         location == '/inventory' ||
+        location == '/secondhand-inventory' ||
         location == '/profile';
   }
 
   String _getPageTitle(AppScreen screen) {
     switch (screen) {
-      case AppScreen.dashboard: return 'Dashboard';
-      case AppScreen.customers: return 'Customers';
-      case AppScreen.customerDetail: return 'Customer Details';
-      case AppScreen.jobs: return 'Jobs';
-      case AppScreen.jobDetail: return 'Job Details';
-      case AppScreen.newJob: return 'Create Job Card';
-      case AppScreen.inventory: return 'Inventory';
-      case AppScreen.billing: return 'Billing / New Invoice';
-      case AppScreen.invoice: return 'Invoice';
-      case AppScreen.reports: return 'Reports';
-      case AppScreen.notifications: return 'Notifications';
-      case AppScreen.profile: return 'Profile / Settings';
-      default: return 'XLRat';
+      case AppScreen.dashboard:
+        return 'Dashboard';
+      case AppScreen.customers:
+        return 'Customers';
+      case AppScreen.customerDetail:
+        return 'Customer Details';
+      case AppScreen.jobs:
+        return 'Jobs';
+      case AppScreen.jobDetail:
+        return 'Job Details';
+      case AppScreen.newJob:
+        return 'Create Job Card';
+      case AppScreen.inventory:
+        return 'Inventory';
+      case AppScreen.secondHandInventory:
+        return 'Second Hand Inventory';
+      case AppScreen.billing:
+        return 'Billing / New Invoice';
+      case AppScreen.invoice:
+        return 'Invoice';
+      case AppScreen.reports:
+        return 'Reports';
+      case AppScreen.notifications:
+        return 'Notifications';
+      case AppScreen.profile:
+        return 'Profile / Settings';
+      default:
+        return 'XLRat';
     }
   }
 
@@ -102,10 +163,13 @@ class _MainShellState extends ConsumerState<MainShell> {
 
     return Scaffold(
       backgroundColor: kBackground,
-      body: LayoutBuilder(
+      body: Stack(
+        children: [
+          LayoutBuilder(
         builder: (context, constraints) {
           final isPC = constraints.maxWidth > 1100;
-          final isTablet = constraints.maxWidth >= 768 && constraints.maxWidth <= 1100;
+          final isTablet =
+              constraints.maxWidth >= 768 && constraints.maxWidth <= 1100;
 
           if (isPC || isTablet) {
             final sidebarWidth = isPC ? 240.0 : 64.0;
@@ -114,37 +178,67 @@ class _MainShellState extends ConsumerState<MainShell> {
             return Row(
               children: [
                 // ── Sidebar ──
+
                 Container(
+
                   width: sidebarWidth,
                   height: double.infinity,
-                  color: kPrimaryDark,
+                  color: kPrimary,
                   child: Column(
                     children: [
                       // Header
                       Container(
-                        height: 60,
+                        height: 80,
                         alignment: Alignment.center,
                         decoration: const BoxDecoration(
-                          border: Border(bottom: BorderSide(color: Colors.white10, width: 0.8)),
+                          border: Border(
+                            bottom: BorderSide(
+                              color: Colors.white10,
+                              width: 0.8,
+                            ),
+                          ),
                         ),
                         child: isPC
-                            ? Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Icon(Icons.garage_rounded, color: Colors.white, size: 24),
-                                  SizedBox(width: 10),
-                                  Text(
-                                    'Asian Auto Repair',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 16,
-                                      letterSpacing: 0.5,
-                                    ),
+                            ? Column(
+                              children: [
+                                const SizedBox(height: 16),
+                                Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children:  [
+                                      SizedBox(width: 10),
+                                      ClipOval(
+                                        child: Image.asset(
+                                          "assets/images/afslogo.jpeg",
+                                          width: 50,
+                                          height: 50,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                      SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          "Asian Fabrication\n& Engineers",
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      )
+                                    ],
                                   ),
-                                ],
-                              )
-                            : const Icon(Icons.garage_rounded, color: Colors.white, size: 26),
+                              ],
+                            )
+                            : ClipOval(
+                          child: Image.asset(
+                            "assets/images/afslogo.jpeg",
+                            width: 30,
+                            height: 30,
+                            fit: BoxFit.cover,
+                          ),
+                        )
                       ),
                       const SizedBox(height: 16),
                       // Navigation List
@@ -157,19 +251,31 @@ class _MainShellState extends ConsumerState<MainShell> {
 
                             if (isPC) {
                               return Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
                                 child: InkWell(
                                   onTap: () => context.go(tab.path),
                                   borderRadius: BorderRadius.circular(10),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: isActive ? Colors.white.withOpacity(0.15) : Colors.transparent,
+                                      color: isActive
+                                          ? Colors.white.withOpacity(0.15)
+                                          : Colors.transparent,
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Row(
                                       children: [
-                                        Icon(tab.icon, color: Colors.white, size: 20),
+                                        Icon(
+                                          tab.icon,
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
                                         const SizedBox(width: 12),
                                         Text(
                                           tab.label,
@@ -188,7 +294,9 @@ class _MainShellState extends ConsumerState<MainShell> {
                               return Tooltip(
                                 message: tab.label,
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
                                   child: InkWell(
                                     onTap: () => context.go(tab.path),
                                     child: Container(
@@ -197,14 +305,18 @@ class _MainShellState extends ConsumerState<MainShell> {
                                       decoration: BoxDecoration(
                                         border: Border(
                                           left: BorderSide(
-                                            color: isActive ? Colors.white : Colors.transparent,
+                                            color: isActive
+                                                ? Colors.white
+                                                : Colors.transparent,
                                             width: 4,
                                           ),
                                         ),
                                       ),
                                       child: Icon(
                                         tab.icon,
-                                        color: isActive ? Colors.white : Colors.white70,
+                                        color: isActive
+                                            ? Colors.white
+                                            : Colors.white70,
                                         size: 24,
                                       ),
                                     ),
@@ -220,14 +332,23 @@ class _MainShellState extends ConsumerState<MainShell> {
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: const BoxDecoration(
-                            border: Border(top: BorderSide(color: Colors.white10, width: 0.8)),
+                            border: Border(
+                              top: BorderSide(
+                                color: Colors.white10,
+                                width: 0.8,
+                              ),
+                            ),
                           ),
                           child: const Row(
                             children: [
                               CircleAvatar(
                                 radius: 16,
                                 backgroundColor: Colors.white24,
-                                child: Icon(Icons.person, color: Colors.white, size: 18),
+                                child: Icon(
+                                  Icons.person,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
                               ),
                               SizedBox(width: 10),
                               Expanded(
@@ -235,7 +356,7 @@ class _MainShellState extends ConsumerState<MainShell> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Asian Auto Repair',
+                                      'Asian Fabrication & Engineers',
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.w700,
@@ -269,7 +390,9 @@ class _MainShellState extends ConsumerState<MainShell> {
                         padding: EdgeInsets.symmetric(horizontal: 20),
                         decoration: BoxDecoration(
                           color: kCard,
-                          border: Border(bottom: BorderSide(color: kBorder, width: 0.8)),
+                          border: Border(
+                            bottom: BorderSide(color: kBorder, width: 0.8),
+                          ),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -286,33 +409,55 @@ class _MainShellState extends ConsumerState<MainShell> {
                               children: [
                                 ElevatedButton.icon(
                                   onPressed: () => context.go('/billing'),
-                                  icon: const Icon(Icons.add_rounded, size: 16, color: Colors.white),
-                                  label: const Text('New Invoice', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                                  icon: const Icon(
+                                    Icons.add_rounded,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
+                                  label: const Text(
+                                    'New Invoice',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
                                   style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 10,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
                                     backgroundColor: kPrimary,
                                   ),
                                 ),
-                                const SizedBox(width: 16),
-                                IconButton(
-                                  icon: Icon(
-                                    themeMode == ThemeMode.dark
-                                        ? Icons.light_mode_rounded
-                                        : Icons.dark_mode_rounded,
-                                    color: kForeground,
-                                  ),
-                                  onPressed: () {
-                                    ref.read(themeModeProvider.notifier).toggleTheme();
-                                  },
-                                  tooltip: 'Toggle theme mode',
-                                ),
+                                // const SizedBox(width: 16),
+                                // IconButton(
+                                //   icon: Icon(
+                                //     themeMode == ThemeMode.dark
+                                //         ? Icons.light_mode_rounded
+                                //         : Icons.dark_mode_rounded,
+                                //     color: kForeground,
+                                //   ),
+                                //   onPressed: () {
+                                //     ref
+                                //         .read(themeModeProvider.notifier)
+                                //         .toggleTheme();
+                                //   },
+                                //   tooltip: 'Toggle theme mode',
+                                // ),
                                 const SizedBox(width: 8),
                                 Stack(
                                   children: [
                                     IconButton(
-                                      icon: Icon(Icons.notifications_rounded, color: kForeground),
-                                      onPressed: () => context.go('/notifications'),
+                                      icon: Icon(
+                                        Icons.notifications_rounded,
+                                        color: kForeground,
+                                      ),
+                                      onPressed: () =>
+                                          context.go('/notifications'),
                                     ),
                                     if (unreadNotifications > 0)
                                       Positioned(
@@ -347,7 +492,11 @@ class _MainShellState extends ConsumerState<MainShell> {
                                   child: const CircleAvatar(
                                     radius: 16,
                                     backgroundColor: Color(0xFFE8F0FE),
-                                    child: Icon(Icons.person_rounded, color: kPrimary, size: 20),
+                                    child: Icon(
+                                      Icons.person_rounded,
+                                      color: kPrimary,
+                                      size: 20,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -379,6 +528,60 @@ class _MainShellState extends ConsumerState<MainShell> {
           }
         },
       ),
+      const _ConnectionErrorOverlay(),
+    ],
+   ),
+  );
+ }
+}
+
+class _ConnectionErrorOverlay extends ConsumerWidget {
+  const _ConnectionErrorOverlay();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final error = ref.watch(connectionErrorProvider);
+    if (error == null) return const SizedBox.shrink();
+
+    return Positioned(
+      bottom: 16,
+      left: 16,
+      right: 16,
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.red.shade900,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              )
+            ],
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.cloud_off_rounded, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  error,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () {
+                  ref.read(connectionErrorProvider.notifier).state = null;
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -398,10 +601,31 @@ class _GarageBottomNav extends StatelessWidget {
   const _GarageBottomNav({required this.currentIndex, required this.onTap});
 
   static const _tabs = [
-    _NavTab('/dashboard', Icons.dashboard_rounded, 'Dashboard', AppScreen.dashboard),
-    _NavTab('/customers', Icons.people_rounded, 'Customers', AppScreen.customers),
+    _NavTab(
+      '/dashboard',
+      Icons.dashboard_rounded,
+      'Dashboard',
+      AppScreen.dashboard,
+    ),
+    _NavTab(
+      '/customers',
+      Icons.people_rounded,
+      'Customers',
+      AppScreen.customers,
+    ),
     _NavTab('/jobs', Icons.assignment_rounded, 'Jobs', AppScreen.jobs),
-    _NavTab('/inventory', Icons.inventory_2_rounded, 'Inventory', AppScreen.inventory),
+    _NavTab(
+      '/inventory',
+      Icons.inventory_2_rounded,
+      'Inventory',
+      AppScreen.inventory,
+    ),
+    _NavTab(
+      '/secondhand-inventory',
+      Icons.recycling_rounded,
+      'Second Hand',
+      AppScreen.secondHandInventory,
+    ),
     _NavTab('/profile', Icons.person_rounded, 'Profile', AppScreen.profile),
   ];
 

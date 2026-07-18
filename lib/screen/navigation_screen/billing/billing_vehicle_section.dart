@@ -27,7 +27,7 @@ class _BillingVehicleSectionState extends ConsumerState<BillingVehicleSection> {
   BillingVehicle? _selectedVehicle;
 
   // Side-map: customerId → BillingVehicle
-  Map<int, BillingVehicle> _vehicleSuggestMap = {};
+  Map<String, BillingVehicle> _vehicleSuggestMap = {};
 
   static const _fuelTypes = ['Petrol', 'Diesel', 'CNG', 'Electric', 'Hybrid'];
 
@@ -56,7 +56,7 @@ class _BillingVehicleSectionState extends ConsumerState<BillingVehicleSection> {
     final draft = ref.read(invoiceDraftProvider);
     if (num.isNotEmpty) {
       ref.read(invoiceDraftProvider.notifier).setVehicle(BillingVehicle(
-            customerId: draft.customer?.id ?? 0,
+            customerId: draft.customer?.id ?? '',
             vehicleNumber: num,
             vehicleModel: _vehModelCtrl.text.trim(),
             fuelType: _selectedFuel ?? '',

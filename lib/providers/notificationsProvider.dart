@@ -25,7 +25,7 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
     // 1. Pending/overdue payments
     for (final invoice in invoices) {
       if (invoice.id != null && (invoice.paymentStatus == PaymentStatus.pending || invoice.paymentStatus == PaymentStatus.partial)) {
-        final id = 100000 + invoice.id!;
+        final id = 100000 + invoice.id.hashCode.abs();
         final customerName = invoice.customer?.name ?? 'Customer';
         list.add(AppNotification(
           id: id,
@@ -40,7 +40,7 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
 
     // 2. Low stock alerts
     for (final item in lowStock) {
-      final id = 200000 + (item.id ?? 0);
+      final id = 200000 + (item.id.hashCode.abs());
       list.add(AppNotification(
         id: id,
         type: 'stock',
@@ -57,7 +57,7 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
       if (invoice.id != null) {
         final days = now.difference(invoice.invoiceDate).inDays;
         if (days >= 90) {
-          final id = 300000 + invoice.id!;
+          final id = 300000 + invoice.id.hashCode.abs();
           final customerName = invoice.customer?.name ?? 'Customer';
           final vehicleStr = invoice.vehicle != null ? ' (${invoice.vehicle!.vehicleNumber})' : '';
           list.add(AppNotification(

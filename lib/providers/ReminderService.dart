@@ -14,8 +14,20 @@ class ReminderService {
 
   ReminderService(this._billingRepository);
 
+  tz.Location get _localLocation {
+    try {
+      return tz.local;
+    } catch (_) {
+      return tz.UTC;
+    }
+  }
+
   Future<void> init() async {
     if (_initialized) return;
+    if (Platform.isWindows) {
+      print('ReminderService: Local notifications are not supported on Windows. Skipping.');
+      return;
+    }
 
     try {
       // Initialize timezone database
@@ -25,7 +37,9 @@ class ReminderService {
       try {
         final localZone = tz.local;
       } catch (e) {
-        tz.setLocalLocation(tz.getLocation('UTC'));
+        try {
+          tz.setLocalLocation(tz.getLocation('UTC'));
+        } catch (_) {}
       }
 
       const AndroidInitializationSettings initializationSettingsAndroid =
@@ -58,6 +72,7 @@ class ReminderService {
   }
 
   Future<void> scheduleReminderForInvoice(Invoice invoice) async {
+    if (Platform.isWindows) return;
     if (invoice.id == null) return;
 
     try {
@@ -88,11 +103,11 @@ class ReminderService {
         macOS: darwinDetails,
       );
 
-      // Convert scheduledDate to TZDateTime
-      final tzDateTime = tz.TZDateTime.from(scheduledDate, tz.local);
+      // Convert scheduledDate to TZDateTime using safe timezone location
+      final tzDateTime = tz.TZDateTime.from(scheduledDate, _localLocation);
 
       await _notificationsPlugin.zonedSchedule(
-        invoice.id!,
+        invoice.id.hashCode.abs(),
         'Service Due Reminder',
         'Service is due for $customerName\'s vehicle$vehicleInfo.',
         tzDateTime,
@@ -101,12 +116,14 @@ class ReminderService {
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('Failed to schedule reminder for invoice ${invoice.id}: $e');
+      print(stackTrace);
     }
   }
 
   Future<void> reinitializeReminders() async {
+    if (Platform.isWindows) return;
     try {
       // Cancel all existing scheduled notifications first to avoid duplicates
       await _notificationsPlugin.cancelAll();
@@ -120,8 +137,9 @@ class ReminderService {
           await scheduleReminderForInvoice(invoice);
         }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('Failed to reinitialize reminders: $e');
+      print(stackTrace);
     }
   }
 }

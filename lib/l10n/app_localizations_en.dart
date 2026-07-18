@@ -321,6 +321,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inventoryColActions => 'Actions';
 
   @override
+  String get inventoryDeletePart => 'Delete Part';
+
+  @override
+  String get inventoryDeleteConfirmTitle => 'Delete Part?';
+
+  @override
+  String inventoryDeleteConfirmBody(String name) {
+    return 'Are you sure you want to delete \'$name\'? This action cannot be undone.';
+  }
+
+  @override
+  String get inventoryDeleteSuccess => 'Part deleted successfully';
+
+  @override
+  String get inventoryDeleteError => 'Failed to delete part';
+
+  @override
   String get reportsTitle => 'Reports';
 
   @override

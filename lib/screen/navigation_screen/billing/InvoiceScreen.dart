@@ -11,9 +11,8 @@ import '../../../providers/InvoicePdfService.dart';
 import '../../../providers/billing_providers.dart';
 import '../../../core/Theme.dart';
 
-
 class InvoiceScreen extends ConsumerWidget {
-  final int invoiceId;
+  final String invoiceId;
   const InvoiceScreen({super.key, required this.invoiceId});
 
   @override
@@ -36,7 +35,6 @@ class InvoiceScreen extends ConsumerWidget {
   }
 }
 
-
 class _InvoiceBody extends StatelessWidget {
   final Invoice invoice;
   const _InvoiceBody({required this.invoice});
@@ -44,7 +42,7 @@ class _InvoiceBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final customer = invoice.customer;
-    final vehicle  = invoice.vehicle;
+    final vehicle = invoice.vehicle;
 
     return Column(
       children: [
@@ -91,7 +89,7 @@ class _InvoiceBody extends StatelessWidget {
                   BoxShadow(
                     color: Colors.black.withOpacity(0.04),
                     blurRadius: 16,
-                  )
+                  ),
                 ],
               ),
               clipBehavior: Clip.hardEdge,
@@ -102,7 +100,7 @@ class _InvoiceBody extends StatelessWidget {
                     padding: const EdgeInsets.all(24),
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Color(0xFF1565C0), Color(0xFF0288D1)],
+                        colors: [Color(0xFFFDB913), Color(0xFFFDB918)],
                       ),
                     ),
                     child: Row(
@@ -113,11 +111,14 @@ class _InvoiceBody extends StatelessWidget {
                             children: [
                               const Row(
                                 children: [
-                                  Icon(Icons.build_rounded,
-                                      color: Colors.white, size: 16),
+                                  Icon(
+                                    Icons.build_rounded,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
                                   SizedBox(width: 6),
                                   Text(
-                                    'Asian Auto Repair',
+                                    'Asian Fabrication & Engineers',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 15,
@@ -127,27 +128,41 @@ class _InvoiceBody extends StatelessWidget {
                                 ],
                               ),
                               const SizedBox(height: 4),
-                              Text('GST: 27AABCV1234A1ZB',
-                                  style: TextStyle(
-                                      color: Colors.blue[200], fontSize: 11)),
-                              Text('+91 98765 43210',
-                                  style: TextStyle(
-                                      color: Colors.blue[200], fontSize: 11)),
+                              Text(
+                                'GST: 27AABCV1234A1ZB',
+                                style: TextStyle(
+                                  color: Colors.yellow[200],
+                                  fontSize: 11,
+                                ),
+                              ),
+                              Text(
+                                '+91 98765 43210',
+                                style: TextStyle(
+                                  color: Colors.yellow[200],
+                                  fontSize: 11,
+                                ),
+                              ),
                             ],
                           ),
                         ),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            const Text('TAX',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w900,
-                                )),
-                            Text('INVOICE',
-                                style: TextStyle(
-                                    color: Colors.blue[200], fontSize: 13)),
+                            const Text(
+                              'TAX',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            Text(
+                              'INVOICE',
+                              style: TextStyle(
+                                color: Colors.yellow[200],
+                                fontSize: 13,
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -166,38 +181,50 @@ class _InvoiceBody extends StatelessWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('BILL TO',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w800,
-                                        color: kMutedForeground,
-                                        letterSpacing: 0.8,
-                                      )),
+                                  Text(
+                                    'BILL TO',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: kMutedForeground,
+                                      letterSpacing: 0.8,
+                                    ),
+                                  ),
                                   const SizedBox(height: 6),
-                                  Text(customer?.name ?? '—',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w800,
-                                        color: kForeground,
-                                      )),
+                                  Text(
+                                    customer?.name ?? '—',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w800,
+                                      color: kForeground,
+                                    ),
+                                  ),
                                   if (customer?.mobile.isNotEmpty == true)
-                                    Text('+91 ${customer!.mobile}',
-                                        style: TextStyle(
-                                            fontSize: 12,
-                                            color: kMutedForeground)),
+                                    Text(
+                                      '+91 ${customer!.mobile}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: kMutedForeground,
+                                      ),
+                                    ),
                                   if (customer?.email.isNotEmpty == true)
-                                    Text(customer!.email,
-                                        style: TextStyle(
-                                            fontSize: 12,
-                                            color: kMutedForeground)),
+                                    Text(
+                                      customer!.email,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: kMutedForeground,
+                                      ),
+                                    ),
                                   if (vehicle != null) ...[
                                     const SizedBox(height: 4),
-                                    Text(vehicle.displayLabel,
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w700,
-                                          color: kPrimary,
-                                        )),
+                                    Text(
+                                      vehicle.displayLabel,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: kPrimary,
+                                      ),
+                                    ),
                                   ],
                                 ],
                               ),
@@ -205,25 +232,32 @@ class _InvoiceBody extends StatelessWidget {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                Text('INVOICE NO.',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                      color: kMutedForeground,
-                                      letterSpacing: 0.8,
-                                    )),
-                                const SizedBox(height: 6),
-                                Text(invoice.invoiceNumber,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w800,
-                                      color: kForeground,
-                                    )),
                                 Text(
-                                  DateFormat('dd MMM yyyy')
-                                      .format(invoice.invoiceDate),
+                                  'INVOICE NO.',
                                   style: TextStyle(
-                                      fontSize: 11, color: kMutedForeground),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: kMutedForeground,
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  invoice.invoiceNumber,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                    color: kForeground,
+                                  ),
+                                ),
+                                Text(
+                                  DateFormat(
+                                    'dd MMM yyyy',
+                                  ).format(invoice.invoiceDate),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: kMutedForeground,
+                                  ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
@@ -247,50 +281,64 @@ class _InvoiceBody extends StatelessWidget {
                         Row(
                           children: [
                             Expanded(
-                                flex: 6,
-                                child: Text('ITEM',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                      color: kMutedForeground,
-                                      letterSpacing: 0.6,
-                                    ))),
+                              flex: 6,
+                              child: Text(
+                                'ITEM',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: kMutedForeground,
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                            ),
                             SizedBox(
-                                width: 44,
-                                child: Text('QTY',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                      color: kMutedForeground,
-                                      letterSpacing: 0.6,
-                                    ))),
+                              width: 44,
+                              child: Text(
+                                'QTY',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: kMutedForeground,
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                            ),
                             Expanded(
-                                flex: 2,
-                                child: Text('RATE',
-                                    textAlign: TextAlign.right,
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                      color: kMutedForeground,
-                                      letterSpacing: 0.6,
-                                    ))),
+                              flex: 2,
+                              child: Text(
+                                'RATE',
+                                textAlign: TextAlign.right,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: kMutedForeground,
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                            ),
                             Expanded(
-                                flex: 2,
-                                child: Text('AMT',
-                                    textAlign: TextAlign.right,
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                      color: kMutedForeground,
-                                      letterSpacing: 0.6,
-                                    ))),
+                              flex: 2,
+                              child: Text(
+                                'AMT',
+                                textAlign: TextAlign.right,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: kMutedForeground,
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 8),
 
                         // Line Items
-                        ...invoice.items.map((item) => _LineItemRow(item: item)),
+                        ...invoice.items.map(
+                          (item) => _LineItemRow(item: item),
+                        ),
 
                         Divider(color: kBorder),
                         const SizedBox(height: 12),
@@ -304,26 +352,33 @@ class _InvoiceBody extends StatelessWidget {
                           ),
                           child: Column(
                             children: [
-                              _TotalRow('Subtotal',
-                                  formatCurrency(invoice.subTotal.round())),
+                              _TotalRow(
+                                'Subtotal',
+                                formatCurrency(invoice.subTotal.round()),
+                              ),
                               if (invoice.gst > 0)
-                                _TotalRow('GST',
-                                    formatCurrency(invoice.gst.round())),
+                                _TotalRow(
+                                  'GST',
+                                  formatCurrency(invoice.gst.round()),
+                                ),
                               if (invoice.discount > 0)
                                 _TotalRow(
-                                    'Discount',
-                                    '- ${formatCurrency(invoice.discount.round())}'),
+                                  'Discount',
+                                  '- ${formatCurrency(invoice.discount.round())}',
+                                ),
                               Divider(color: kBorder),
                               Row(
                                 mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text('Grand Total',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w800,
-                                        color: kForeground,
-                                      )),
+                                  Text(
+                                    'Grand Total',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w800,
+                                      color: kForeground,
+                                    ),
+                                  ),
                                   Text(
                                     formatCurrency(invoice.grandTotal.round()),
                                     style: const TextStyle(
@@ -344,13 +399,18 @@ class _InvoiceBody extends StatelessWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.payment_rounded,
-                                  size: 14, color: kMutedForeground),
+                              Icon(
+                                Icons.payment_rounded,
+                                size: 14,
+                                color: kMutedForeground,
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 'Payment via ${invoice.paymentMethod.label}',
                                 style: TextStyle(
-                                    fontSize: 12, color: kMutedForeground),
+                                  fontSize: 12,
+                                  color: kMutedForeground,
+                                ),
                               ),
                             ],
                           ),
@@ -366,18 +426,24 @@ class _InvoiceBody extends StatelessWidget {
                               color: const Color(0xFFFFF8E1),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Text(invoice.notes,
-                                style: TextStyle(
-                                    fontSize: 12, color: kForeground)),
+                            child: Text(
+                              invoice.notes,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: kForeground,
+                              ),
+                            ),
                           ),
                         ],
 
                         const SizedBox(height: 20),
                         Text(
-                          'Thank you for choosing Asian Auto Repair!',
+                          'Thank you for choosing Asian Fabrication & Engineers!',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                              fontSize: 12, color: kMutedForeground),
+                            fontSize: 12,
+                            color: kMutedForeground,
+                          ),
                         ),
                         const SizedBox(height: 8),
                       ],
@@ -397,13 +463,15 @@ class _InvoiceBody extends StatelessWidget {
 
   Color _statusColor(PaymentStatus s) {
     switch (s) {
-      case PaymentStatus.paid:    return const Color(0xFF15803D);
-      case PaymentStatus.partial: return kOrange;
-      case PaymentStatus.pending: return kRed;
+      case PaymentStatus.paid:
+        return const Color(0xFF15803D);
+      case PaymentStatus.partial:
+        return kOrange;
+      case PaymentStatus.pending:
+        return kRed;
     }
   }
 }
-
 
 // ── Bottom Action Buttons ──────────────────────────────────────────────────────
 class _BottomActions extends StatefulWidget {
@@ -415,8 +483,8 @@ class _BottomActions extends StatefulWidget {
 }
 
 class _BottomActionsState extends State<_BottomActions> {
-  bool _pdfLoading  = false;
-  bool _waLoading   = false;
+  bool _pdfLoading = false;
+  bool _waLoading = false;
   bool _printLoading = false;
 
   // ── Download PDF ────────────────────────────────────────────────────────────
@@ -503,27 +571,30 @@ class _BottomActionsState extends State<_BottomActions> {
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 side: const BorderSide(color: kPrimary, width: 1.2),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 foregroundColor: kPrimary,
               ),
               child: _printLoading
                   ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: kPrimary,
-                ),
-              )
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: kPrimary,
+                      ),
+                    )
                   : const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.print_rounded, size: 16),
-                  SizedBox(width: 6),
-                  Text('Print',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
-                ],
-              ),
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.print_rounded, size: 16),
+                        SizedBox(width: 6),
+                        Text(
+                          'Print',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
             ),
           ),
 
@@ -539,26 +610,29 @@ class _BottomActionsState extends State<_BottomActions> {
                 disabledBackgroundColor: kPrimary.withOpacity(0.6),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
               child: _pdfLoading
                   ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
                   : const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.download_rounded, size: 16),
-                  SizedBox(width: 6),
-                  Text('Download PDF',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
-                ],
-              ),
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.download_rounded, size: 16),
+                        SizedBox(width: 6),
+                        Text(
+                          'Download PDF',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
             ),
           ),
 
@@ -572,27 +646,30 @@ class _BottomActionsState extends State<_BottomActions> {
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 side: const BorderSide(color: Color(0xFF15803D), width: 1.2),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 foregroundColor: const Color(0xFF15803D),
               ),
               child: _waLoading
                   ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Color(0xFF15803D),
-                ),
-              )
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFF15803D),
+                      ),
+                    )
                   : const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.chat_rounded, size: 16),
-                  SizedBox(width: 6),
-                  Text('WhatsApp',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
-                ],
-              ),
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.chat_rounded, size: 16),
+                        SizedBox(width: 6),
+                        Text(
+                          'WhatsApp',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
             ),
           ),
         ],
@@ -600,7 +677,6 @@ class _BottomActionsState extends State<_BottomActions> {
     );
   }
 }
-
 
 // ── Supporting Widgets (unchanged) ─────────────────────────────────────────────
 
@@ -618,15 +694,18 @@ class _LineItemRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(item.itemName,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: kForeground,
-                    fontWeight: FontWeight.w500,
-                  )),
-              Text(item.unit,
-                  style: TextStyle(
-                      fontSize: 10, color: kMutedForeground)),
+              Text(
+                item.itemName,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: kForeground,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                item.unit,
+                style: TextStyle(fontSize: 10, color: kMutedForeground),
+              ),
             ],
           ),
         ),
@@ -637,8 +716,7 @@ class _LineItemRow extends StatelessWidget {
                 ? '${item.quantity.toInt()}'
                 : item.quantity.toStringAsFixed(1),
             textAlign: TextAlign.center,
-            style:
-            TextStyle(fontSize: 12, color: kMutedForeground),
+            style: TextStyle(fontSize: 12, color: kMutedForeground),
           ),
         ),
         Expanded(
@@ -646,8 +724,7 @@ class _LineItemRow extends StatelessWidget {
           child: Text(
             '₹${item.price.toInt()}',
             textAlign: TextAlign.right,
-            style:
-            TextStyle(fontSize: 12, color: kMutedForeground),
+            style: TextStyle(fontSize: 12, color: kMutedForeground),
           ),
         ),
         Expanded(
@@ -656,7 +733,10 @@ class _LineItemRow extends StatelessWidget {
             '₹${item.total.toInt()}',
             textAlign: TextAlign.right,
             style: TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w700, color: kForeground),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: kForeground,
+            ),
           ),
         ),
       ],
@@ -675,14 +755,15 @@ class _TotalRow extends StatelessWidget {
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label,
-            style: TextStyle(
-                fontSize: 12, color: kMutedForeground)),
-        Text(value,
-            style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: kForeground)),
+        Text(label, style: TextStyle(fontSize: 12, color: kMutedForeground)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: kForeground,
+          ),
+        ),
       ],
     ),
   );
@@ -712,12 +793,17 @@ class _StatusChip extends StatelessWidget {
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration:
-      BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+      ),
       child: Text(
         status.label,
-        style:
-        TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color),
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
       ),
     );
   }

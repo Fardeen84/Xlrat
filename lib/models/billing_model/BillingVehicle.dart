@@ -3,8 +3,8 @@
 /// A vehicle stored in the billing database.
 /// One customer may own many vehicles (customerId FK).
 class BillingVehicle {
-  final int? id;
-  final int customerId;
+  final String? id;
+  final String customerId;
   final String vehicleNumber;
   final String vehicleBrand;
   final String vehicleModel;
@@ -40,8 +40,8 @@ class BillingVehicle {
   };
 
   factory BillingVehicle.fromMap(Map<String, dynamic> map) => BillingVehicle(
-    id: map['id'] as int?,
-    customerId: map['customer_id'] as int,
+    id: map['id']?.toString(),
+    customerId: map['customer_id']?.toString() ?? '',
     vehicleNumber: map['vehicle_number'] as String,
     vehicleBrand: (map['vehicle_brand'] as String?) ?? '',
     vehicleModel: (map['vehicle_model'] as String?) ?? '',
@@ -54,8 +54,8 @@ class BillingVehicle {
   // ─── CopyWith ─────────────────────────────────────────────────────────────
 
   BillingVehicle copyWith({
-    int? id,
-    int? customerId,
+    String? id,
+    String? customerId,
     String? vehicleNumber,
     String? vehicleBrand,
     String? vehicleModel,

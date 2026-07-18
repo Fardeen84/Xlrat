@@ -12,6 +12,10 @@ import '../../../models/billing_model/BillingVehicle.dart';
 import '../../../providers/billing_providers.dart';
 import '../../../providers/jobsProvider.dart';
 import '../../../providers/newJobFormProvider.dart';
+import '../../../models/NewJobFormState.dart';
+import '../../../models/Mechanic.dart';
+import '../../../providers/mechanicsProvider.dart';
+
 
 class NewJobScreen extends ConsumerStatefulWidget {
   const NewJobScreen({super.key});
@@ -26,13 +30,11 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
   BillingVehicle? _selectedVehicle;
   String _mechanic = '';
   String _searchQuery = '';
+  String _jobType = 'vehicle';
   final _complaintController = TextEditingController();
+  final _itemNameController = TextEditingController();
+  final _itemDescriptionController = TextEditingController();
 
-  static const _mechanics = [
-    ('Suresh K.', 'SK'),
-    ('Ramesh V.', 'RV'),
-    ('Kiran M.', 'KM'),
-  ];
 
   @override
   void initState() {
@@ -42,15 +44,15 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
     _selectedCustomer = state.customer;
     _selectedVehicle = state.vehicle;
     _mechanic = state.mechanic;
+    _jobType = state.jobType;
     _complaintController.text = state.complaint;
-    _complaintController.addListener(() {
-      _updateState(complaint: _complaintController.text);
-    });
   }
 
   @override
   void dispose() {
     _complaintController.dispose();
+    _itemNameController.dispose();
+    _itemDescriptionController.dispose();
     super.dispose();
   }
 
@@ -60,14 +62,16 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
     BillingVehicle? vehicle,
     String? complaint,
     String? mechanic,
+    String? jobType,
   }) {
     ref.read(newJobFormProvider.notifier).update((state) => state.copyWith(
-          step: step ?? _step,
-          customer: customer ?? _selectedCustomer,
-          vehicle: vehicle ?? _selectedVehicle,
-          complaint: complaint ?? _complaintController.text,
-          mechanic: mechanic ?? _mechanic,
-        ));
+      step: step ?? _step,
+      customer: customer ?? _selectedCustomer,
+      vehicle: vehicle ?? _selectedVehicle,
+      complaint: complaint ?? _complaintController.text,
+      mechanic: mechanic ?? _mechanic,
+      jobType: jobType ?? _jobType,
+    ));
   }
 
   void _changeStep(int step) {
@@ -93,14 +97,33 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
   }
 
   void _selectMechanic(String mechanic) {
+    final newMechanic = _mechanic == mechanic ? '' : mechanic;
     setState(() {
-      _mechanic = mechanic;
+      _mechanic = newMechanic;
     });
-    _updateState(mechanic: mechanic);
+    _updateState(mechanic: newMechanic);
   }
 
   @override
   Widget build(BuildContext context) {
+    // Watch provider and synchronize local state fields immediately when changed.
+    // This is robust against widget reuse and state updates before navigation.
+    final formState = ref.watch(newJobFormProvider);
+    if (_step != formState.step ||
+        _selectedCustomer != formState.customer ||
+        _selectedVehicle != formState.vehicle ||
+        _mechanic != formState.mechanic ||
+        _jobType != formState.jobType) {
+      _step = formState.step;
+      _selectedCustomer = formState.customer;
+      _selectedVehicle = formState.vehicle;
+      _mechanic = formState.mechanic;
+      _jobType = formState.jobType;
+      if (_complaintController.text != formState.complaint) {
+        _complaintController.text = formState.complaint;
+      }
+    }
+
     // Watch real database customers
     final customersAsync = ref.watch(customerListProvider);
     final customers = customersAsync.value ?? [];
@@ -321,42 +344,98 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                       ]),
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Select Vehicle',
-                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kForeground)),
-                        TextButton.icon(
-                          onPressed: () {
-                            QuickAddSheets.showAddVehicle(
-                              context,
-                              ref,
-                              customerId: _selectedCustomer!.id!,
-                              onSaved: (newVehicle) {
-                                _selectVehicle(newVehicle);
-                              },
-                            );
-                          },
-                          icon: const Icon(Icons.add_rounded, size: 16),
-                          label: const Text('Quick Add Vehicle'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    if (vehiclesAsync != null && vehiclesAsync.isLoading)
-                      const Center(child: Padding(
-                        padding: EdgeInsets.all(24.0),
-                        child: CircularProgressIndicator(),
-                      ))
-                    else if (vehicles.isEmpty)
-                      Column(
+                    // Toggle Vehicle vs Item Job
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: kMuted.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
                         children: [
-                          Center(child: Padding(
-                            padding: EdgeInsets.all(24.0),
-                            child: Text('No vehicles added for this customer yet.', style: TextStyle(color: kMutedForeground)),
-                          )),
-                          const SizedBox(height: 8),
-                          ElevatedButton.icon(
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _jobType = 'vehicle';
+                                });
+                                _updateState(jobType: 'vehicle');
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: _jobType == 'vehicle' ? kCard : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: _jobType == 'vehicle'
+                                      ? [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    )
+                                  ]
+                                      : null,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    'Vehicle Job',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13,
+                                      color: _jobType == 'vehicle' ? kForeground : kMutedForeground,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _jobType = 'item';
+                                });
+                                _updateState(jobType: 'item');
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: _jobType == 'item' ? kCard : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: _jobType == 'item'
+                                      ? [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    )
+                                  ]
+                                      : null,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    'Item Job',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13,
+                                      color: _jobType == 'item' ? kForeground : kMutedForeground,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_jobType == 'vehicle') ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Select Vehicle',
+                              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kForeground)),
+                          TextButton.icon(
                             onPressed: () {
                               QuickAddSheets.showAddVehicle(
                                 context,
@@ -369,77 +448,154 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                             },
                             icon: const Icon(Icons.add_rounded, size: 16),
                             label: const Text('Quick Add Vehicle'),
-                            style: ElevatedButton.styleFrom(
-                              minimumSize: const Size.fromHeight(48),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      if (vehiclesAsync != null && vehiclesAsync.isLoading)
+                        const Center(child: Padding(
+                          padding: EdgeInsets.all(24.0),
+                          child: CircularProgressIndicator(),
+                        ))
+                      else if (vehicles.isEmpty)
+                        Column(
+                          children: [
+                            Center(child: Padding(
+                              padding: EdgeInsets.all(24.0),
+                              child: Text('No vehicles added for this customer yet.', style: TextStyle(color: kMutedForeground)),
+                            )),
+                            const SizedBox(height: 8),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                QuickAddSheets.showAddVehicle(
+                                  context,
+                                  ref,
+                                  customerId: _selectedCustomer!.id!,
+                                  onSaved: (newVehicle) {
+                                    _selectVehicle(newVehicle);
+                                  },
+                                );
+                              },
+                              icon: const Icon(Icons.add_rounded, size: 16),
+                              label: const Text('Quick Add Vehicle'),
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: const Size.fromHeight(48),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            ),
+                          ],
+                        )
+                      else ...[
+                          ...vehicles.map((v) {
+                            final isSelected = _selectedVehicle?.id == v.id;
+                            final type = v.fuelType.toLowerCase().contains('diesel') || v.fuelType.toLowerCase().contains('petrol') ? 'car' : 'bike';
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: GestureDetector(
+                                onTap: () => _selectVehicle(v),
+                                child: Container(
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? const Color(0xFFEFF6FF) : kCard,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: isSelected ? kPrimary : kBorder),
+                                  ),
+                                  child: Row(children: [
+                                    Container(
+                                      width: 36,
+                                      height: 36,
+                                      decoration: BoxDecoration(
+                                        color: isSelected ? Colors.white : const Color(0xFFF5F7FA),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        type == 'bike' ? Icons.motorcycle_rounded : Icons.directions_car_rounded,
+                                        color: isSelected ? kPrimary : kMutedForeground,
+                                        size: 18,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                      Text('${v.vehicleBrand} ${v.vehicleModel}',
+                                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                                      Text(v.vehicleNumber,
+                                          style: const TextStyle(fontSize: 12, color: kPrimary, fontWeight: FontWeight.bold)),
+                                    ])),
+                                    if (isSelected)
+                                      const Icon(Icons.check_circle_rounded, color: kPrimary, size: 20)
+                                    else
+                                      Icon(Icons.circle_outlined, color: kBorder, size: 20),
+                                  ]),
+                                ),
+                              ),
+                            );
+                          }),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8, top: 8),
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                QuickAddSheets.showAddVehicle(
+                                  context,
+                                  ref,
+                                  customerId: _selectedCustomer!.id!,
+                                  onSaved: (newVehicle) {
+                                    _selectVehicle(newVehicle);
+                                  },
+                                );
+                              },
+                              icon: const Icon(Icons.add_rounded, size: 16),
+                              label: const Text('Add Another Vehicle'),
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size.fromHeight(48),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
                             ),
                           ),
                         ],
-                      )
-                    else ...[
-                      ...vehicles.map((v) {
-                        final isSelected = _selectedVehicle?.id == v.id;
-                        final type = v.fuelType.toLowerCase().contains('diesel') || v.fuelType.toLowerCase().contains('petrol') ? 'car' : 'bike';
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: GestureDetector(
-                            onTap: () => _selectVehicle(v),
-                            child: Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: isSelected ? const Color(0xFFEFF6FF) : kCard,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: isSelected ? kPrimary : kBorder),
-                              ),
-                              child: Row(children: [
-                                Container(
-                                  width: 36,
-                                  height: 36,
-                                  decoration: BoxDecoration(
-                                    color: isSelected ? Colors.white : const Color(0xFFF5F7FA),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    type == 'bike' ? Icons.motorcycle_rounded : Icons.directions_car_rounded,
-                                    color: isSelected ? kPrimary : kMutedForeground,
-                                    size: 18,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                  Text('${v.vehicleBrand} ${v.vehicleModel}',
-                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                                  Text(v.vehicleNumber,
-                                      style: const TextStyle(fontSize: 12, color: kPrimary, fontWeight: FontWeight.bold)),
-                                ])),
-                                if (isSelected)
-                                  const Icon(Icons.check_circle_rounded, color: kPrimary, size: 20)
-                                else
-                                  Icon(Icons.circle_outlined, color: kBorder, size: 20),
-                              ]),
-                            ),
+                    ],
+                    if (_jobType == 'item') ...[
+                      Text('Item Details',
+                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kForeground)),
+                      const SizedBox(height: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: kCard,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: kBorder),
+                        ),
+                        child: TextFormField(
+                          controller: _itemNameController,
+                          onChanged: (val) => setState(() {}),
+                          decoration: InputDecoration(
+                            labelText: 'Item Name *',
+                            labelStyle: TextStyle(color: kMutedForeground),
+                            hintText: 'e.g. Alternator, Gearbox Casing, Radiator',
+                            hintStyle: TextStyle(color: kMutedForeground.withOpacity(0.6)),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           ),
-                        );
-                      }),
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8, top: 8),
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            QuickAddSheets.showAddVehicle(
-                              context,
-                              ref,
-                              customerId: _selectedCustomer!.id!,
-                              onSaved: (newVehicle) {
-                                _selectVehicle(newVehicle);
-                              },
-                            );
-                          },
-                          icon: const Icon(Icons.add_rounded, size: 16),
-                          label: const Text('Add Another Vehicle'),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(48),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          style: TextStyle(color: kForeground),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: kCard,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: kBorder),
+                        ),
+                        child: TextFormField(
+                          controller: _itemDescriptionController,
+                          maxLines: 3,
+                          decoration: InputDecoration(
+                            labelText: 'Item Description / Notes (Optional)',
+                            labelStyle: TextStyle(color: kMutedForeground),
+                            hintText: 'Any extra details about the item',
+                            hintStyle: TextStyle(color: kMutedForeground.withOpacity(0.6)),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           ),
+                          style: TextStyle(color: kForeground),
                         ),
                       ),
                     ],
@@ -459,7 +615,9 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: _selectedVehicle == null ? null : () => _changeStep(3),
+                            onPressed: _jobType == 'vehicle'
+                                ? (_selectedVehicle == null ? null : () => _changeStep(3))
+                                : (_itemNameController.text.trim().isEmpty ? null : () => _changeStep(3)),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: kPrimary,
                               foregroundColor: Colors.white,
@@ -487,6 +645,7 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                       ),
                       child: TextField(
                         controller: _complaintController,
+                        onChanged: (val) => _updateState(complaint: val),
                         maxLines: 4,
                         decoration: InputDecoration(
                           hintText: 'Describe the issue reported by customer...',
@@ -500,66 +659,118 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                     Text('Assign Mechanic',
                         style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kForeground)),
                     const SizedBox(height: 8),
-                    ..._mechanics.map((m) {
-                      final isSelected = _mechanic == m.$1;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: GestureDetector(
-                          onTap: () => _selectMechanic(m.$1),
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: isSelected ? const Color(0xFFEFF6FF) : kCard,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: isSelected ? kPrimary : kBorder),
-                            ),
-                            child: Row(children: [
-                              Container(
-                                width: 38,
-                                height: 38,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFDBEAFE),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Center(
-                                  child: Text(m.$2,
-                                      style: const TextStyle(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 12)),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Text(m.$1, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                                Text('Senior Mechanic',
-                                    style: TextStyle(fontSize: 11, color: kMutedForeground)),
-                              ])),
-                              if (isSelected)
-                                const Icon(Icons.check_rounded, color: kPrimary, size: 20),
-                            ]),
+                    ref.watch(mechanicListProvider).when(
+                      loading: () => const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16.0),
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           ),
                         ),
-                      );
-                    }),
-                    const SizedBox(height: 8),
-                    Text('Add Photos (Optional)',
-                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kForeground)),
-                    const SizedBox(height: 8),
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.symmetric(vertical: 28),
-                      decoration: BoxDecoration(
-                        color: kCard,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: kBorder),
                       ),
-                      child: Column(
-                        children: [
-                          Icon(Icons.camera_alt_rounded, size: 28, color: kMutedForeground),
-                          SizedBox(height: 6),
-                          Text('Tap to add photos of damage',
-                              style: TextStyle(color: kMutedForeground, fontSize: 13)),
-                        ],
+                      error: (err, stack) => Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Text(
+                            'Error loading mechanics: $err',
+                            style: const TextStyle(color: kRed, fontSize: 13),
+                          ),
+                        ),
                       ),
+                      data: (mechanics) {
+                        if (mechanics.isEmpty) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12.0),
+                            child: Text(
+                              'No mechanics added yet — add one from Profile → Manage Mechanics',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: kMutedForeground,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          );
+                        }
+                        return Column(
+                          children: mechanics.map((m) {
+                            final isSelected = _mechanic == m.name;
+                            final initials = m.initials.trim().isNotEmpty
+                                ? m.initials.trim().toUpperCase()
+                                : m.name
+                                .trim()
+                                .split(' ')
+                                .map((e) => e.isNotEmpty ? e[0] : '')
+                                .take(2)
+                                .join('')
+                                .toUpperCase();
+                            final avatarText = initials.isNotEmpty ? initials : '?';
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: GestureDetector(
+                                onTap: () => _selectMechanic(m.name),
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? const Color(0xFFEFF6FF) : kCard,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: isSelected ? kPrimary : kBorder),
+                                  ),
+                                  child: Row(children: [
+                                    Container(
+                                      width: 38,
+                                      height: 38,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFFDBEAFE),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Center(
+                                        child: Text(avatarText,
+                                            style: const TextStyle(color: kPrimary, fontWeight: FontWeight.w800, fontSize: 12)),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                      Text(m.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                                      if (m.specialization.isNotEmpty)
+                                        Text(m.specialization,
+                                            style: TextStyle(fontSize: 11, color: kMutedForeground))
+                                      else
+                                        Text('Mechanic',
+                                            style: TextStyle(fontSize: 11, color: kMutedForeground)),
+                                    ])),
+                                    if (isSelected)
+                                      const Icon(Icons.check_rounded, color: kPrimary, size: 20),
+                                  ]),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        );
+                      },
                     ),
+                    const SizedBox(height: 8),
+                    // Text('Add Photos (Optional)',
+                    //     style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kForeground)),
+                    // const SizedBox(height: 8),
+                    // Container(
+                    //   width: double.infinity,
+                    //   padding: EdgeInsets.symmetric(vertical: 28),
+                    //   decoration: BoxDecoration(
+                    //     color: kCard,
+                    //     borderRadius: BorderRadius.circular(16),
+                    //     border: Border.all(color: kBorder),
+                    //   ),
+                    //   child: Column(
+                    //     children: [
+                    //       Icon(Icons.camera_alt_rounded, size: 28, color: kMutedForeground),
+                    //       SizedBox(height: 6),
+                    //       Text('Tap to add photos of damage',
+                    //           style: TextStyle(color: kMutedForeground, fontSize: 13)),
+                    //     ],
+                    //   ),
+                    // ),
                     const SizedBox(height: 16),
                     Row(
                       children: [
@@ -579,30 +790,56 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                             onPressed: () async {
                               final repo = ref.read(jobRepositoryProvider);
                               final nextJobNumber = await repo.generateNextJobNumber();
-                              final type = _selectedVehicle != null
-                                  ? (_selectedVehicle!.vehicleModel.toLowerCase().contains('bullet') ||
-                                          _selectedVehicle!.vehicleModel.toLowerCase().contains('activa') ||
-                                          _selectedVehicle!.vehicleBrand.toLowerCase().contains('honda') ||
-                                          _selectedVehicle!.vehicleBrand.toLowerCase().contains('bajaj')
-                                      ? 'bike'
-                                      : 'car')
-                                  : 'car';
-                              final job = Job(
-                                jobNumber: nextJobNumber,
-                                customer: _selectedCustomer?.name ?? 'Unknown',
-                                vehicle: _selectedVehicle?.vehicleNumber ?? 'Unknown',
-                                vehicleType: type,
-                                brand: _selectedVehicle != null ? '${_selectedVehicle!.vehicleBrand} ${_selectedVehicle!.vehicleModel}' : 'Unknown',
-                                complaint: _complaintController.text.trim(),
-                                mechanic: _mechanic.isNotEmpty ? _mechanic : 'Suresh K.',
-                                status: 'pending',
-                                date: DateFormat('dd MMM yyyy').format(DateTime.now()),
-                                amount: 0,
-                              );
+                              final Job job;
+                              if (_jobType == 'item') {
+                                job = Job(
+                                  jobNumber: nextJobNumber,
+                                  customer: _selectedCustomer?.name ?? 'Unknown',
+                                  vehicle: _itemNameController.text.trim(),
+                                  vehicleType: 'item',
+                                  brand: '',
+                                  complaint: _complaintController.text.trim(),
+                                  mechanic: _mechanic,
+                                  status: 'pending',
+                                  date: DateFormat('dd MMM yyyy').format(DateTime.now()),
+                                  amount: 0,
+                                  customerId: _selectedCustomer?.id,
+                                  vehicleId: null,
+                                  jobType: 'item',
+                                  itemName: _itemNameController.text.trim(),
+                                  itemDescription: _itemDescriptionController.text.trim(),
+                                );
+                              } else {
+                                final type = _selectedVehicle != null
+                                    ? (_selectedVehicle!.vehicleModel.toLowerCase().contains('bullet') ||
+                                    _selectedVehicle!.vehicleModel.toLowerCase().contains('activa') ||
+                                    _selectedVehicle!.vehicleBrand.toLowerCase().contains('honda') ||
+                                    _selectedVehicle!.vehicleBrand.toLowerCase().contains('bajaj')
+                                    ? 'bike'
+                                    : 'car')
+                                    : 'car';
+                                job = Job(
+                                  jobNumber: nextJobNumber,
+                                  customer: _selectedCustomer?.name ?? 'Unknown',
+                                  vehicle: _selectedVehicle?.vehicleNumber ?? 'Unknown',
+                                  vehicleType: type,
+                                  brand: _selectedVehicle != null ? '${_selectedVehicle!.vehicleBrand} ${_selectedVehicle!.vehicleModel}' : 'Unknown',
+                                  complaint: _complaintController.text.trim(),
+                                  mechanic: _mechanic,
+                                  status: 'pending',
+                                  date: DateFormat('dd MMM yyyy').format(DateTime.now()),
+                                  amount: 0,
+                                  customerId: _selectedCustomer?.id,
+                                  vehicleId: _selectedVehicle?.id,
+                                  jobType: 'vehicle',
+                                  itemName: '',
+                                  itemDescription: '',
+                                );
+                              }
                               final router = GoRouter.of(context);
                               final savedJob = await repo.createJob(job);
                               ref.invalidate(newJobFormProvider);
-                              ref.invalidate(jobsProvider);
+                              ref.invalidate(jobsListStateProvider);
                               if (mounted) {
                                 router.go('/job-detail/${savedJob.id}');
                               }

@@ -11,6 +11,8 @@ import '../../widgets/StatusBadge.dart';
 import '../../providers/billing_providers.dart';
 import '../../models/billing_model/invoice.dart';
 import '../../providers/jobsProvider.dart';
+import '../../providers/profile_provider.dart';
+import '../../utils/backfill_migration.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
@@ -32,7 +34,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       for (int i = 6; i >= 0; i--) {
         final date = now.subtract(Duration(days: i));
         final dayLabel = DateFormat('E').format(date); // Mon, Tue...
-        
+
         double total = 0;
         for (final inv in invoices) {
           if (inv.invoiceDate.year == date.year &&
@@ -48,7 +50,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       for (int i = 5; i >= 0; i--) {
         final date = DateTime(now.year, now.month - i, 1);
         final monthLabel = DateFormat('MMM').format(date); // Jan, Feb...
-        
+
         double total = 0;
         for (final inv in invoices) {
           if (inv.invoiceDate.year == date.year &&
@@ -77,7 +79,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final invoicesAsync = ref.watch(reportsInvoicesProvider);
     final topCustomersAsync = ref.watch(topCustomersProvider);
     final topPartsAsync = ref.watch(topPartsProvider);
-    final jobsAsync = ref.watch(jobsProvider);
 
     return Scaffold(
       backgroundColor: kBackground,
@@ -95,8 +96,46 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(AppLocalizations.of(context)!.reportsTitle,
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kForeground)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      AppLocalizations.of(context)!.reportsTitle,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: kForeground,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.settings_backup_restore_rounded, color: kPrimary),
+                      tooltip: 'Backfill Reports Stats (One-time)',
+                      onPressed: () async {
+                        try {
+                          final garageId = ref.read(profileProvider).garageId;
+                          await runOneTimeStatsBackfill(garageId);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Reports backfill completed successfully!'),
+                                backgroundColor: kGreen,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Backfill failed: $e'),
+                                backgroundColor: kRed,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 10),
                 Row(
                   children: ['daily', 'weekly', 'monthly'].map((p) {
@@ -118,7 +157,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: isSelected ? Colors.white : kMutedForeground,
+                              color: isSelected
+                                  ? Colors.white
+                                  : kMutedForeground,
                             ),
                           ),
                         ),
@@ -132,40 +173,56 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
           Expanded(
             child: invoicesAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator(color: kPrimary)),
+              loading: () => const Center(
+                child: CircularProgressIndicator(color: kPrimary),
+              ),
               error: (err, stack) => Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
                   child: Text(
                     'Failed to load report data: $err',
-                    style: const TextStyle(color: kRed, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      color: kRed,
+                      fontWeight: FontWeight.w600,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ),
               ),
               data: (invoices) {
                 // Calculate metrics dynamically based on actual data
-                final double totalRevenue = invoices.fold(0, (sum, inv) => sum + inv.grandTotal);
+                final double totalRevenue = invoices.fold(
+                  0,
+                  (sum, inv) => sum + inv.grandTotal,
+                );
                 final int totalJobs = invoices.length;
-                final double avgTicket = totalJobs > 0 ? totalRevenue / totalJobs : 0;
+                final double avgTicket = totalJobs > 0
+                    ? totalRevenue / totalJobs
+                    : 0;
 
                 final chartData = _getChartData(invoices);
                 final topCustomers = topCustomersAsync.value ?? [];
                 final topParts = topPartsAsync.value ?? [];
-                final jobs = jobsAsync.value ?? [];
+                final jobCounts = ref.watch(reportsJobStatusCountsProvider).value ?? {};
+                final completedCount = jobCounts['completed'] ?? 0;
+                final inProgressCount = jobCounts['in-progress'] ?? 0;
+                final pendingCount = jobCounts['pending'] ?? 0;
+                final totalJobsCount =
+                    completedCount + inProgressCount + pendingCount;
 
-                final completedCount = jobs.where((j) => j.status == 'completed').length;
-                final inProgressCount = jobs.where((j) => j.status == 'in-progress').length;
-                final pendingCount = jobs.where((j) => j.status == 'pending').length;
-                final totalJobsCount = completedCount + inProgressCount + pendingCount;
-
-                final completedPct = totalJobsCount > 0 ? ((completedCount / totalJobsCount) * 100).round() : 0;
-                final inProgressPct = totalJobsCount > 0 ? ((inProgressCount / totalJobsCount) * 100).round() : 0;
-                final pendingPct = totalJobsCount > 0 ? (100 - completedPct - inProgressPct).clamp(0, 100) : 0;
+                final completedPct = totalJobsCount > 0
+                    ? ((completedCount / totalJobsCount) * 100).round()
+                    : 0;
+                final inProgressPct = totalJobsCount > 0
+                    ? ((inProgressCount / totalJobsCount) * 100).round()
+                    : 0;
+                final pendingPct = totalJobsCount > 0
+                    ? (100 - completedPct - inProgressPct).clamp(0, 100)
+                    : 0;
 
                 final jobStatusData = [
                   ('Completed', completedPct, const Color(0xFF43A047)),
-                  ('In Progress', inProgressPct, const Color(0xFF1565C0)),
+                  ('In Progress', inProgressPct, const Color(0xFFFDB913)),
                   ('Pending', pendingPct, const Color(0xFFFB8C00)),
                 ];
 
@@ -175,11 +232,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     // Stats Row
                     Row(
                       children: [
-                        _statCard(_formatCurrencyCompact(totalRevenue), 'Revenue', '+18%'),
+                        _statCard(
+                          _formatCurrencyCompact(totalRevenue),
+                          'Revenue',
+                          '+18%',
+                        ),
                         const SizedBox(width: 10),
                         _statCard('$totalJobs', 'Jobs Done', '+12%'),
                         const SizedBox(width: 10),
-                        _statCard(_formatCurrencyCompact(avgTicket), 'Avg Ticket', '+5%'),
+                        _statCard(
+                          _formatCurrencyCompact(avgTicket),
+                          'Avg Ticket',
+                          '+5%',
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -189,8 +254,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Revenue Trend',
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: kForeground)),
+                          Text(
+                            'Revenue Trend',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: kForeground,
+                            ),
+                          ),
                           const SizedBox(height: 24),
                           SizedBox(
                             height: 180,
@@ -206,8 +277,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Job Status Overview',
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: kForeground)),
+                          Text(
+                            'Job Status Overview',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: kForeground,
+                            ),
+                          ),
                           const SizedBox(height: 16),
                           if (totalJobsCount == 0)
                             Padding(
@@ -228,20 +305,44 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                   child: PieChart(
                                     PieChartData(
                                       pieTouchData: PieTouchData(
-                                        touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                                          if (!event.isInterestedForInteractions ||
-                                              pieTouchResponse == null ||
-                                              pieTouchResponse.touchedSection == null) {
-                                            return;
-                                          }
-                                          final touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
-                                          if (touchedIndex >= 0 && touchedIndex < jobStatusData.length) {
-                                            final status = jobStatusData[touchedIndex].$1.toLowerCase();
-                                            final filterVal = status == 'in progress' ? 'in-progress' : status;
-                                            ref.read(jobFilterProvider.notifier).state = filterVal;
-                                            context.go('/jobs');
-                                          }
-                                        },
+                                        touchCallback:
+                                            (
+                                              FlTouchEvent event,
+                                              pieTouchResponse,
+                                            ) {
+                                              if (!event
+                                                      .isInterestedForInteractions ||
+                                                  pieTouchResponse == null ||
+                                                  pieTouchResponse
+                                                          .touchedSection ==
+                                                      null) {
+                                                return;
+                                              }
+                                              final touchedIndex =
+                                                  pieTouchResponse
+                                                      .touchedSection!
+                                                      .touchedSectionIndex;
+                                              if (touchedIndex >= 0 &&
+                                                  touchedIndex <
+                                                      jobStatusData.length) {
+                                                final status =
+                                                    jobStatusData[touchedIndex]
+                                                        .$1
+                                                        .toLowerCase();
+                                                final filterVal =
+                                                    status == 'in progress'
+                                                    ? 'in-progress'
+                                                    : status;
+                                                ref
+                                                        .read(
+                                                          jobFilterProvider
+                                                              .notifier,
+                                                        )
+                                                        .state =
+                                                    filterVal;
+                                                context.go('/jobs');
+                                              }
+                                            },
                                       ),
                                       borderData: FlBorderData(show: false),
                                       sectionsSpace: 2,
@@ -267,17 +368,32 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                   child: Column(
                                     children: jobStatusData.map((s) {
                                       final status = s.$1.toLowerCase();
-                                      final filterVal = status == 'in progress' ? 'in-progress' : status;
+                                      final filterVal = status == 'in progress'
+                                          ? 'in-progress'
+                                          : status;
                                       return Padding(
-                                        padding: const EdgeInsets.symmetric(vertical: 4),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 4,
+                                        ),
                                         child: InkWell(
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                           onTap: () {
-                                            ref.read(jobFilterProvider.notifier).state = filterVal;
+                                            ref
+                                                    .read(
+                                                      jobFilterProvider
+                                                          .notifier,
+                                                    )
+                                                    .state =
+                                                filterVal;
                                             context.go('/jobs');
                                           },
                                           child: Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 4,
+                                              vertical: 4,
+                                            ),
                                             child: Row(
                                               children: [
                                                 Container(
@@ -285,16 +401,30 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                                   height: 12,
                                                   decoration: BoxDecoration(
                                                     color: s.$3,
-                                                    borderRadius: BorderRadius.circular(3),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          3,
+                                                        ),
                                                   ),
                                                 ),
                                                 const SizedBox(width: 8),
                                                 Expanded(
-                                                  child: Text(s.$1,
-                                                      style: TextStyle(fontSize: 12, color: kMutedForeground)),
+                                                  child: Text(
+                                                    s.$1,
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: kMutedForeground,
+                                                    ),
+                                                  ),
                                                 ),
-                                                Text('${s.$2}%',
-                                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: kForeground)),
+                                                Text(
+                                                  '${s.$2}%',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w800,
+                                                    color: kForeground,
+                                                  ),
+                                                ),
                                               ],
                                             ),
                                           ),
@@ -318,43 +448,89 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         children: [
                           Padding(
                             padding: EdgeInsets.fromLTRB(16, 14, 16, 10),
-                            child: Text('Top Customers',
-                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: kForeground)),
+                            child: Text(
+                              'Top Customers',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: kForeground,
+                              ),
+                            ),
                           ),
                           if (topCustomers.isEmpty)
                             Padding(
                               padding: EdgeInsets.symmetric(vertical: 24),
-                              child: Center(child: Text('No customer data available', style: TextStyle(color: kMutedForeground))),
+                              child: Center(
+                                child: Text(
+                                  'No customer data available',
+                                  style: TextStyle(color: kMutedForeground),
+                                ),
+                              ),
                             )
                           else
                             ...topCustomers.asMap().entries.map((entry) {
                               final i = entry.key;
                               final c = entry.value;
                               return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
                                 decoration: BoxDecoration(
                                   border: Border(
-                                    top: i == 0 ? BorderSide(color: kBorder, width: 0.5) : BorderSide.none,
-                                    bottom: BorderSide(color: kBorder, width: 0.5),
+                                    top: i == 0
+                                        ? BorderSide(color: kBorder, width: 0.5)
+                                        : BorderSide.none,
+                                    bottom: BorderSide(
+                                      color: kBorder,
+                                      width: 0.5,
+                                    ),
                                   ),
                                 ),
                                 child: Row(
                                   children: [
-                                    Text('${i + 1}', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: kMutedForeground)),
+                                    Text(
+                                      '${i + 1}',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800,
+                                        color: kMutedForeground,
+                                      ),
+                                    ),
                                     const SizedBox(width: 12),
                                     AvatarWidget(initials: c.$4, size: 36),
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          Text(c.$1, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kForeground)),
-                                          Text('${c.$3} visits', style: TextStyle(fontSize: 11, color: kMutedForeground)),
+                                          Text(
+                                            c.$1,
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w700,
+                                              color: kForeground,
+                                            ),
+                                          ),
+                                          Text(
+                                            '${c.$3} visits',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: kMutedForeground,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ),
-                                    Text(formatCurrency(c.$2.round()),
-                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: kPrimary)),
+                                    Text(
+                                      formatCurrency(c.$2.round()),
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800,
+                                        color: kPrimary,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               );
@@ -372,32 +548,69 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         children: [
                           Padding(
                             padding: EdgeInsets.fromLTRB(16, 14, 16, 10),
-                            child: Text('Most Used Parts',
-                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: kForeground)),
+                            child: Text(
+                              'Most Used Parts',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: kForeground,
+                              ),
+                            ),
                           ),
                           if (topParts.isEmpty)
                             Padding(
                               padding: EdgeInsets.symmetric(vertical: 24),
-                              child: Center(child: Text('No parts data available', style: TextStyle(color: kMutedForeground))),
+                              child: Center(
+                                child: Text(
+                                  'No parts data available',
+                                  style: TextStyle(color: kMutedForeground),
+                                ),
+                              ),
                             )
                           else
                             ...topParts.asMap().entries.map((entry) {
                               final p = entry.value;
-                              final maxQty = topParts.isNotEmpty ? topParts.first.$2 : 1.0;
-                              final pct = maxQty > 0 ? (p.$2 / maxQty).clamp(0.0, 1.0) : 0.0;
+                              final maxQty = topParts.isNotEmpty
+                                  ? topParts.first.$2
+                                  : 1.0;
+                              final pct = maxQty > 0
+                                  ? (p.$2 / maxQty).clamp(0.0, 1.0)
+                                  : 0.0;
                               return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
                                 decoration: BoxDecoration(
-                                  border: Border(bottom: BorderSide(color: kBorder, width: 0.5)),
+                                  border: Border(
+                                    bottom: BorderSide(
+                                      color: kBorder,
+                                      width: 0.5,
+                                    ),
+                                  ),
                                 ),
                                 child: Column(
                                   children: [
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(p.$1, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kForeground)),
-                                        Text(formatCurrency(p.$3.round()),
-                                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: kPrimary)),
+                                        Text(
+                                          p.$1,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: kForeground,
+                                          ),
+                                        ),
+                                        Text(
+                                          formatCurrency(p.$3.round()),
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w800,
+                                            color: kPrimary,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                     const SizedBox(height: 6),
@@ -405,18 +618,28 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                       children: [
                                         Expanded(
                                           child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(4),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
                                             child: LinearProgressIndicator(
                                               value: pct,
                                               backgroundColor: kMuted,
-                                              valueColor: const AlwaysStoppedAnimation(kPrimary),
+                                              valueColor:
+                                                  const AlwaysStoppedAnimation(
+                                                    kPrimary,
+                                                  ),
                                               minHeight: 6,
                                             ),
                                           ),
                                         ),
                                         const SizedBox(width: 8),
-                                        Text('${p.$2.round()} units',
-                                            style: TextStyle(fontSize: 10, color: kMutedForeground)),
+                                        Text(
+                                          '${p.$2.round()} units',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: kMutedForeground,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ],
@@ -444,15 +667,34 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           color: kCard,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: kBorder.withOpacity(0.5)),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8)],
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8),
+          ],
         ),
         child: Column(
           children: [
-            Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kForeground)),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+                color: kForeground,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text(label, style: TextStyle(fontSize: 10, color: kMutedForeground)),
+            Text(
+              label,
+              style: TextStyle(fontSize: 10, color: kMutedForeground),
+            ),
             const SizedBox(height: 2),
-            Text(change, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF15803D))),
+            Text(
+              change,
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF15803D),
+              ),
+            ),
           ],
         ),
       ),
@@ -504,10 +746,8 @@ class _FlLineChart extends StatelessWidget {
           show: true,
           drawVerticalLine: false,
           horizontalInterval: maxY > 0 ? maxY / 4 : 250,
-          getDrawingHorizontalLine: (value) => FlLine(
-            color: kBorder,
-            strokeWidth: 0.5,
-          ),
+          getDrawingHorizontalLine: (value) =>
+              FlLine(color: kBorder, strokeWidth: 0.5),
         ),
         titlesData: FlTitlesData(
           show: true,
@@ -534,9 +774,15 @@ class _FlLineChart extends StatelessWidget {
               reservedSize: 28,
             ),
           ),
-          leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          leftTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
         ),
         borderData: FlBorderData(show: false),
         minX: 0,
@@ -548,7 +794,10 @@ class _FlLineChart extends StatelessWidget {
           touchTooltipData: LineTouchTooltipData(
             getTooltipColor: (spot) => kCard,
             tooltipBorder: BorderSide(color: kBorder, width: 1),
-            tooltipPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            tooltipPadding: const EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 6,
+            ),
             getTooltipItems: (touchedSpots) {
               return touchedSpots.map((spot) {
                 final dateLabel = data[spot.x.toInt()].$1;

@@ -1,4 +1,3 @@
-
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -41,10 +40,9 @@ class InvoicePdfService {
     final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/${invoice.invoiceNumber}.pdf');
     await file.writeAsBytes(bytes);
-    await Share.shareXFiles(
-      [XFile(file.path, mimeType: 'application/pdf')],
-      subject: 'Invoice ${invoice.invoiceNumber} – Asian Auto Repair',
-    );
+    await Share.shareXFiles([
+      XFile(file.path, mimeType: 'application/pdf'),
+    ], subject: 'Invoice ${invoice.invoiceNumber} – Asian Fabrication & Engineers');
   }
 
   /// PDF print preview kholo (printing package ka built-in dialog).
@@ -66,10 +64,11 @@ class InvoicePdfService {
 
     final amount = _formatCurrency(invoice.grandTotal.round());
     final status = invoice.paymentStatus.label;
-    final date   = DateFormat('dd MMM yyyy').format(invoice.invoiceDate);
+    final date = DateFormat('dd MMM yyyy').format(invoice.invoiceDate);
 
-    final message = '''
-🔧 *Asian Auto Repair*
+    final message =
+        '''
+🔧 *Asian Fabrication & Engineers*
 
 Namaste ${invoice.customer?.name ?? 'Customer'},
 
@@ -82,29 +81,27 @@ Aapka invoice ready hai:
 ✅ *Status:* $status
 
 ${invoice.notes.isNotEmpty ? '📝 Note: ${invoice.notes}\n' : ''}
-Shukriya Asian Auto Repair choose karne ke liye! 🙏
+Shukriya Asian Fabrication & Engineers choose karne ke liye! 🙏
 ''';
 
     final encoded = Uri.encodeComponent(message);
-    final uri     = Uri.parse('https://wa.me/$e164?text=$encoded');
+    final uri = Uri.parse('https://wa.me/$e164?text=$encoded');
 
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       throw Exception('WhatsApp open nahi ho saka. Kya app install hai?');
     }
   }
 
-
-
   // ── PDF Builder ────────────────────────────────────────────────────────────
 
   static Future<Uint8List> buildPdf(Invoice invoice) async {
-    final pdf    = pw.Document();
-    final font   = await PdfGoogleFonts.notoSansRegular();
-    final fontB  = await PdfGoogleFonts.notoSansBold();
-    final theme  = pw.ThemeData.withFont(base: font, bold: fontB);
+    final pdf = pw.Document();
+    final font = await PdfGoogleFonts.notoSansRegular();
+    final fontB = await PdfGoogleFonts.notoSansBold();
+    final theme = pw.ThemeData.withFont(base: font, bold: fontB);
 
     final customer = invoice.customer;
-    final vehicle  = invoice.vehicle;
+    final vehicle = invoice.vehicle;
 
     pdf.addPage(
       pw.Page(
@@ -117,7 +114,7 @@ Shukriya Asian Auto Repair choose karne ke liye! 🙏
             // ── Header ──────────────────────────────────────────────────
             pw.Container(
               decoration: const pw.BoxDecoration(
-                color: PdfColor.fromInt(0xFF1565C0),
+                color: PdfColor.fromInt(0xFFFDB913),
                 borderRadius: pw.BorderRadius.all(pw.Radius.circular(8)),
               ),
               padding: const pw.EdgeInsets.all(20),
@@ -128,7 +125,7 @@ Shukriya Asian Auto Repair choose karne ke liye! 🙏
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
                       pw.Text(
-                        'Asian Auto Repair',
+                        'Asian Fabrication & Engineers',
                         style: pw.TextStyle(
                           font: fontB,
                           fontSize: 16,
@@ -179,31 +176,46 @@ Shukriya Asian Auto Repair choose karne ke liye! 🙏
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Text('BILL TO',
-                          style: pw.TextStyle(
-                              font: fontB,
-                              fontSize: 8,
-                              color: PdfColors.grey600,
-                              letterSpacing: 0.8)),
+                      pw.Text(
+                        'BILL TO',
+                        style: pw.TextStyle(
+                          font: fontB,
+                          fontSize: 8,
+                          color: PdfColors.grey600,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
                       pw.SizedBox(height: 4),
-                      pw.Text(customer?.name ?? '—',
-                          style: pw.TextStyle(font: fontB, fontSize: 13)),
+                      pw.Text(
+                        customer?.name ?? '—',
+                        style: pw.TextStyle(font: fontB, fontSize: 13),
+                      ),
                       if (customer?.mobile.isNotEmpty == true)
-                        pw.Text('+91 ${customer!.mobile}',
-                            style: const pw.TextStyle(
-                                fontSize: 10, color: PdfColors.grey700)),
+                        pw.Text(
+                          '+91 ${customer!.mobile}',
+                          style: const pw.TextStyle(
+                            fontSize: 10,
+                            color: PdfColors.grey700,
+                          ),
+                        ),
                       if (customer?.email.isNotEmpty == true)
-                        pw.Text(customer!.email,
-                            style: const pw.TextStyle(
-                                fontSize: 10, color: PdfColors.grey700)),
+                        pw.Text(
+                          customer!.email,
+                          style: const pw.TextStyle(
+                            fontSize: 10,
+                            color: PdfColors.grey700,
+                          ),
+                        ),
                       if (vehicle != null) ...[
                         pw.SizedBox(height: 4),
-                        pw.Text(vehicle.displayLabel,
-                            style: pw.TextStyle(
-                              font: fontB,
-                              fontSize: 10,
-                              color: const PdfColor.fromInt(0xFF1565C0),
-                            )),
+                        pw.Text(
+                          vehicle.displayLabel,
+                          style: pw.TextStyle(
+                            font: fontB,
+                            fontSize: 10,
+                            color: const PdfColor.fromInt(0xFFFDB913),
+                          ),
+                        ),
                       ],
                     ],
                   ),
@@ -211,19 +223,27 @@ Shukriya Asian Auto Repair choose karne ke liye! 🙏
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
-                    pw.Text('INVOICE NO.',
-                        style: pw.TextStyle(
-                            font: fontB,
-                            fontSize: 8,
-                            color: PdfColors.grey600,
-                            letterSpacing: 0.8)),
-                    pw.SizedBox(height: 4),
-                    pw.Text(invoice.invoiceNumber,
-                        style: pw.TextStyle(font: fontB, fontSize: 12)),
                     pw.Text(
-                        DateFormat('dd MMM yyyy').format(invoice.invoiceDate),
-                        style: const pw.TextStyle(
-                            fontSize: 10, color: PdfColors.grey700)),
+                      'INVOICE NO.',
+                      style: pw.TextStyle(
+                        font: fontB,
+                        fontSize: 8,
+                        color: PdfColors.grey600,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Text(
+                      invoice.invoiceNumber,
+                      style: pw.TextStyle(font: fontB, fontSize: 12),
+                    ),
+                    pw.Text(
+                      DateFormat('dd MMM yyyy').format(invoice.invoiceDate),
+                      style: const pw.TextStyle(
+                        fontSize: 10,
+                        color: PdfColors.grey700,
+                      ),
+                    ),
                     pw.SizedBox(height: 4),
                     pw.Text(
                       invoice.paymentStatus.label.toUpperCase(),
@@ -246,40 +266,56 @@ Shukriya Asian Auto Repair choose karne ke liye! 🙏
             pw.Row(
               children: [
                 pw.Expanded(
-                    flex: 6,
-                    child: pw.Text('ITEM',
-                        style: pw.TextStyle(
-                            font: fontB,
-                            fontSize: 8,
-                            color: PdfColors.grey600,
-                            letterSpacing: 0.6))),
+                  flex: 6,
+                  child: pw.Text(
+                    'ITEM',
+                    style: pw.TextStyle(
+                      font: fontB,
+                      fontSize: 8,
+                      color: PdfColors.grey600,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                ),
                 pw.SizedBox(
-                    width: 40,
-                    child: pw.Text('QTY',
-                        textAlign: pw.TextAlign.center,
-                        style: pw.TextStyle(
-                            font: fontB,
-                            fontSize: 8,
-                            color: PdfColors.grey600,
-                            letterSpacing: 0.6))),
+                  width: 40,
+                  child: pw.Text(
+                    'QTY',
+                    textAlign: pw.TextAlign.center,
+                    style: pw.TextStyle(
+                      font: fontB,
+                      fontSize: 8,
+                      color: PdfColors.grey600,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                ),
                 pw.Expanded(
-                    flex: 2,
-                    child: pw.Text('RATE',
-                        textAlign: pw.TextAlign.right,
-                        style: pw.TextStyle(
-                            font: fontB,
-                            fontSize: 8,
-                            color: PdfColors.grey600,
-                            letterSpacing: 0.6))),
+                  flex: 2,
+                  child: pw.Text(
+                    'RATE',
+                    textAlign: pw.TextAlign.right,
+                    style: pw.TextStyle(
+                      font: fontB,
+                      fontSize: 8,
+                      color: PdfColors.grey600,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                ),
                 pw.Expanded(
-                    flex: 2,
-                    child: pw.Text('AMT',
-                        textAlign: pw.TextAlign.right,
-                        style: pw.TextStyle(
-                            font: fontB,
-                            fontSize: 8,
-                            color: PdfColors.grey600,
-                            letterSpacing: 0.6))),
+                  flex: 2,
+                  child: pw.Text(
+                    'AMT',
+                    textAlign: pw.TextAlign.right,
+                    style: pw.TextStyle(
+                      font: fontB,
+                      fontSize: 8,
+                      color: PdfColors.grey600,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                ),
               ],
             ),
             pw.SizedBox(height: 6),
@@ -299,34 +335,46 @@ Shukriya Asian Auto Repair choose karne ke liye! 🙏
                 padding: const pw.EdgeInsets.all(14),
                 decoration: pw.BoxDecoration(
                   color: const PdfColor.fromInt(0xFFF5F5F5),
-                  borderRadius:
-                  const pw.BorderRadius.all(pw.Radius.circular(8)),
+                  borderRadius: const pw.BorderRadius.all(
+                    pw.Radius.circular(8),
+                  ),
                 ),
                 child: pw.Column(
                   children: [
-                    _pdfTotalRow('Subtotal',
-                        _formatCurrency(invoice.subTotal.round()), font, fontB),
+                    _pdfTotalRow(
+                      'Subtotal',
+                      _formatCurrency(invoice.subTotal.round()),
+                      font,
+                      fontB,
+                    ),
                     if (invoice.gst > 0)
-                      _pdfTotalRow('GST',
-                          _formatCurrency(invoice.gst.round()), font, fontB),
+                      _pdfTotalRow(
+                        'GST',
+                        _formatCurrency(invoice.gst.round()),
+                        font,
+                        fontB,
+                      ),
                     if (invoice.discount > 0)
                       _pdfTotalRow(
-                          'Discount',
-                          '- ${_formatCurrency(invoice.discount.round())}',
-                          font,
-                          fontB),
+                        'Discount',
+                        '- ${_formatCurrency(invoice.discount.round())}',
+                        font,
+                        fontB,
+                      ),
                     pw.Divider(color: PdfColors.grey300),
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
-                        pw.Text('Grand Total',
-                            style: pw.TextStyle(font: fontB, fontSize: 12)),
+                        pw.Text(
+                          'Grand Total',
+                          style: pw.TextStyle(font: fontB, fontSize: 12),
+                        ),
                         pw.Text(
                           _formatCurrency(invoice.grandTotal.round()),
                           style: pw.TextStyle(
                             font: fontB,
                             fontSize: 15,
-                            color: const PdfColor.fromInt(0xFF1565C0),
+                            color: const PdfColor.fromInt(0xFFFDB913),
                           ),
                         ),
                       ],
@@ -343,7 +391,9 @@ Shukriya Asian Auto Repair choose karne ke liye! 🙏
                 child: pw.Text(
                   'Payment via ${invoice.paymentMethod.label}',
                   style: const pw.TextStyle(
-                      fontSize: 10, color: PdfColors.grey600),
+                    fontSize: 10,
+                    color: PdfColors.grey600,
+                  ),
                 ),
               ),
             ],
@@ -356,13 +406,18 @@ Shukriya Asian Auto Repair choose karne ke liye! 🙏
                 padding: const pw.EdgeInsets.all(10),
                 decoration: pw.BoxDecoration(
                   color: const PdfColor.fromInt(0xFFFFF8E1),
-                  borderRadius:
-                  const pw.BorderRadius.all(pw.Radius.circular(8)),
+                  borderRadius: const pw.BorderRadius.all(
+                    pw.Radius.circular(8),
+                  ),
                   border: pw.Border.all(
-                      color: const PdfColor.fromInt(0xFFFFCC02), width: 0.5),
+                    color: const PdfColor.fromInt(0xFFFFCC02),
+                    width: 0.5,
+                  ),
                 ),
-                child: pw.Text(invoice.notes,
-                    style: const pw.TextStyle(fontSize: 10)),
+                child: pw.Text(
+                  invoice.notes,
+                  style: const pw.TextStyle(fontSize: 10),
+                ),
               ),
             ],
 
@@ -373,9 +428,11 @@ Shukriya Asian Auto Repair choose karne ke liye! 🙏
             pw.SizedBox(height: 6),
             pw.Center(
               child: pw.Text(
-                'Thank you for choosing Asian Auto Repair!',
+                'Thank you for choosing Asian Fabrication & Engineers!',
                 style: const pw.TextStyle(
-                    fontSize: 10, color: PdfColors.grey600),
+                  fontSize: 10,
+                  color: PdfColors.grey600,
+                ),
               ),
             ),
           ],
@@ -388,8 +445,7 @@ Shukriya Asian Auto Repair choose karne ke liye! 🙏
 
   // ── PDF helpers ────────────────────────────────────────────────────────────
 
-  static pw.Widget _pdfLineItem(
-      InvoiceItem item, pw.Font font, pw.Font fontB) {
+  static pw.Widget _pdfLineItem(InvoiceItem item, pw.Font font, pw.Font fontB) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 6),
       child: pw.Row(
@@ -400,12 +456,18 @@ Shukriya Asian Auto Repair choose karne ke liye! 🙏
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Text(item.itemName,
-                    style: pw.TextStyle(font: fontB, fontSize: 10)),
+                pw.Text(
+                  item.itemName,
+                  style: pw.TextStyle(font: fontB, fontSize: 10),
+                ),
                 if (item.unit.isNotEmpty)
-                  pw.Text(item.unit,
-                      style: const pw.TextStyle(
-                          fontSize: 8, color: PdfColors.grey600)),
+                  pw.Text(
+                    item.unit,
+                    style: const pw.TextStyle(
+                      fontSize: 8,
+                      color: PdfColors.grey600,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -441,16 +503,21 @@ Shukriya Asian Auto Repair choose karne ke liye! 🙏
   }
 
   static pw.Widget _pdfTotalRow(
-      String label, String value, pw.Font font, pw.Font fontB) {
+    String label,
+    String value,
+    pw.Font font,
+    pw.Font fontB,
+  ) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 3),
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
-          pw.Text(label,
-              style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
-          pw.Text(value,
-              style: pw.TextStyle(font: fontB, fontSize: 10)),
+          pw.Text(
+            label,
+            style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+          ),
+          pw.Text(value, style: pw.TextStyle(font: fontB, fontSize: 10)),
         ],
       ),
     );
@@ -458,9 +525,12 @@ Shukriya Asian Auto Repair choose karne ke liye! 🙏
 
   static PdfColor _pdfStatusColor(PaymentStatus s) {
     switch (s) {
-      case PaymentStatus.paid:    return const PdfColor.fromInt(0xFF15803D);
-      case PaymentStatus.partial: return const PdfColor.fromInt(0xFFEA580C);
-      case PaymentStatus.pending: return const PdfColor.fromInt(0xFFDC2626);
+      case PaymentStatus.paid:
+        return const PdfColor.fromInt(0xFF15803D);
+      case PaymentStatus.partial:
+        return const PdfColor.fromInt(0xFFEA580C);
+      case PaymentStatus.pending:
+        return const PdfColor.fromInt(0xFFDC2626);
     }
   }
 

@@ -109,6 +109,11 @@
   "inventoryColMinStock": "न्यूनतम स्टॉक",
   "inventoryColStatus": "स्थिति",
   "inventoryColActions": "कार्रवाई",
+  "inventoryDeletePart": "पुर्जा हटाएं",
+  "inventoryDeleteConfirmTitle": "पुर्जा हटाएं?",
+  "inventoryDeleteConfirmBody": "क्या आप वाकई '{name}' को हटाना चाहते हैं? इस कार्रवाई को पूर्ववत नहीं किया जा सकता।",
+  "inventoryDeleteSuccess": "पुर्जा सफलतापूर्वक हटा दिया गया",
+  "inventoryDeleteError": "पुर्जा हटाने में विफल",
 
   "reportsTitle": "रिपोर्ट",
   "reportsPeriodDaily": "दैनिक",

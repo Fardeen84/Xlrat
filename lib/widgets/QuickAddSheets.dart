@@ -40,8 +40,14 @@ class QuickAddSheets {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Quick Add Customer',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: kForeground)),
+                    Text(
+                      'Quick Add Customer',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: kForeground,
+                      ),
+                    ),
                     IconButton(
                       icon: Icon(Icons.close_rounded, color: kMutedForeground),
                       onPressed: () => Navigator.pop(context),
@@ -56,7 +62,9 @@ class QuickAddSheets {
                     prefixIcon: Icon(Icons.person_outline_rounded, size: 18),
                   ),
                   style: TextStyle(color: kForeground),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter name' : null,
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Please enter name'
+                      : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -67,7 +75,9 @@ class QuickAddSheets {
                   ),
                   keyboardType: TextInputType.phone,
                   style: TextStyle(color: kForeground),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter mobile number' : null,
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Please enter mobile number'
+                      : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -100,7 +110,9 @@ class QuickAddSheets {
                         address: addressCtrl.text.trim(),
                         createdAt: DateTime.now(),
                       );
-                      final saved = await ref.read(customerRepositoryProvider).createCustomer(newCust);
+                      final saved = await ref
+                          .read(customerRepositoryProvider)
+                          .createCustomer(newCust);
                       ref.invalidate(customerListProvider);
                       ref.invalidate(filteredBillingCustomersProvider);
                       onSaved(saved);
@@ -123,7 +135,7 @@ class QuickAddSheets {
   static void showAddVehicle(
     BuildContext context,
     WidgetRef ref, {
-    required int customerId,
+    required String customerId,
     required Function(BillingVehicle) onSaved,
   }) {
     final numberCtrl = TextEditingController();
@@ -156,8 +168,14 @@ class QuickAddSheets {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Quick Add Vehicle',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: kForeground)),
+                    Text(
+                      'Quick Add Vehicle',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: kForeground,
+                      ),
+                    ),
                     IconButton(
                       icon: Icon(Icons.close_rounded, color: kMutedForeground),
                       onPressed: () => Navigator.pop(context),
@@ -173,17 +191,24 @@ class QuickAddSheets {
                   ),
                   style: TextStyle(color: kForeground),
                   textCapitalization: TextCapitalization.characters,
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter vehicle number' : null,
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Please enter vehicle number'
+                      : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: brandCtrl,
                   decoration: const InputDecoration(
                     labelText: 'Brand (e.g. Maruti, Honda) *',
-                    prefixIcon: Icon(Icons.directions_car_filled_outlined, size: 18),
+                    prefixIcon: Icon(
+                      Icons.directions_car_filled_outlined,
+                      size: 18,
+                    ),
                   ),
                   style: TextStyle(color: kForeground),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter brand' : null,
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Please enter brand'
+                      : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -193,14 +218,19 @@ class QuickAddSheets {
                     prefixIcon: Icon(Icons.model_training_outlined, size: 18),
                   ),
                   style: TextStyle(color: kForeground),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter model' : null,
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Please enter model'
+                      : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: fuelTypeCtrl,
                   decoration: const InputDecoration(
                     labelText: 'Fuel Type (e.g. Petrol, Diesel, CNG)',
-                    prefixIcon: Icon(Icons.local_gas_station_outlined, size: 18),
+                    prefixIcon: Icon(
+                      Icons.local_gas_station_outlined,
+                      size: 18,
+                    ),
                   ),
                   style: TextStyle(color: kForeground),
                 ),
@@ -236,7 +266,9 @@ class QuickAddSheets {
                         chassisNumber: chassisCtrl.text.trim(),
                         createdAt: DateTime.now(),
                       );
-                      final saved = await ref.read(vehicleRepositoryProvider).createVehicle(newVehicle);
+                      final saved = await ref
+                          .read(vehicleRepositoryProvider)
+                          .createVehicle(newVehicle);
                       ref.invalidate(vehiclesForCustomerProvider(customerId));
                       ref.invalidate(allVehiclesProvider);
                       onSaved(saved);

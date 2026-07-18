@@ -1,9 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError('sharedPreferencesProvider is not overridden');
+});
+
+final envConfigProvider = Provider<Map<String, String>>((ref) {
+  throw UnimplementedError('envConfigProvider is not overridden');
 });
 
 class ProfileState {
@@ -48,12 +53,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     final garageName = prefs.getString(_keyGarageName) ?? '';
     final gstNumber = prefs.getString(_keyGstNumber) ?? '';
     final address = prefs.getString(_keyAddress) ?? '';
-
-    String? garageId = prefs.getString(_keyGarageId);
-    if (garageId == null || garageId.isEmpty) {
-      garageId = const Uuid().v4();
-      prefs.setString(_keyGarageId, garageId);
-    }
+    final garageId = prefs.getString(_keyGarageId) ?? '';
 
     return ProfileState(
       garageName: garageName,
@@ -63,19 +63,70 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     );
   }
 
+  Future<void> _updateFirestoreGarageField(String field, String value) async {
+    if (state.garageId.isNotEmpty) {
+      try {
+        await FirebaseFirestore.instance.collection('garages').doc(state.garageId).set({
+          field: value,
+        }, SetOptions(merge: true));
+      } catch (e) {
+        print('Error updating Firestore garage field: $e');
+      }
+    }
+  }
+
+  void setGarageId(String id) {
+    _prefs.setString(_keyGarageId, id);
+    state = state.copyWith(garageId: id);
+  }
+
+  void updateProfile({
+    required String garageId,
+    required String garageName,
+    required String gstNumber,
+    required String address,
+  }) {
+    _prefs.setString(_keyGarageId, garageId);
+    _prefs.setString(_keyGarageName, garageName);
+    _prefs.setString(_keyGstNumber, gstNumber);
+    _prefs.setString(_keyAddress, address);
+    state = ProfileState(
+      garageId: garageId,
+      garageName: garageName,
+      gstNumber: gstNumber,
+      address: address,
+    );
+  }
+
+  void clearProfile() {
+    _prefs.remove(_keyGarageId);
+    _prefs.remove(_keyGarageName);
+    _prefs.remove(_keyGstNumber);
+    _prefs.remove(_keyAddress);
+    state = const ProfileState(
+      garageId: '',
+      garageName: '',
+      gstNumber: '',
+      address: '',
+    );
+  }
+
   void updateGarageName(String name) {
     _prefs.setString(_keyGarageName, name);
     state = state.copyWith(garageName: name);
+    _updateFirestoreGarageField('name', name);
   }
 
   void updateGstNumber(String gst) {
     _prefs.setString(_keyGstNumber, gst);
     state = state.copyWith(gstNumber: gst);
+    _updateFirestoreGarageField('gstNumber', gst);
   }
 
   void updateAddress(String address) {
     _prefs.setString(_keyAddress, address);
     state = state.copyWith(address: address);
+    _updateFirestoreGarageField('address', address);
   }
 }
 
@@ -83,4 +134,8 @@ final profileProvider = StateNotifierProvider<ProfileNotifier, ProfileState>((re
   final prefs = ref.watch(sharedPreferencesProvider);
   return ProfileNotifier(prefs);
 });
+
+final profileLoadingProvider = StateProvider<bool>((ref) => false);
+
+
 

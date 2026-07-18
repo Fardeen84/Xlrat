@@ -8,6 +8,7 @@ class NewJobFormState {
   final String selectedVehicle;
   final String complaint;
   final String mechanic;
+  final String jobType;
 
   const NewJobFormState({
     this.step = 1,
@@ -16,6 +17,7 @@ class NewJobFormState {
     this.selectedVehicle = '',
     this.complaint = '',
     this.mechanic = '',
+    this.jobType = 'vehicle',
   });
 
   NewJobFormState copyWith({
@@ -25,6 +27,7 @@ class NewJobFormState {
     String? selectedVehicle,
     String? complaint,
     String? mechanic,
+    String? jobType,
   }) {
     return NewJobFormState(
       step: step ?? this.step,
@@ -33,6 +36,7 @@ class NewJobFormState {
       selectedVehicle: selectedVehicle ?? this.selectedVehicle,
       complaint: complaint ?? this.complaint,
       mechanic: mechanic ?? this.mechanic,
+      jobType: jobType ?? this.jobType,
     );
   }
 }

@@ -1,240 +1,331 @@
-
-import '../local_database/billing_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import '../models/billing_model/BillingCustomer.dart';
 import '../models/billing_model/BillingVehicle.dart';
 import '../models/billing_model/InvoiceItem.dart';
 import '../models/billing_model/invoice.dart';
 
-/// Central repository for invoice operations.
-/// Handles atomic invoice + items saves, eager-loading of related entities,
-/// search, and deletion.
+/// Direct Firestore repository for billing invoices.
 class BillingRepository {
-  BillingRepository(this._db, {this.onInvoiceCreated});
+  BillingRepository({required this.garageId, this.onInvoiceCreated, this.onWriteError, FirebaseFirestore? firestore})
+      : _firestore = firestore ?? FirebaseFirestore.instance;
 
-  final BillingDatabase _db;
+  final String garageId;
   final Function(Invoice)? onInvoiceCreated;
+  final Function(String)? onWriteError;
+  final FirebaseFirestore _firestore;
 
-  static const _invoicesTable = 'billing_invoices';
-  static const _itemsTable = 'billing_invoice_items';
-  static const _customersTable = 'billing_customers';
-  static const _vehiclesTable = 'billing_vehicles';
+  CollectionReference<Map<String, dynamic>> get _collection =>
+      _firestore.collection('garages').doc(garageId).collection('invoices');
+
 
   // ─── Create ───────────────────────────────────────────────────────────────
 
-  /// Saves the invoice header and all its items in a single transaction.
-  /// Returns the saved [Invoice] with id and item ids populated.
   Future<Invoice> createInvoice(Invoice invoice, List<InvoiceItem> items) async {
-    final db = await _db.database;
-    final invoiceNumber = invoice.invoiceNumber.isEmpty
-        ? await _db.nextInvoiceNumber()
-        : invoice.invoiceNumber;
+    try {
+      final docRef = _collection.doc();
+      final counterRef = _firestore
+          .collection('garages')
+          .doc(garageId)
+          .collection('counters')
+          .doc('invoices');
 
-    final savedInvoice = await db.transaction((txn) async {
-      final invoiceMap = invoice
-          .copyWith(invoiceNumber: invoiceNumber)
-          .toMap()
-        ..remove('id');
+      final dateStr = DateFormat('yyyy-MM-dd').format(invoice.invoiceDate);
+      final statsRef = _firestore
+          .collection('garages')
+          .doc(garageId)
+          .collection('stats')
+          .doc(dateStr);
 
-      final invoiceId = await txn.insert(_invoicesTable, invoiceMap);
+      final toSave = await _firestore.runTransaction<Invoice>((transaction) async {
+        // 1. Execute all reads first
+        final counterSnap = await transaction.get(counterRef);
+        final statsSnap = await transaction.get(statsRef);
 
-      final savedItems = <InvoiceItem>[];
-      for (final item in items) {
-        final itemMap = item
-            .copyWith(invoiceId: invoiceId)
-            .toMap()
-          ..remove('id');
-        final itemId = await txn.insert(_itemsTable, itemMap);
-        savedItems.add(item.copyWith(id: itemId, invoiceId: invoiceId));
-      }
+        // 2. Generate next sequential invoice number
+        int nextSeq = 1;
+        if (counterSnap.exists) {
+          final currentSeq = counterSnap.data()?['last_number'] as int?;
+          if (currentSeq != null) {
+            nextSeq = currentSeq + 1;
+          }
+        }
 
-      return invoice.copyWith(
-        id: invoiceId,
-        invoiceNumber: invoiceNumber,
-        items: savedItems,
-      );
-    });
+        final nextNumber = 'INV-${nextSeq.toString().padLeft(6, '0')}';
 
-    onInvoiceCreated?.call(savedInvoice);
+        // 3. Setup the invoice
+        final populatedItems = items.map((item) => item.copyWith(invoiceId: docRef.id)).toList();
+        final updatedInvoice = invoice.copyWith(
+          id: docRef.id,
+          invoiceNumber: nextNumber,
+          items: populatedItems,
+        );
 
-    return savedInvoice;
+        // 4. Perform writes
+        transaction.set(counterRef, {
+          'last_number': nextSeq,
+        });
+        transaction.set(docRef, updatedInvoice.toMap());
+
+        // 5. Update Daily Stats rollup
+        if (!statsSnap.exists) {
+          final Map<String, dynamic> initialCustomerTotals = {
+            updatedInvoice.customerId: {
+              'revenue': updatedInvoice.grandTotal,
+              'count': 1,
+            }
+          };
+          final Map<String, dynamic> initialPartTotals = {};
+          for (final item in updatedInvoice.items) {
+            initialPartTotals[item.itemName] = {
+              'revenue': item.total,
+              'quantity': item.quantity,
+            };
+          }
+
+          transaction.set(statsRef, {
+            'totalRevenue': updatedInvoice.grandTotal,
+            'invoiceCount': 1,
+            'jobCount': 0,
+            'pendingJobCount': 0,
+            'inProgressJobCount': 0,
+            'completedJobCount': 0,
+            'customerTotals': initialCustomerTotals,
+            'partTotals': initialPartTotals,
+          });
+        } else {
+          final Map<String, dynamic> statsUpdates = {
+            'totalRevenue': FieldValue.increment(updatedInvoice.grandTotal),
+            'invoiceCount': FieldValue.increment(1),
+          };
+          statsUpdates['customerTotals.${updatedInvoice.customerId}.revenue'] =
+              FieldValue.increment(updatedInvoice.grandTotal);
+          statsUpdates['customerTotals.${updatedInvoice.customerId}.count'] =
+              FieldValue.increment(1);
+
+          for (final item in updatedInvoice.items) {
+            statsUpdates['partTotals.${item.itemName}.revenue'] = FieldValue.increment(item.total);
+            statsUpdates['partTotals.${item.itemName}.quantity'] = FieldValue.increment(item.quantity);
+          }
+          transaction.update(statsRef, statsUpdates);
+        }
+
+        return updatedInvoice;
+      });
+
+      onInvoiceCreated?.call(toSave);
+      return toSave;
+    } catch (e) {
+      onWriteError?.call(e.toString());
+      rethrow;
+    }
   }
 
   // ─── Read ─────────────────────────────────────────────────────────────────
 
-  /// Fetches a single invoice with customer, vehicle, and items joined.
-  Future<Invoice?> getInvoice(int id) async {
-    final db = await _db.database;
-    final rows =
-    await db.query(_invoicesTable, where: 'id = ?', whereArgs: [id]);
-    if (rows.isEmpty) return null;
-    return _hydrateInvoice(rows.first);
+  Future<Invoice?> getInvoice(String id) async {
+    final doc = await _collection.doc(id).get();
+    if (!doc.exists) return null;
+    return _hydrateInvoice(doc.data()!..['id'] = doc.id);
   }
 
-  /// Returns all invoices ordered newest-first, with items joined.
+  Stream<List<Invoice>> streamInvoices({int limit = 50}) {
+    return _collection
+        .orderBy('created_at', descending: true)
+        .limit(limit)
+        .snapshots()
+        .asyncMap((snap) async {
+      final list = await Future.wait(snap.docs.map((doc) => _hydrateInvoice(doc.data()..['id'] = doc.id)));
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
+  }
+
   Future<List<Invoice>> getInvoices({int? limit}) async {
-    final db = await _db.database;
-    final rows = await db.query(
-      _invoicesTable,
-      orderBy: 'created_at DESC',
-      limit: limit,
-    );
-    return Future.wait(rows.map(_hydrateInvoice));
+    Query<Map<String, dynamic>> query = _collection.orderBy('created_at', descending: true);
+    if (limit != null) {
+      query = query.limit(limit);
+    }
+    final snap = await query.get();
+    final list = await Future.wait(snap.docs.map((doc) => _hydrateInvoice(doc.data()..['id'] = doc.id)));
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
   }
 
-  /// Returns all invoices for a customer, ordered newest-first, with items joined.
-  Future<List<Invoice>> getInvoicesByCustomer(int customerId) async {
-    final db = await _db.database;
-    final rows = await db.query(
-      _invoicesTable,
-      where: 'customer_id = ?',
-      whereArgs: [customerId],
-      orderBy: 'invoice_date DESC',
-    );
-    return Future.wait(rows.map(_hydrateInvoice));
+  Future<({List<Invoice> items, DocumentSnapshot? lastDoc, bool hasMore})> getInvoicesPaginated({
+    required int limit,
+    DocumentSnapshot? startAfter,
+    String? query,
+    PaymentStatus? status,
+  }) async {
+    Query<Map<String, dynamic>> queryBuilder = _collection.orderBy('created_at', descending: true);
+    
+    if (status != null) {
+      queryBuilder = queryBuilder.where('payment_status', isEqualTo: status.name);
+    }
+    
+    if (startAfter != null) {
+      queryBuilder = queryBuilder.startAfterDocument(startAfter);
+    }
+    
+    final snap = await queryBuilder.limit(limit + 1).get();
+    final hasMore = snap.docs.length > limit;
+    final docs = hasMore ? snap.docs.sublist(0, limit) : snap.docs;
+    
+    final items = await Future.wait(docs.map((doc) => _hydrateInvoice(doc.data()..['id'] = doc.id)));
+    final lastDoc = docs.isNotEmpty ? docs.last : null;
+    
+    items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    
+    var filtered = items;
+    if (query != null && query.trim().isNotEmpty) {
+      final q = query.trim().toLowerCase();
+      filtered = items.where((inv) =>
+          inv.invoiceNumber.toLowerCase().contains(q) ||
+          (inv.customer?.name.toLowerCase().contains(q) ?? false) ||
+          (inv.customer?.mobile.contains(q) ?? false) ||
+          (inv.vehicle?.vehicleNumber.toLowerCase().contains(q) ?? false)
+      ).toList();
+    }
+    
+    return (items: filtered, lastDoc: lastDoc, hasMore: hasMore);
   }
 
-  /// Full-text search across invoice number, customer name, vehicle number.
+  Future<List<Invoice>> getInvoicesByCustomer(String customerId) async {
+    final snap = await _collection.where('customer_id', isEqualTo: customerId).get();
+    final list = await Future.wait(snap.docs.map((doc) => _hydrateInvoice(doc.data()..['id'] = doc.id)));
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
+  }
+
   Future<List<Invoice>> searchInvoices(String query) async {
-    if (query.trim().isEmpty) return getInvoices();
-    final db = await _db.database;
-    final q = '%${query.trim()}%';
-
-    // Join customers to allow search on name
-    final rows = await db.rawQuery('''
-      SELECT i.*
-      FROM $_invoicesTable i
-      LEFT JOIN $_customersTable c ON c.id = i.customer_id
-      LEFT JOIN $_vehiclesTable  v ON v.id = i.vehicle_id
-      WHERE i.invoice_number LIKE ?
-         OR c.name           LIKE ?
-         OR c.mobile         LIKE ?
-         OR v.vehicle_number LIKE ?
-      ORDER BY i.created_at DESC
-    ''', [q, q, q, q]);
-
-    return Future.wait(rows.map(_hydrateInvoice));
+    final list = await getInvoices();
+    if (query.trim().isEmpty) return list;
+    final q = query.trim().toLowerCase();
+    return list.where((inv) =>
+        inv.invoiceNumber.toLowerCase().contains(q) ||
+        (inv.customer?.name.toLowerCase().contains(q) ?? false) ||
+        (inv.customer?.mobile.contains(q) ?? false) ||
+        (inv.vehicle?.vehicleNumber.toLowerCase().contains(q) ?? false)
+    ).toList();
   }
 
-  /// Returns invoices filtered by [PaymentStatus].
   Future<List<Invoice>> getInvoicesByStatus(PaymentStatus status) async {
-    final db = await _db.database;
-    final rows = await db.query(
-      _invoicesTable,
-      where: 'payment_status = ?',
-      whereArgs: [status.name],
-      orderBy: 'created_at DESC',
-    );
-    return Future.wait(rows.map(_hydrateInvoice));
+    final snap = await _collection
+        .where('payment_status', isEqualTo: status.name)
+        .orderBy('created_at', descending: true)
+        .get();
+    final list = await Future.wait(snap.docs.map((doc) => _hydrateInvoice(doc.data()..['id'] = doc.id)));
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
   }
 
-  /// Today's total sales amount and invoice count.
   Future<({double total, int count})> getTodaySummary() async {
-    final db = await _db.database;
     final today = DateTime.now();
-    final dateStr =
-        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-
-    final rows = await db.rawQuery('''
-      SELECT COUNT(*) as cnt, COALESCE(SUM(grand_total), 0) as total
-      FROM $_invoicesTable
-      WHERE DATE(invoice_date) = ?
-    ''', [dateStr]);
-
-    final row = rows.first;
-    return (
-    total: (row['total'] as num?)?.toDouble() ?? 0,
-    count: (row['cnt'] as int?) ?? 0,
-    );
+    final dateStr = DateFormat('yyyy-MM-dd').format(today);
+    final statsRef = _firestore.collection('garages').doc(garageId).collection('stats').doc(dateStr);
+    
+    final doc = await statsRef.get();
+    if (!doc.exists) {
+      return (total: 0.0, count: 0);
+    }
+    final data = doc.data()!;
+    final total = (data['totalRevenue'] as num?)?.toDouble() ?? 0.0;
+    final count = data['invoiceCount'] as int? ?? 0;
+    return (total: total, count: count);
   }
 
   // ─── Update ───────────────────────────────────────────────────────────────
 
-  /// Replaces invoice header and all items atomically.
   Future<Invoice> updateInvoice(Invoice invoice, List<InvoiceItem> items) async {
     assert(invoice.id != null, 'Cannot update an invoice without an id');
-    final db = await _db.database;
-
-    return db.transaction((txn) async {
-      await txn.update(
-        _invoicesTable,
-        invoice.toMap(),
-        where: 'id = ?',
-        whereArgs: [invoice.id],
-      );
-
-      // Replace all existing items
-      await txn.delete(
-        _itemsTable,
-        where: 'invoice_id = ?',
-        whereArgs: [invoice.id],
-      );
-
-      final savedItems = <InvoiceItem>[];
-      for (final item in items) {
-        final itemMap = item
-            .copyWith(invoiceId: invoice.id)
-            .toMap()
-          ..remove('id');
-        final itemId = await txn.insert(_itemsTable, itemMap);
-        savedItems.add(item.copyWith(id: itemId, invoiceId: invoice.id));
-      }
-
-      return invoice.copyWith(items: savedItems);
-    });
+    try {
+      final populatedItems = items.map((item) => item.copyWith(invoiceId: invoice.id)).toList();
+      final toSave = invoice.copyWith(items: populatedItems);
+      await _collection.doc(invoice.id).set(toSave.toMap());
+      return toSave;
+    } catch (e) {
+      onWriteError?.call(e.toString());
+      rethrow;
+    }
   }
 
   // ─── Delete ───────────────────────────────────────────────────────────────
 
-  /// Deletes the invoice; items are cascade-deleted by the schema.
-  Future<void> deleteInvoice(int id) async {
-    final db = await _db.database;
-    await db.delete(_invoicesTable, where: 'id = ?', whereArgs: [id]);
+  Future<void> deleteInvoice(String id) async {
+    try {
+      await _collection.doc(id).delete();
+    } catch (e) {
+      onWriteError?.call(e.toString());
+      rethrow;
+    }
   }
 
-  // ─── Private helpers ──────────────────────────────────────────────────────
+  // ─── Private Helpers ──────────────────────────────────────────────────────
 
-  /// Eager-loads customer, vehicle, and items for a raw invoice row.
-  Future<Invoice> _hydrateInvoice(Map<String, dynamic> row) async {
-    final db = await _db.database;
-    final invoice = Invoice.fromMap(row);
-
-    // Customer
+  Future<Invoice> _hydrateInvoice(Map<String, dynamic> data) async {
+    final invoice = Invoice.fromMap(data);
+    
+    // Fetch Customer
     BillingCustomer? customer;
-    final custRows = await db.query(
-      _customersTable,
-      where: 'id = ?',
-      whereArgs: [invoice.customerId],
-    );
-    if (custRows.isNotEmpty) {
-      customer = BillingCustomer.fromMap(custRows.first);
-    }
-
-    // Vehicle (optional)
-    BillingVehicle? vehicle;
-    if (invoice.vehicleId != null) {
-      final vehRows = await db.query(
-        _vehiclesTable,
-        where: 'id = ?',
-        whereArgs: [invoice.vehicleId],
-      );
-      if (vehRows.isNotEmpty) {
-        vehicle = BillingVehicle.fromMap(vehRows.first);
+    final customerId = invoice.customerId;
+    if (customerId.isNotEmpty) {
+      final custDoc = await _firestore
+          .collection('garages')
+          .doc(garageId)
+          .collection('customers')
+          .doc(customerId)
+          .get();
+      if (custDoc.exists) {
+        customer = BillingCustomer.fromMap(custDoc.data()!..['id'] = custDoc.id);
       }
     }
 
-    // Items
-    final itemRows = await db.query(
-      _itemsTable,
-      where: 'invoice_id = ?',
-      whereArgs: [invoice.id],
-      orderBy: 'id ASC',
-    );
-    final items = itemRows.map(InvoiceItem.fromMap).toList();
+    // Fetch Vehicle
+    BillingVehicle? vehicle;
+    final vehicleId = invoice.vehicleId;
+    if (vehicleId != null && vehicleId.isNotEmpty) {
+      final vehDoc = await _firestore
+          .collection('garages')
+          .doc(garageId)
+          .collection('vehicles')
+          .doc(vehicleId)
+          .get();
+      if (vehDoc.exists) {
+        vehicle = BillingVehicle.fromMap(vehDoc.data()!..['id'] = vehDoc.id);
+      }
+    }
 
-    return invoice.copyWith(
-      customer: customer,
-      vehicle: vehicle,
-      items: items,
-    );
+    return invoice.copyWith(customer: customer, vehicle: vehicle);
+  }
+
+  // ─── Sequential Numbering Generator ────────────────────────────────────────
+
+  Future<String> generateNextInvoiceNumber() async {
+    final counterRef = _firestore
+        .collection('garages')
+        .doc(garageId)
+        .collection('counters')
+        .doc('invoices');
+
+    try {
+      return await _firestore.runTransaction<String>((transaction) async {
+        final snap = await transaction.get(counterRef);
+        int nextSeq = 1;
+        if (snap.exists) {
+          final currentSeq = snap.data()?['last_number'] as int?;
+          if (currentSeq != null) {
+            nextSeq = currentSeq + 1;
+          }
+        }
+        transaction.set(counterRef, {
+          'last_number': nextSeq,
+        });
+        return 'INV-${nextSeq.toString().padLeft(6, '0')}';
+      });
+    } catch (e) {
+      onWriteError?.call(e.toString());
+      rethrow;
+    }
   }
 }

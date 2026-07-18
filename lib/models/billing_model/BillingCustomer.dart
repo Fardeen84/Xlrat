@@ -1,7 +1,7 @@
 
 
 class BillingCustomer {
-  final int? id;
+  final String? id;
   final String name;
   final String mobile;
   final String email;
@@ -31,7 +31,7 @@ class BillingCustomer {
 
   // ── copyWith ───────────────────────────────────────────────────────────────
   BillingCustomer copyWith({
-    int? id,
+    String? id,
     String? name,
     String? mobile,
     String? email,
@@ -58,7 +58,7 @@ class BillingCustomer {
   };
 
   factory BillingCustomer.fromMap(Map<String, dynamic> map) => BillingCustomer(
-    id: map['id'] as int?,
+    id: map['id']?.toString(),
     name: map['name'] as String? ?? '',
     mobile: map['mobile'] as String? ?? '',
     email: map['email'] as String? ?? '',

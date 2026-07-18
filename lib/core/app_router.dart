@@ -1,13 +1,18 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../screen/SplashScreen.dart';
-import '../screen/auth/LoginScreen.dart';
+import '../screen/auth/SetupGarageScreen.dart';
 import '../screen/navigation_screen/billing/BillingScreen.dart';
 import '../screen/navigation_screen/billing/InvoiceHistoryScreen.dart';
 import '../screen/navigation_screen/billing/InvoiceScreen.dart';
 import '../screen/navigation_screen/customers/CustomersScreen.dart';
 import '../screen/navigation_screen/DashboardScreen.dart';
 import '../screen/navigation_screen/inventory/InventoryScreen.dart';
+import '../screen/navigation_screen/secondhand/SecondHandInventoryScreen.dart';
 import '../screen/navigation_screen/job/JobsScreen.dart';
 import '../screen/report/ReportsScreen.dart';
 import '../screen/navigation_screen/customers/CustomerDetailScreen.dart';
@@ -15,28 +20,49 @@ import '../screen/navigation_screen/job/JobDetailScreen.dart';
 import '../screen/navigation_screen/job/NewJobScreen.dart';
 import '../screen/navigation_screen/NotificationsScreen.dart';
 import '../screen/navigation_screen/ProfileScreen.dart';
+import '../screen/navigation_screen/mechanics/MechanicsScreen.dart';
+import '../providers/profile_provider.dart';
 import 'MainShell.dart';
-import 'auth_state.dart';
 
-final appRouter = GoRouter(
-  initialLocation: '/dashboard',
-  redirect: (context, state) {
-    final isLoggedIn = AuthState.isLoggedIn;
-    final isGoingToLogin = state.matchedLocation == '/login';
-    final isGoingToSplash = state.matchedLocation == '/';
+class GoRouterRefreshStream extends ChangeNotifier {
+  GoRouterRefreshStream(Ref ref) {
+    ref.listen(profileProvider, (previous, next) {
+      notifyListeners();
+    });
+  }
+}
 
-    if (!isLoggedIn && !isGoingToLogin && !isGoingToSplash) {
-      return '/login';
-    }
-    if (isLoggedIn && isGoingToLogin) {
-      return '/dashboard';
-    }
-    return null;
-  },
-  routes: [
-    // ── Auth / Splash (no bottom nav) ──────────────────────────────────────
-    GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
-    GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+final appRouterProvider = Provider<GoRouter>((ref) {
+  return GoRouter(
+    initialLocation: '/',
+    refreshListenable: GoRouterRefreshStream(ref),
+    redirect: (context, state) {
+      final profileLoading = ref.watch(profileLoadingProvider);
+      if (profileLoading) {
+        return null;
+      }
+
+      final profile = ref.watch(profileProvider);
+      final hasGarageId = profile.garageId.isNotEmpty;
+      final isGoingToSplash = state.matchedLocation == '/';
+      final isGoingToSetup = state.matchedLocation == '/setup-garage';
+
+      if (!hasGarageId) {
+        if (!isGoingToSetup) {
+          return '/setup-garage';
+        }
+      } else {
+        if (isGoingToSplash || isGoingToSetup) {
+          return '/dashboard';
+        }
+      }
+      return null;
+    },
+    routes: [
+      // ── Auth / Splash (no bottom nav) ──────────────────────────────────────
+      GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
+      GoRoute(path: '/setup-garage', builder: (context, state) => const SetupGarageScreen()),
+
 
     // ── Main Shell ───────────────────────────────────────────────────────
     ShellRoute(
@@ -56,6 +82,10 @@ final appRouter = GoRouter(
           builder: (context, state) => const InventoryScreen(),
         ),
         GoRoute(
+          path: '/secondhand-inventory',
+          builder: (context, state) => const SecondHandInventoryScreen(),
+        ),
+        GoRoute(
           path: '/reports',
           builder: (context, state) => const ReportsScreen(),
         ),
@@ -64,16 +94,20 @@ final appRouter = GoRouter(
           builder: (context, state) => const ProfileScreen(),
         ),
         GoRoute(
+          path: '/mechanics',
+          builder: (context, state) => const MechanicsScreen(),
+        ),
+        GoRoute(
           path: '/customer-detail/:id',
           builder: (context, state) {
-            final customerId = int.parse(state.pathParameters['id']!);
+            final customerId = state.pathParameters['id']!;
             return CustomerDetailScreen(customerId: customerId);
           },
         ),
         GoRoute(
           path: '/job-detail/:id',
           builder: (context, state) {
-            final jobId = int.parse(state.pathParameters['id']!);
+            final jobId = state.pathParameters['id']!;
             return JobDetailScreen(jobId: jobId);
           },
         ),
@@ -92,7 +126,7 @@ final appRouter = GoRouter(
         GoRoute(
           path: '/invoice/:id',
           builder: (context, state) {
-            final invoiceId = int.parse(state.pathParameters['id']!);
+            final invoiceId = state.pathParameters['id']!;
             return InvoiceScreen(invoiceId: invoiceId);
           },
         ),
@@ -104,3 +138,4 @@ final appRouter = GoRouter(
     ),
   ],
 );
+});

@@ -1,35 +1,46 @@
+import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:http/http.dart' as http;
 
-import 'package:flutter/widgets.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+class ConnectivityService {
+  final Connectivity _connectivity = Connectivity();
 
-import '../Service/CloudSyncService.dart';
-import '../core/FirestoreRestService.dart';
-import '../local_database/billing_database.dart';
-import 'profile_provider.dart';
+  Stream<bool> get onConnectivityChanged {
+    return _connectivity.onConnectivityChanged.asyncMap((event) async {
+      bool hasConnection = false;
+      if (event is List<ConnectivityResult>) {
+        hasConnection = event.any(
+          (result) => result != ConnectivityResult.none,
+        );
+      } else if (event is ConnectivityResult) {
+        hasConnection = event != ConnectivityResult.none;
+      }
 
-
-final firestoreServiceProvider = Provider<FirestoreRestService>((ref) {
-  const apiKey = String.fromEnvironment('FIREBASE_API_KEY', defaultValue: '');
-  const projectId = String.fromEnvironment('FIREBASE_PROJECT_ID', defaultValue: 'xlrat-garage');
-
-  if (apiKey.isEmpty) {
-    final isTesting = WidgetsBinding.instance?.runtimeType.toString().contains('Test') ?? false;
-    if (!isTesting) {
-      throw StateError(
-        'FIREBASE_API_KEY is not set. Run with --dart-define=FIREBASE_API_KEY=... or --dart-define-from-file=env.json'
-      );
-    }
+      if (!hasConnection) return false;
+      return await isOnline();
+    }).asBroadcastStream();
   }
 
-  return FirestoreRestService(
-    projectId: projectId,
-    apiKey: apiKey,
-  );
-});
+  Future<bool> isOnline() async {
+    // Check Firestore's own domain first — that's what actually matters
+    // for sync. Fall back to a couple of other endpoints so a single
+    // blocked/flaky domain doesn't cause a false "Offline" reading.
+    if (await _pingUrl('https://firestore.googleapis.com')) return true;
+    if (await _pingUrl('https://www.google.com')) return true;
+    if (await _pingUrl('https://clients3.google.com/generate_204')) return true;
+    return false;
+  }
 
-
-final cloudSyncServiceProvider = Provider<CloudSyncService>((ref) {
-  final firestore = ref.watch(firestoreServiceProvider);
-  final garageId = ref.watch(profileProvider).garageId;
-  return CloudSyncService(BillingDatabase.instance, firestore, garageId);
-});
+  Future<bool> _pingUrl(String url) async {
+    try {
+      final response = await http
+          .head(Uri.parse(url))
+          .timeout(const Duration(seconds: 5));
+      // Any HTTP response (even 404/405) proves DNS + network path work —
+      // a genuinely offline device would time out or throw, not respond.
+      return response.statusCode >= 200 && response.statusCode < 500;
+    } catch (_) {
+      return false;
+    }
+  }
+}

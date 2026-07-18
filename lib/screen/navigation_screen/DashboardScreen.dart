@@ -35,13 +35,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      try {
-        ref.read(cloudSyncServiceProvider).pullRemoteInvoices();
-      } catch (e) {
-        print('Failed to trigger pullRemoteInvoices: $e');
-      }
-    });
   }
 
   @override
@@ -63,7 +56,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final customersAsync = ref.watch(customerListProvider);
     final totalCustomers = customersAsync.value?.length ?? 0;
     final profileState = ref.watch(profileProvider);
-    final displayName = profileState.garageName.isNotEmpty ? profileState.garageName : 'My Garage';
+    final displayName = profileState.garageName.isNotEmpty
+        ? profileState.garageName
+        : 'My Garage';
 
     final searchQuery = ref.watch(dashboardSearchQueryProvider);
     final searchResultsAsync = ref.watch(dashboardSearchResultsProvider);
@@ -131,8 +126,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       orElse: () => '₹0',
     );
     final todaySalesSub = todaySummaryAsync.maybeWhen(
-      data: (summary) => AppLocalizations.of(context)!.dashboardStatBillsGenerated(summary.count),
-      orElse: () => AppLocalizations.of(context)!.dashboardStatBillsGenerated(0),
+      data: (summary) => AppLocalizations.of(
+        context,
+      )!.dashboardStatBillsGenerated(summary.count),
+      orElse: () =>
+          AppLocalizations.of(context)!.dashboardStatBillsGenerated(0),
     );
     final pendingCount = jobs.where((j) => j.status == 'pending').length;
     final inProgressCount = jobs.where((j) => j.status == 'in-progress').length;
@@ -154,7 +152,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     Expanded(
                       child: _buildStatCard(
                         _StatCard(
-                          label: AppLocalizations.of(context)!.dashboardStatTodaysSales,
+                          label: AppLocalizations.of(
+                            context,
+                          )!.dashboardStatTodaysSales,
                           value: todaySalesStr,
                           sub: todaySalesSub,
                           icon: Icons.currency_rupee_rounded,
@@ -167,9 +167,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     Expanded(
                       child: _buildStatCard(
                         _StatCard(
-                          label: AppLocalizations.of(context)!.dashboardStatPendingJobs,
+                          label: AppLocalizations.of(
+                            context,
+                          )!.dashboardStatPendingJobs,
                           value: '$pendingCount',
-                          sub: AppLocalizations.of(context)!.dashboardStatInProgressCount(inProgressCount),
+                          sub: AppLocalizations.of(
+                            context,
+                          )!.dashboardStatInProgressCount(inProgressCount),
                           icon: Icons.access_time_rounded,
                           color: Colors.orange,
                           iconBg: const Color(0xFFFFF3E0),
@@ -180,10 +184,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     Expanded(
                       child: _buildStatCard(
                         _StatCard(
-                          label: AppLocalizations.of(context)!.dashboardStatCompletedJobs,
+                          label: AppLocalizations.of(
+                            context,
+                          )!.dashboardStatCompletedJobs,
                           value:
                               '${jobs.where((j) => j.status == 'completed').length}',
-                          sub: AppLocalizations.of(context)!.dashboardStatCompletedToday,
+                          sub: AppLocalizations.of(
+                            context,
+                          )!.dashboardStatCompletedToday,
                           icon: Icons.check_circle_rounded,
                           color: Colors.green,
                           iconBg: const Color(0xFFE8F5E9),
@@ -194,9 +202,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     Expanded(
                       child: _buildStatCard(
                         _StatCard(
-                          label: AppLocalizations.of(context)!.dashboardStatTotalCustomers,
+                          label: AppLocalizations.of(
+                            context,
+                          )!.dashboardStatTotalCustomers,
                           value: '$totalCustomers',
-                          sub: AppLocalizations.of(context)!.dashboardStatRegistered,
+                          sub: AppLocalizations.of(
+                            context,
+                          )!.dashboardStatRegistered,
                           icon: Icons.people_rounded,
                           color: Colors.blue,
                           iconBg: const Color(0xFFE3F2FD),
@@ -220,7 +232,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Text(
-                          AppLocalizations.of(context)!.dashboardSectionActiveJobs,
+                          AppLocalizations.of(
+                            context,
+                          )!.dashboardSectionActiveJobs,
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
@@ -231,7 +245,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       if (activeJobs.isEmpty)
                         Padding(
                           padding: const EdgeInsets.all(24.0),
-                          child: Center(child: Text(AppLocalizations.of(context)!.dashboardNoActiveJobs)),
+                          child: Center(
+                            child: Text(
+                              AppLocalizations.of(
+                                context,
+                              )!.dashboardNoActiveJobs,
+                            ),
+                          ),
                         )
                       else
                         SizedBox(
@@ -256,7 +276,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                     ),
                                   ),
                                   DataCell(
-                                    Text('${job.vehicle} (${job.brand})'),
+                                    Text(
+                                      job.jobType == 'item'
+                                          ? (job.itemDescription.isNotEmpty
+                                              ? '${job.itemName} (${job.itemDescription})'
+                                              : job.itemName)
+                                          : '${job.vehicle} (${job.brand})',
+                                    ),
                                   ),
                                   DataCell(StatusBadge(status: job.status)),
                                   DataCell(Text(formatCurrency(job.amount))),
@@ -374,7 +400,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       gradient: const LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [Color(0xFF1565C0), Color(0xFF0D47A1)],
+                        colors: [Color(0xFFFDB913), Color(0xFFFDB918)],
                       ),
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
@@ -484,7 +510,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            AppLocalizations.of(context)!.dashboardSectionLowStockAlert,
+                            AppLocalizations.of(
+                              context,
+                            )!.dashboardSectionLowStockAlert,
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
@@ -649,8 +677,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       orElse: () => '₹0',
     );
     final todaySalesSub = todaySummaryAsync.maybeWhen(
-      data: (summary) => AppLocalizations.of(context)!.dashboardStatBillsGenerated(summary.count),
-      orElse: () => AppLocalizations.of(context)!.dashboardStatBillsGenerated(0),
+      data: (summary) => AppLocalizations.of(
+        context,
+      )!.dashboardStatBillsGenerated(summary.count),
+      orElse: () =>
+          AppLocalizations.of(context)!.dashboardStatBillsGenerated(0),
     );
     final pendingCount = jobs.where((j) => j.status == 'pending').length;
     final inProgressCount = jobs.where((j) => j.status == 'in-progress').length;
@@ -667,7 +698,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       _StatCard(
         label: AppLocalizations.of(context)!.dashboardStatPendingJobs,
         value: '$pendingCount',
-        sub: AppLocalizations.of(context)!.dashboardStatInProgressCount(inProgressCount),
+        sub: AppLocalizations.of(
+          context,
+        )!.dashboardStatInProgressCount(inProgressCount),
         icon: Icons.access_time_rounded,
         color: Colors.orange,
         iconBg: const Color(0xFFFFF3E0),
@@ -699,7 +732,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFF1565C0), Color(0xFF0D47A1)],
+                colors: [Color(0xFFFDB913), Color(0xFFFDB918)],
               ),
             ),
             padding: const EdgeInsets.fromLTRB(16, 52, 16, 20),
@@ -714,7 +747,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         Text(
                           _greeting(),
                           style: TextStyle(
-                            color: Colors.blue[200],
+                            color: Colors.yellow[200],
                             fontSize: 13,
                           ),
                         ),
@@ -803,13 +836,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           controller: _searchCtrl,
                           onChanged: (val) {
                             setState(() {});
-                            if (_debounce?.isActive ?? false) _debounce!.cancel();
-                            _debounce = Timer(const Duration(milliseconds: 300), () {
-                              ref.read(dashboardSearchQueryProvider.notifier).state = val;
-                            });
+                            if (_debounce?.isActive ?? false)
+                              _debounce!.cancel();
+                            _debounce = Timer(
+                              const Duration(milliseconds: 300),
+                              () {
+                                ref
+                                        .read(
+                                          dashboardSearchQueryProvider.notifier,
+                                        )
+                                        .state =
+                                    val;
+                              },
+                            );
                           },
                           decoration: InputDecoration(
-                            hintText: AppLocalizations.of(context)!.dashboardSearchHint,
+                            hintText: AppLocalizations.of(
+                              context,
+                            )!.dashboardSearchHint,
                             hintStyle: TextStyle(
                               color: kMutedForeground,
                               fontSize: 14,
@@ -821,10 +865,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             ),
                             suffixIcon: _searchCtrl.text.isNotEmpty
                                 ? IconButton(
-                                    icon: Icon(Icons.clear_rounded, size: 18, color: kMutedForeground),
+                                    icon: Icon(
+                                      Icons.clear_rounded,
+                                      size: 18,
+                                      color: kMutedForeground,
+                                    ),
                                     onPressed: () {
                                       _searchCtrl.clear();
-                                      ref.read(dashboardSearchQueryProvider.notifier).state = '';
+                                      ref
+                                              .read(
+                                                dashboardSearchQueryProvider
+                                                    .notifier,
+                                              )
+                                              .state =
+                                          '';
                                       setState(() {});
                                     },
                                   )
@@ -860,7 +914,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                       error: (err, stack) => Padding(
                         padding: const EdgeInsets.all(16.0),
-                        child: Text('Error: $err', style: const TextStyle(color: kRed)),
+                        child: Text(
+                          'Error: $err',
+                          style: const TextStyle(color: kRed),
+                        ),
                       ),
                       data: (results) {
                         if (results.isEmpty) {
@@ -869,7 +926,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             child: Center(
                               child: Text(
                                 'No matching invoices found',
-                                style: TextStyle(color: kMutedForeground, fontSize: 13),
+                                style: TextStyle(
+                                  color: kMutedForeground,
+                                  fontSize: 13,
+                                ),
                               ),
                             ),
                           );
@@ -878,7 +938,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           shrinkWrap: true,
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           itemCount: results.length,
-                          separatorBuilder: (_, __) => Divider(height: 1, color: kBorder),
+                          separatorBuilder: (_, __) =>
+                              Divider(height: 1, color: kBorder),
                           itemBuilder: (context, index) {
                             final invoice = results[index];
                             return ListTile(
@@ -889,15 +950,26 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                   color: kMuted,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: const Icon(Icons.receipt_long_rounded, color: kPrimary, size: 18),
+                                child: const Icon(
+                                  Icons.receipt_long_rounded,
+                                  color: kPrimary,
+                                  size: 18,
+                                ),
                               ),
                               title: Text(
                                 invoice.invoiceNumber,
-                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: kForeground),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: kForeground,
+                                ),
                               ),
                               subtitle: Text(
                                 '${invoice.customer?.name ?? 'Unknown Customer'} • ${invoice.vehicle?.vehicleNumber ?? 'No Vehicle'}',
-                                style: TextStyle(fontSize: 11, color: kMutedForeground),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: kMutedForeground,
+                                ),
                               ),
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -907,8 +979,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       Text(
-                                        formatCurrency(invoice.grandTotal.round()),
-                                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kForeground),
+                                        formatCurrency(
+                                          invoice.grandTotal.round(),
+                                        ),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: kForeground,
+                                        ),
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
@@ -916,16 +994,26 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                         style: TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w600,
-                                          color: invoice.paymentStatus == PaymentStatus.paid ? kGreen : kOrange,
+                                          color:
+                                              invoice.paymentStatus ==
+                                                  PaymentStatus.paid
+                                              ? kGreen
+                                              : kOrange,
                                         ),
                                       ),
                                     ],
                                   ),
                                   const SizedBox(width: 8),
                                   IconButton(
-                                    icon: Icon(Icons.person_outline_rounded, color: kMutedForeground, size: 20),
+                                    icon: Icon(
+                                      Icons.person_outline_rounded,
+                                      color: kMutedForeground,
+                                      size: 20,
+                                    ),
                                     onPressed: () {
-                                      context.push('/customer-detail/${invoice.customerId}');
+                                      context.push(
+                                        '/customer-detail/${invoice.customerId}',
+                                      );
                                     },
                                     tooltip: 'View Customer',
                                   ),
@@ -1086,7 +1174,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,  // ADD THIS
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             width: 36,
@@ -1097,7 +1185,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             child: Icon(card.icon, size: 18, color: card.color.shade700),
           ),
-          const SizedBox(height: 12),  // REPLACE Spacer() with this
+          const SizedBox(height: 12),
           Text(
             card.value,
             style: TextStyle(
@@ -1106,7 +1194,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               color: kForeground,
             ),
           ),
-          // ... rest unchanged
+          const SizedBox(height: 4),
+          Text(
+            card.label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: kForeground,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            card.sub,
+            style: TextStyle(fontSize: 10, color: kMutedForeground),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );
@@ -1210,7 +1313,9 @@ class _LowStockBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  AppLocalizations.of(context)!.dashboardItemsNeedRestocking(count),
+                  AppLocalizations.of(
+                    context,
+                  )!.dashboardItemsNeedRestocking(count),
                   style: TextStyle(color: Colors.orange.shade700, fontSize: 11),
                 ),
               ],
@@ -1340,10 +1445,7 @@ class _BillCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     invoice.invoiceNumber,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: kMutedForeground,
-                    ),
+                    style: TextStyle(fontSize: 11, color: kMutedForeground),
                   ),
                 ],
               ),
@@ -1431,11 +1533,7 @@ class _EmptyBills extends StatelessWidget {
       alignment: Alignment.center,
       child: Column(
         children: [
-          Icon(
-            Icons.receipt_long_outlined,
-            size: 36,
-            color: kMutedForeground,
-          ),
+          Icon(Icons.receipt_long_outlined, size: 36, color: kMutedForeground),
           const SizedBox(height: 8),
           Text(
             'No bills yet',

@@ -13,7 +13,7 @@ class SplashScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF0D47A1), Color(0xFF1565C0), Color(0xFF0288D1)],
+            colors: [Color(0xFFFDB913), Color(0xFFFDB918), Color(0xFFFDB913)],
           ),
         ),
         child: SafeArea(
@@ -32,9 +32,16 @@ class SplashScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(30),
-                        border: Border.all(color: Colors.white.withOpacity(0.2), width: 2),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                          width: 2,
+                        ),
                       ),
-                      child: const Icon(Icons.build_rounded, size: 52, color: Colors.white),
+                      child: const Icon(
+                        Icons.build_rounded,
+                        size: 52,
+                        color: Colors.white,
+                      ),
                     ),
                     Positioned(
                       top: -8,
@@ -46,7 +53,11 @@ class SplashScreen extends StatelessWidget {
                           color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.directions_car_rounded, size: 16, color: Colors.white),
+                        child: const Icon(
+                          Icons.directions_car_rounded,
+                          size: 16,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                     Positioned(
@@ -59,7 +70,11 @@ class SplashScreen extends StatelessWidget {
                           color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.electric_bike_rounded, size: 16, color: Colors.white),
+                        child: const Icon(
+                          Icons.electric_bike_rounded,
+                          size: 16,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -67,29 +82,51 @@ class SplashScreen extends StatelessWidget {
                 const SizedBox(height: 36),
                 const Text(
                   'GarageOS',
-                  style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white),
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Workshop Management System',
-                  style: TextStyle(fontSize: 14, color: Colors.blue[200], fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.yellow[200],
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 const SizedBox(height: 28),
                 Wrap(
                   spacing: 10,
                   runSpacing: 10,
                   alignment: WrapAlignment.center,
-                  children: ['Job Cards', 'Inventory', 'Billing', 'Reports'].map((tag) =>
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white.withOpacity(0.2)),
+                  children: ['Job Cards', 'Inventory', 'Billing', 'Reports']
+                      .map(
+                        (tag) => Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 7,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.2),
+                            ),
+                          ),
+                          child: Text(
+                            tag,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
-                        child: Text(tag, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
-                      ),
-                  ).toList(),
+                      )
+                      .toList(),
                 ),
                 const Spacer(),
                 SizedBox(
@@ -98,19 +135,27 @@ class SplashScreen extends StatelessWidget {
                     onPressed: () => context.go('/login'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF1565C0),
+                      foregroundColor: const Color(0xFFFDB913),
                       padding: const EdgeInsets.symmetric(vertical: 18),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                       elevation: 8,
                       shadowColor: Colors.black26,
                     ),
-                    child: const Text('Get Started', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                    child: const Text(
+                      'Get Started',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'Trusted by 1,200+ workshops across India',
-                  style: TextStyle(color: Colors.blue[200], fontSize: 12),
+                  style: TextStyle(color: Colors.yellow[200], fontSize: 12),
                 ),
               ],
             ),

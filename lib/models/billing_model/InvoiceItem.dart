@@ -7,15 +7,16 @@
 /// point to the inventory product without any DB migration (column already
 /// exists in the schema).
 class InvoiceItem {
-  final int? id;
-  final int? invoiceId; // null while drafting, set after invoice is saved
-  final int? productId; // null → manual item; non-null → inventory product
+  final String? id;
+  final String? invoiceId; // null while drafting, set after invoice is saved
+  final String? productId; // null → manual item; non-null → inventory product
   final String itemName;
   final double quantity;
   final String unit;
   final double price;
   final double total; // quantity × price  (always computed, stored for speed)
   final DateTime createdAt;
+  final String productSource; // 'inventory' or 'secondhand'
 
   const InvoiceItem({
     this.id,
@@ -27,18 +28,20 @@ class InvoiceItem {
     required this.price,
     required this.total,
     required this.createdAt,
+    this.productSource = 'inventory',
   });
 
   /// Convenience factory for UI — computes [total] automatically.
   factory InvoiceItem.create({
-    int? id,
-    int? invoiceId,
-    int? productId,
+    String? id,
+    String? invoiceId,
+    String? productId,
     required String itemName,
     required double quantity,
     String unit = 'pcs',
     required double price,
     DateTime? createdAt,
+    String productSource = 'inventory',
   }) {
     return InvoiceItem(
       id: id,
@@ -50,6 +53,7 @@ class InvoiceItem {
       price: price,
       total: quantity * price,
       createdAt: createdAt ?? DateTime.now(),
+      productSource: productSource,
     );
   }
 
@@ -65,32 +69,35 @@ class InvoiceItem {
     'price': price,
     'total': total,
     'created_at': createdAt.toIso8601String(),
+    'product_source': productSource,
   };
 
   factory InvoiceItem.fromMap(Map<String, dynamic> map) => InvoiceItem(
-    id: map['id'] as int?,
-    invoiceId: map['invoice_id'] as int?,
-    productId: map['product_id'] as int?,
+    id: map['id']?.toString(),
+    invoiceId: map['invoice_id']?.toString(),
+    productId: map['product_id']?.toString(),
     itemName: map['item_name'] as String,
     quantity: (map['quantity'] as num).toDouble(),
     unit: (map['unit'] as String?) ?? 'pcs',
     price: (map['price'] as num).toDouble(),
     total: (map['total'] as num).toDouble(),
     createdAt: DateTime.parse(map['created_at'] as String),
+    productSource: map['product_source'] as String? ?? 'inventory',
   );
 
   // ─── CopyWith ─────────────────────────────────────────────────────────────
 
   InvoiceItem copyWith({
-    int? id,
-    int? invoiceId,
-    int? productId,
+    String? id,
+    String? invoiceId,
+    String? productId,
     String? itemName,
     double? quantity,
     String? unit,
     double? price,
     double? total,
     DateTime? createdAt,
+    String? productSource,
   }) {
     final newQty = quantity ?? this.quantity;
     final newPrice = price ?? this.price;
@@ -104,6 +111,7 @@ class InvoiceItem {
       price: newPrice,
       total: total ?? (newQty * newPrice),
       createdAt: createdAt ?? this.createdAt,
+      productSource: productSource ?? this.productSource,
     );
   }
 

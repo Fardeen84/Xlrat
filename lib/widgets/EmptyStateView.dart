@@ -31,7 +31,7 @@ class EmptyStateView extends StatelessWidget {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: kMuted,
+                color: Colors.white,
                 shape: BoxShape.circle,
               ),
               child: Center(

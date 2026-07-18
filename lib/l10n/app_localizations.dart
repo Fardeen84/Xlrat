@@ -710,6 +710,36 @@ abstract class AppLocalizations {
   /// **'Actions'**
   String get inventoryColActions;
 
+  /// No description provided for @inventoryDeletePart.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Part'**
+  String get inventoryDeletePart;
+
+  /// No description provided for @inventoryDeleteConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Part?'**
+  String get inventoryDeleteConfirmTitle;
+
+  /// No description provided for @inventoryDeleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete \'{name}\'? This action cannot be undone.'**
+  String inventoryDeleteConfirmBody(String name);
+
+  /// No description provided for @inventoryDeleteSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Part deleted successfully'**
+  String get inventoryDeleteSuccess;
+
+  /// No description provided for @inventoryDeleteError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete part'**
+  String get inventoryDeleteError;
+
   /// No description provided for @reportsTitle.
   ///
   /// In en, this message translates to:

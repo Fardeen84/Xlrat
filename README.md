@@ -31,6 +31,8 @@ To run or build the app, compile-time environment variables for Firebase configu
    flutter run --dart-define-from-file=env.json
    ```
 
+   *Note: Using `--dart-define-from-file=env.json` is optional since `env.json` is also bundled into the app assets as a fallback. You can now also run or debug the app directly (e.g. via the IDE's Run button).*
+
 ### Option 2: Using command-line flags
 Alternatively, you can pass these parameters directly to the run/build commands:
 ```bash

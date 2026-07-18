@@ -326,6 +326,23 @@ class AppLocalizationsHi extends AppLocalizations {
   String get inventoryColActions => 'कार्रवाई';
 
   @override
+  String get inventoryDeletePart => 'पुर्जा हटाएं';
+
+  @override
+  String get inventoryDeleteConfirmTitle => 'पुर्जा हटाएं?';
+
+  @override
+  String inventoryDeleteConfirmBody(String name) {
+    return 'क्या आप वाकई \'$name\' को हटाना चाहते हैं? इस कार्रवाई को पूर्ववत नहीं किया जा सकता।';
+  }
+
+  @override
+  String get inventoryDeleteSuccess => 'पुर्जा सफलतापूर्वक हटा दिया गया';
+
+  @override
+  String get inventoryDeleteError => 'पुर्जा हटाने में विफल';
+
+  @override
   String get reportsTitle => 'रिपोर्ट';
 
   @override

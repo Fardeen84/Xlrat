@@ -1,98 +1,88 @@
-// lib/billing/repositories/vehicle_repository.dart
-
-import '../local_database/billing_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/billing_model/BillingVehicle.dart';
 
-/// All database access for billing vehicles goes through this class.
+/// Direct Firestore repository for billing vehicles.
 class VehicleRepository {
-  VehicleRepository(this._db);
+  VehicleRepository({required this.garageId, this.onWriteError, FirebaseFirestore? firestore})
+      : _firestore = firestore ?? FirebaseFirestore.instance;
 
-  final BillingDatabase _db;
+  final String garageId;
+  final Function(String)? onWriteError;
+  final FirebaseFirestore _firestore;
 
-  static const _table = 'billing_vehicles';
+  CollectionReference<Map<String, dynamic>> get _collection =>
+      _firestore.collection('garages').doc(garageId).collection('vehicles');
 
   // ─── Create ───────────────────────────────────────────────────────────────
 
   Future<BillingVehicle> createVehicle(BillingVehicle vehicle) async {
-    final db = await _db.database;
-    final map = vehicle.toMap()..remove('id');
-    final id = await db.insert(_table, map);
-    return vehicle.copyWith(id: id);
+    try {
+      final docRef = _collection.doc();
+      final toSave = vehicle.copyWith(id: docRef.id);
+      await docRef.set(toSave.toMap());
+      return toSave;
+    } catch (e) {
+      onWriteError?.call(e.toString());
+      rethrow;
+    }
   }
 
   // ─── Read ─────────────────────────────────────────────────────────────────
 
-  Future<BillingVehicle?> getVehicle(int id) async {
-    final db = await _db.database;
-    final rows = await db.query(_table, where: 'id = ?', whereArgs: [id]);
-    if (rows.isEmpty) return null;
-    return BillingVehicle.fromMap(rows.first);
+  Future<BillingVehicle?> getVehicle(String id) async {
+    final doc = await _collection.doc(id).get();
+    if (!doc.exists) return null;
+    return BillingVehicle.fromMap(doc.data()!..['id'] = doc.id);
   }
 
-  /// All vehicles belonging to a customer.
-  Future<List<BillingVehicle>> getVehiclesForCustomer(int customerId) async {
-    final db = await _db.database;
-    final rows = await db.query(
-      _table,
-      where: 'customer_id = ?',
-      whereArgs: [customerId],
-      orderBy: 'vehicle_number ASC',
-    );
-    return rows.map(BillingVehicle.fromMap).toList();
+  Stream<List<BillingVehicle>> streamVehicles({int limit = 50}) {
+    return _collection.limit(limit).snapshots().map((snap) => snap.docs
+        .map((doc) => BillingVehicle.fromMap(doc.data()..['id'] = doc.id))
+        .toList());
   }
 
   Future<List<BillingVehicle>> getAllVehicles() async {
-    final db = await _db.database;
-    final rows = await db.query(_table, orderBy: 'vehicle_number ASC');
-    return rows.map(BillingVehicle.fromMap).toList();
+    final snap = await _collection.get();
+    return snap.docs
+        .map((doc) => BillingVehicle.fromMap(doc.data()..['id'] = doc.id))
+        .toList();
   }
 
-
+  Future<List<BillingVehicle>> getVehiclesForCustomer(String customerId) async {
+    final snap = await _collection.where('customer_id', isEqualTo: customerId).get();
+    return snap.docs
+        .map((doc) => BillingVehicle.fromMap(doc.data()..['id'] = doc.id))
+        .toList();
+  }
 
   Future<List<BillingVehicle>> searchVehicles(String query) async {
-    final db = await _db.database;
-    final rows = await db.query(
-      'billing_vehicles',
-      where: 'vehicle_number LIKE ?',
-      whereArgs: ['%${query.toUpperCase()}%'],
-      orderBy: 'created_at DESC',
-    );
-    return rows.map(BillingVehicle.fromMap).toList();
+    final vehicles = await getAllVehicles();
+    if (query.trim().isEmpty) return vehicles;
+    final q = query.trim().toUpperCase();
+    return vehicles.where((v) => v.vehicleNumber.toUpperCase().contains(q)).toList();
   }
-
-
-  // Future<List<BillingVehicle>> searchVehicles(String query) async {
-  //   if (query.trim().isEmpty) return getAllVehicles();
-  //   final db = await _db.database;
-  //   final q = '%${query.trim()}%';
-  //   final rows = await db.query(
-  //     _table,
-  //     where:
-  //     'vehicle_number LIKE ? OR vehicle_brand LIKE ? OR vehicle_model LIKE ?',
-  //     whereArgs: [q, q, q],
-  //     orderBy: 'vehicle_number ASC',
-  //   );
-  //   return rows.map(BillingVehicle.fromMap).toList();
-  // }
 
   // ─── Update ───────────────────────────────────────────────────────────────
 
   Future<BillingVehicle> updateVehicle(BillingVehicle vehicle) async {
     assert(vehicle.id != null, 'Cannot update a vehicle without an id');
-    final db = await _db.database;
-    await db.update(
-      _table,
-      vehicle.toMap(),
-      where: 'id = ?',
-      whereArgs: [vehicle.id],
-    );
-    return vehicle;
+    try {
+      await _collection.doc(vehicle.id).set(vehicle.toMap());
+      return vehicle;
+    } catch (e) {
+      onWriteError?.call(e.toString());
+      rethrow;
+    }
   }
 
   // ─── Delete ───────────────────────────────────────────────────────────────
 
-  Future<void> deleteVehicle(int id) async {
-    final db = await _db.database;
-    await db.delete(_table, where: 'id = ?', whereArgs: [id]);
+  Future<void> deleteVehicle(String id) async {
+    try {
+      await _collection.doc(id).delete();
+    } catch (e) {
+      onWriteError?.call(e.toString());
+      rethrow;
+    }
   }
 }

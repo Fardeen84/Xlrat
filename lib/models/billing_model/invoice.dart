@@ -76,10 +76,10 @@ enum PaymentMethod {
 // ─── Invoice ──────────────────────────────────────────────────────────────────
 
 class Invoice {
-  final int? id;
+  final String? id;
   final String invoiceNumber;
-  final int customerId;
-  final int? vehicleId;
+  final String customerId;
+  final String? vehicleId;
   final DateTime invoiceDate;
   final double subTotal;
   final double discount; // absolute ₹ value
@@ -141,13 +141,14 @@ class Invoice {
     'payment_method': paymentMethod.name,
     'notes': notes,
     'created_at': createdAt.toIso8601String(),
+    'items': items.map((item) => item.toMap()).toList(),
   };
 
   factory Invoice.fromMap(Map<String, dynamic> map) => Invoice(
-    id: map['id'] as int?,
-    invoiceNumber: map['invoice_number'] as String,
-    customerId: map['customer_id'] as int,
-    vehicleId: map['vehicle_id'] as int?,
+    id: map['id']?.toString(),
+    invoiceNumber: map['invoice_number'] as String? ?? '',
+    customerId: map['customer_id']?.toString() ?? '',
+    vehicleId: map['vehicle_id']?.toString(),
     invoiceDate: DateTime.parse(map['invoice_date'] as String),
     subTotal: (map['sub_total'] as num).toDouble(),
     discount: (map['discount'] as num?)?.toDouble() ?? 0,
@@ -159,15 +160,18 @@ class Invoice {
     PaymentMethod.fromString(map['payment_method'] as String? ?? ''),
     notes: (map['notes'] as String?) ?? '',
     createdAt: DateTime.parse(map['created_at'] as String),
+    items: (map['items'] as List?)
+        ?.map((item) => InvoiceItem.fromMap(Map<String, dynamic>.from(item)))
+        .toList() ?? const [],
   );
 
   // ─── CopyWith ─────────────────────────────────────────────────────────────
 
   Invoice copyWith({
-    int? id,
+    String? id,
     String? invoiceNumber,
-    int? customerId,
-    int? vehicleId,
+    String? customerId,
+    String? vehicleId,
     DateTime? invoiceDate,
     double? subTotal,
     double? discount,

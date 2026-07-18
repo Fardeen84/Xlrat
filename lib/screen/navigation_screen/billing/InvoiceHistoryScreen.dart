@@ -21,8 +21,9 @@ import '../../../core/Theme.dart';
 final _historySearchProvider = StateProvider.autoDispose<String>((ref) => '');
 
 /// Status filter local to the history screen.
-final _historyStatusFilterProvider =
-StateProvider.autoDispose<PaymentStatus?>((ref) => null);
+final _historyStatusFilterProvider = StateProvider.autoDispose<PaymentStatus?>(
+      (ref) => null,
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // InvoiceHistoryScreen
@@ -138,7 +139,9 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
               content: const Text('No invoices found to export.'),
               backgroundColor: kOrange,
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           );
         }
@@ -295,7 +298,9 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
             content: Text('Exported to Downloads/$fileName'),
             backgroundColor: kGreen,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
@@ -306,7 +311,9 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
             content: Text('Export failed: $e'),
             backgroundColor: kRed,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
@@ -322,7 +329,10 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
         title: Text(
           'Delete Invoice',
           style: TextStyle(
-              fontSize: 17, fontWeight: FontWeight.w800, color: kForeground),
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            color: kForeground,
+          ),
         ),
         content: Text(
           'Are you sure you want to delete invoice ${invoice.invoiceNumber}? '
@@ -332,13 +342,20 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel',
-                style: TextStyle(color: kMutedForeground, fontWeight: FontWeight.w600)),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: kMutedForeground,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete',
-                style: TextStyle(color: kRed, fontWeight: FontWeight.w700)),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: kRed, fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),
@@ -349,14 +366,16 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
     try {
       final repo = ref.read(billingRepositoryProvider);
       await repo.deleteInvoice(invoice.id!);
-      ref.invalidate(invoiceListProvider);
+      ref.invalidate(invoicesListStateProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Invoice ${invoice.invoiceNumber} deleted'),
             backgroundColor: kGreen,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
@@ -367,7 +386,9 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
             content: Text('Delete failed: $e'),
             backgroundColor: kRed,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
@@ -401,7 +422,7 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
       ),
       body: RefreshIndicator(
         color: kPrimary,
-        onRefresh: () async => ref.invalidate(invoiceListProvider),
+        onRefresh: () async => ref.invalidate(invoicesListStateProvider),
         child: CustomScrollView(
           slivers: [
             // ── AppBar ──────────────────────────────────────────────────────
@@ -425,7 +446,10 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
               ),
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.file_download_outlined, color: kPrimary),
+                  icon: const Icon(
+                    Icons.file_download_outlined,
+                    color: kPrimary,
+                  ),
                   tooltip: 'Export Data',
                   onPressed: () => _showExportDialog(context),
                 ),
@@ -456,7 +480,10 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
                       _StatusFilterRow(
                         selected: statusFilter,
                         onChanged: (s) =>
-                        ref.read(_historyStatusFilterProvider.notifier).state = s,
+                        ref
+                            .read(_historyStatusFilterProvider.notifier)
+                            .state =
+                            s,
                       ),
                     ],
                   ),
@@ -466,13 +493,11 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
 
             // ── Invoice List ─────────────────────────────────────────────────
             invoicesAsync.when(
-              loading: () => const SliverFillRemaining(
-                child: _LoadingState(),
-              ),
+              loading: () => const SliverFillRemaining(child: _LoadingState()),
               error: (e, _) => SliverFillRemaining(
                 child: _ErrorState(
                   error: e.toString(),
-                  onRetry: () => ref.invalidate(invoiceListProvider),
+                  onRetry: () => ref.invalidate(invoicesListStateProvider),
                 ),
               ),
               data: (invoices) {
@@ -486,24 +511,55 @@ class _InvoiceHistoryScreenState extends ConsumerState<InvoiceHistoryScreen> {
                   );
                 }
 
+                final hasMore = ref.watch(invoicesListStateProvider).hasMore;
+                final isLoadMore = ref.watch(invoicesListStateProvider).isLoadMore;
+
                 return SliverPadding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                   sliver: SliverList.builder(
-                    itemCount: invoices.length,
+                    itemCount: invoices.length + (hasMore ? 1 : 0),
                     itemBuilder: (context, index) {
+                      if (index == invoices.length) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16.0),
+                          child: Center(
+                            child: isLoadMore
+                                ? const CircularProgressIndicator()
+                                : ElevatedButton(
+                              onPressed: () => ref.read(invoicesListStateProvider.notifier).loadMore(),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: kPrimary,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              child: const Text('Load More'),
+                            ),
+                          ),
+                        );
+                      }
                       final invoice = invoices[index];
                       return _InvoiceCard(
                         invoice: invoice,
-                        onTap: () =>
-                            context.push('/invoice/${invoice.id}'),
-                        onView: () =>
-                            context.push('/invoice/${invoice.id}'),
-                        onEdit: () {
-                          // Load draft and go to billing
+                        onTap: () => context.push('/invoice/${invoice.id}'),
+                        onView: () => context.push('/invoice/${invoice.id}'),
+                        onEdit: () async {
+                          final freshInvoice = await ref
+                              .read(billingRepositoryProvider)
+                              .getInvoice(invoice.id!);
+                          if (freshInvoice == null) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Invoice not found'),
+                                ),
+                              );
+                            }
+                            return;
+                          }
                           ref
                               .read(invoiceDraftProvider.notifier)
-                              .loadForEdit(invoice);
-                          context.push('/billing');
+                              .loadForEdit(freshInvoice);
+                          if (context.mounted) context.push('/billing');
                         },
                         onDelete: () => _deleteInvoice(context, invoice),
                       );
@@ -549,7 +605,11 @@ class _HistorySearchBar extends StatelessWidget {
         children: [
           Padding(
             padding: EdgeInsets.only(left: 12),
-            child: Icon(Icons.search_rounded, color: kMutedForeground, size: 18),
+            child: Icon(
+              Icons.search_rounded,
+              color: kMutedForeground,
+              size: 18,
+            ),
           ),
           Expanded(
             child: TextField(
@@ -558,17 +618,21 @@ class _HistorySearchBar extends StatelessWidget {
               style: TextStyle(fontSize: 14, color: kForeground),
               decoration: InputDecoration(
                 hintText: 'Search invoice, customer, vehicle…',
-                hintStyle:
-                TextStyle(color: kMutedForeground, fontSize: 13),
+                hintStyle: TextStyle(color: kMutedForeground, fontSize: 13),
                 border: InputBorder.none,
-                contentPadding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 12,
+                ),
                 isDense: true,
                 suffixIcon: value.isNotEmpty
                     ? GestureDetector(
                   onTap: onClear,
-                  child: Icon(Icons.close_rounded,
-                      color: kMutedForeground, size: 16),
+                  child: Icon(
+                    Icons.close_rounded,
+                    color: kMutedForeground,
+                    size: 16,
+                  ),
                 )
                     : null,
               ),
@@ -678,7 +742,7 @@ class _InvoiceCard extends StatelessWidget {
   final Invoice invoice;
   final VoidCallback onTap;
   final VoidCallback onView;
-  final VoidCallback onEdit;
+  final Future<void> Function() onEdit;
   final VoidCallback onDelete;
 
   const _InvoiceCard({
@@ -797,12 +861,18 @@ class _InvoiceCard extends StatelessWidget {
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                if (invoice.customer?.mobile != null && invoice.customer!.mobile.isNotEmpty)
+                                if (invoice.customer?.mobile != null &&
+                                    invoice.customer!.mobile.isNotEmpty)
                                   IconButton(
-                                    icon: const Icon(Icons.phone_rounded, color: kGreen, size: 18),
+                                    icon: const Icon(
+                                      Icons.phone_rounded,
+                                      color: kGreen,
+                                      size: 18,
+                                    ),
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(),
-                                    onPressed: () => _makeCall(invoice.customer!.mobile),
+                                    onPressed: () =>
+                                        _makeCall(invoice.customer!.mobile),
                                   ),
                                 const SizedBox(width: 8),
                                 _CardPopupMenu(
@@ -856,8 +926,9 @@ class _InvoiceCard extends StatelessWidget {
                           child: _InfoTile(
                             icon: Icons.calendar_today_rounded,
                             label: 'Date',
-                            value: DateFormat('dd MMM yy')
-                                .format(invoice.invoiceDate),
+                            value: DateFormat(
+                              'dd MMM yy',
+                            ).format(invoice.invoiceDate),
                           ),
                         ),
 
@@ -924,7 +995,7 @@ class _InvoiceCard extends StatelessWidget {
 
 class _CardPopupMenu extends StatelessWidget {
   final VoidCallback onView;
-  final VoidCallback onEdit;
+  final Future<void> Function() onEdit;
   final VoidCallback onDelete;
 
   const _CardPopupMenu({
@@ -959,7 +1030,14 @@ class _CardPopupMenu extends StatelessWidget {
             children: [
               Icon(Icons.visibility_rounded, size: 16, color: kPrimary),
               SizedBox(width: 10),
-              Text('View', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kForeground)),
+              Text(
+                'View',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: kForeground,
+                ),
+              ),
             ],
           ),
         ),
@@ -969,7 +1047,14 @@ class _CardPopupMenu extends StatelessWidget {
             children: [
               Icon(Icons.edit_rounded, size: 16, color: kOrange),
               SizedBox(width: 10),
-              Text('Edit', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kForeground)),
+              Text(
+                'Edit',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: kForeground,
+                ),
+              ),
             ],
           ),
         ),
@@ -980,7 +1065,14 @@ class _CardPopupMenu extends StatelessWidget {
             children: [
               Icon(Icons.delete_rounded, size: 16, color: kRed),
               SizedBox(width: 10),
-              Text('Delete', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kRed)),
+              Text(
+                'Delete',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: kRed,
+                ),
+              ),
             ],
           ),
         ),
@@ -1024,7 +1116,10 @@ class _SwipeBackground extends StatelessWidget {
           Text(
             label,
             style: const TextStyle(
-                color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -1172,10 +1267,7 @@ class _EmptyState extends StatelessWidget {
   final bool isFiltered;
   final VoidCallback onCreateInvoice;
 
-  const _EmptyState({
-    required this.isFiltered,
-    required this.onCreateInvoice,
-  });
+  const _EmptyState({required this.isFiltered, required this.onCreateInvoice});
 
   @override
   Widget build(BuildContext context) {
@@ -1215,10 +1307,7 @@ class _EmptyState extends StatelessWidget {
                   ? 'Try adjusting your search or filter'
                   : 'Create your first invoice to get started',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: kMutedForeground,
-              ),
+              style: TextStyle(fontSize: 13, color: kMutedForeground),
             ),
             if (!isFiltered) ...[
               const SizedBox(height: 28),
@@ -1226,10 +1315,12 @@ class _EmptyState extends StatelessWidget {
                 onTap: onCreateInvoice,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 13),
+                    horizontal: 24,
+                    vertical: 13,
+                  ),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF1565C0), Color(0xFF0288D1)],
+                      colors: [Color(0xFFFDB913), Color(0xFFFDB918)],
                     ),
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [
@@ -1301,9 +1392,10 @@ class _ShimmerCardState extends State<_ShimmerCard>
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     )..repeat();
-    _anim = Tween<double>(begin: -2, end: 2).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-    );
+    _anim = Tween<double>(
+      begin: -2,
+      end: 2,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
   @override
@@ -1365,14 +1457,20 @@ class _ErrorState extends StatelessWidget {
                 color: const Color(0xFFFEF2F2),
                 borderRadius: BorderRadius.circular(22),
               ),
-              child: const Icon(Icons.error_outline_rounded,
-                  size: 34, color: kRed),
+              child: const Icon(
+                Icons.error_outline_rounded,
+                size: 34,
+                color: kRed,
+              ),
             ),
             const SizedBox(height: 18),
             Text(
               'Something went wrong',
               style: TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w800, color: kForeground),
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: kForeground,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -1386,8 +1484,10 @@ class _ErrorState extends StatelessWidget {
             GestureDetector(
               onTap: onRetry,
               child: Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: kPrimary,
                   borderRadius: BorderRadius.circular(12),
@@ -1400,9 +1500,10 @@ class _ErrorState extends StatelessWidget {
                     Text(
                       'Retry',
                       style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14),
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
                     ),
                   ],
                 ),

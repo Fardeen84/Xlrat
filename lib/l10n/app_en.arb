@@ -130,6 +130,18 @@
   "inventoryColMinStock": "Min Stock",
   "inventoryColStatus": "Status",
   "inventoryColActions": "Actions",
+  "inventoryDeletePart": "Delete Part",
+  "inventoryDeleteConfirmTitle": "Delete Part?",
+  "inventoryDeleteConfirmBody": "Are you sure you want to delete '{name}'? This action cannot be undone.",
+  "@inventoryDeleteConfirmBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "inventoryDeleteSuccess": "Part deleted successfully",
+  "inventoryDeleteError": "Failed to delete part",
 
   "reportsTitle": "Reports",
   "reportsPeriodDaily": "Daily",
