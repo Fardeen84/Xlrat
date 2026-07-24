@@ -608,31 +608,39 @@ class _BottomActionsState extends State<_BottomActions> {
                 backgroundColor: kPrimary,
                 foregroundColor: Colors.white,
                 disabledBackgroundColor: kPrimary.withOpacity(0.6),
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
               child: _pdfLoading
                   ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+                  : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.download_rounded, size: 15),
+                  SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      'Download PDF',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
                       ),
-                    )
-                  : const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.download_rounded, size: 16),
-                        SizedBox(width: 6),
-                        Text(
-                          'Download PDF',
-                          style: TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                      ],
                     ),
+                  ),
+                ],
+              ),
             ),
           ),
 

@@ -152,6 +152,25 @@ class BillingRepository {
     return list;
   }
 
+  Future<List<Invoice>> getInvoicesSince(DateTime cutoff) async {
+    final cutoffIso = cutoff.toIso8601String();
+    final snap = await _collection
+        .where('invoice_date', isGreaterThanOrEqualTo: cutoffIso)
+        .get();
+
+    final customerCache = <String, BillingCustomer>{};
+    final vehicleCache = <String, BillingVehicle>{};
+
+    final list = <Invoice>[];
+    for (final doc in snap.docs) {
+      final data = doc.data()..['id'] = doc.id;
+      final invoice = await _hydrateInvoiceWithCache(data, customerCache, vehicleCache);
+      list.add(invoice);
+    }
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
+  }
+
   Future<({List<Invoice> items, DocumentSnapshot? lastDoc, bool hasMore})> getInvoicesPaginated({
     required int limit,
     DocumentSnapshot? startAfter,
@@ -263,6 +282,34 @@ class BillingRepository {
 
   // ─── Private Helpers ──────────────────────────────────────────────────────
 
+  Future<BillingCustomer?> fetchCustomerForHydration(String customerId) async {
+    if (customerId.isEmpty) return null;
+    final custDoc = await _firestore
+        .collection('garages')
+        .doc(garageId)
+        .collection('customers')
+        .doc(customerId)
+        .get();
+    if (custDoc.exists) {
+      return BillingCustomer.fromMap(custDoc.data()!..['id'] = custDoc.id);
+    }
+    return null;
+  }
+
+  Future<BillingVehicle?> fetchVehicleForHydration(String vehicleId) async {
+    if (vehicleId.isEmpty) return null;
+    final vehDoc = await _firestore
+        .collection('garages')
+        .doc(garageId)
+        .collection('vehicles')
+        .doc(vehicleId)
+        .get();
+    if (vehDoc.exists) {
+      return BillingVehicle.fromMap(vehDoc.data()!..['id'] = vehDoc.id);
+    }
+    return null;
+  }
+
   Future<Invoice> _hydrateInvoice(Map<String, dynamic> data) async {
     final invoice = Invoice.fromMap(data);
     
@@ -270,14 +317,37 @@ class BillingRepository {
     BillingCustomer? customer;
     final customerId = invoice.customerId;
     if (customerId.isNotEmpty) {
-      final custDoc = await _firestore
-          .collection('garages')
-          .doc(garageId)
-          .collection('customers')
-          .doc(customerId)
-          .get();
-      if (custDoc.exists) {
-        customer = BillingCustomer.fromMap(custDoc.data()!..['id'] = custDoc.id);
+      customer = await fetchCustomerForHydration(customerId);
+    }
+
+    // Fetch Vehicle
+    BillingVehicle? vehicle;
+    final vehicleId = invoice.vehicleId;
+    if (vehicleId != null && vehicleId.isNotEmpty) {
+      vehicle = await fetchVehicleForHydration(vehicleId);
+    }
+
+    return invoice.copyWith(customer: customer, vehicle: vehicle);
+  }
+
+  Future<Invoice> _hydrateInvoiceWithCache(
+    Map<String, dynamic> data,
+    Map<String, BillingCustomer> customerCache,
+    Map<String, BillingVehicle> vehicleCache,
+  ) async {
+    final invoice = Invoice.fromMap(data);
+    
+    // Fetch Customer
+    BillingCustomer? customer;
+    final customerId = invoice.customerId;
+    if (customerId.isNotEmpty) {
+      if (customerCache.containsKey(customerId)) {
+        customer = customerCache[customerId];
+      } else {
+        customer = await fetchCustomerForHydration(customerId);
+        if (customer != null) {
+          customerCache[customerId] = customer;
+        }
       }
     }
 
@@ -285,14 +355,13 @@ class BillingRepository {
     BillingVehicle? vehicle;
     final vehicleId = invoice.vehicleId;
     if (vehicleId != null && vehicleId.isNotEmpty) {
-      final vehDoc = await _firestore
-          .collection('garages')
-          .doc(garageId)
-          .collection('vehicles')
-          .doc(vehicleId)
-          .get();
-      if (vehDoc.exists) {
-        vehicle = BillingVehicle.fromMap(vehDoc.data()!..['id'] = vehDoc.id);
+      if (vehicleCache.containsKey(vehicleId)) {
+        vehicle = vehicleCache[vehicleId];
+      } else {
+        vehicle = await fetchVehicleForHydration(vehicleId);
+        if (vehicle != null) {
+          vehicleCache[vehicleId] = vehicle;
+        }
       }
     }
 

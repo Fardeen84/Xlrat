@@ -66,6 +66,7 @@ class SecondHandInventoryRepository {
           'name_lower': toSave.name.toLowerCase(),
           'sku_lower': toSave.sku.toLowerCase(),
           'category_lower': toSave.category.toLowerCase(),
+          'garage_id': garageId,
         },
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
@@ -82,7 +83,7 @@ class SecondHandInventoryRepository {
   Future<SecondHandItem?> getItem(String id) async {
     // Read from SQLite first
     final db = await BillingDatabase.instance.database;
-    final rows = await db.query('secondhand_inventory', where: 'id = ?', whereArgs: [id]);
+    final rows = await db.query('secondhand_inventory', where: 'id = ? AND garage_id = ?', whereArgs: [id, garageId]);
     if (rows.isNotEmpty) {
       return SecondHandItem.fromMap(rows.first);
     }
@@ -93,9 +94,22 @@ class SecondHandInventoryRepository {
     return SecondHandItem.fromMap(doc.data()!..['id'] = doc.id);
   }
 
+  Future<SecondHandItem?> findByName(String name) async {
+    final db = await BillingDatabase.instance.database;
+    final rows = await db.query(
+      'secondhand_inventory',
+      where: 'name_lower = ? AND garage_id = ? AND is_deleted = 0',
+      whereArgs: [name.trim().toLowerCase(), garageId],
+    );
+    if (rows.isNotEmpty) {
+      return SecondHandItem.fromMap(rows.first);
+    }
+    return null;
+  }
+
   Future<List<SecondHandItem>> getLocalItems() async {
     final db = await BillingDatabase.instance.database;
-    final rows = await db.query('secondhand_inventory', where: 'is_deleted = 0', orderBy: 'name ASC');
+    final rows = await db.query('secondhand_inventory', where: 'is_deleted = 0 AND garage_id = ?', whereArgs: [garageId], orderBy: 'name ASC');
     return rows.map((row) => SecondHandItem.fromMap(row)).toList();
   }
 
@@ -106,8 +120,8 @@ class SecondHandInventoryRepository {
     final q = '%${query.trim().toLowerCase()}%';
     final rows = await db.query(
       'secondhand_inventory',
-      where: 'is_deleted = 0 AND (name_lower LIKE ? OR sku_lower LIKE ? OR category_lower LIKE ?)',
-      whereArgs: [q, q, q],
+      where: 'is_deleted = 0 AND garage_id = ? AND (name_lower LIKE ? OR sku_lower LIKE ? OR category_lower LIKE ?)',
+      whereArgs: [garageId, q, q, q],
       orderBy: 'name ASC',
     );
     return rows.map((row) => SecondHandItem.fromMap(row)).toList();
@@ -141,6 +155,19 @@ class SecondHandInventoryRepository {
 
       // Write to local SQLite
       final db = await BillingDatabase.instance.database;
+      final existing = await db.query(
+        'secondhand_inventory',
+        columns: ['garage_id'],
+        where: 'id = ?',
+        whereArgs: [toSave.id],
+      );
+      if (existing.isNotEmpty) {
+        final existingGarageId = existing.first['garage_id'] as String? ?? '';
+        if (existingGarageId.isNotEmpty && existingGarageId != garageId) {
+          // Do not overwrite other garage's item.
+          return toSave;
+        }
+      }
       await db.insert(
         'secondhand_inventory',
         {
@@ -162,6 +189,7 @@ class SecondHandInventoryRepository {
           'name_lower': toSave.name.toLowerCase(),
           'sku_lower': toSave.sku.toLowerCase(),
           'category_lower': toSave.category.toLowerCase(),
+          'garage_id': garageId,
         },
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
@@ -195,8 +223,8 @@ class SecondHandInventoryRepository {
           'stock': newStock,
           'updated_at': now.millisecondsSinceEpoch,
         },
-        where: 'id = ?',
-        whereArgs: [id],
+        where: 'id = ? AND garage_id = ?',
+        whereArgs: [id, garageId],
       );
     } catch (e) {
       onWriteError?.call(e.toString());
@@ -213,7 +241,7 @@ class SecondHandInventoryRepository {
 
       // Delete from SQLite
       final db = await BillingDatabase.instance.database;
-      await db.delete('secondhand_inventory', where: 'id = ?', whereArgs: [id]);
+      await db.delete('secondhand_inventory', where: 'id = ? AND garage_id = ?', whereArgs: [id, garageId]);
     } catch (e) {
       onWriteError?.call(e.toString());
       rethrow;
@@ -275,8 +303,26 @@ class SecondHandInventoryRepository {
           break;
         }
 
+        // Clarification B Check
+        final ids = snap.docs.map((d) => d.id).toList();
+        final placeholders = List.filled(ids.length, '?').join(',');
+        final existingRows = await db.query(
+          'secondhand_inventory',
+          columns: ['id', 'garage_id'],
+          where: 'id IN ($placeholders)',
+          whereArgs: ids,
+        );
+        final existingMap = {
+          for (final row in existingRows)
+            row['id'] as String: row['garage_id'] as String? ?? ''
+        };
+
         final batch = db.batch();
         for (final doc in snap.docs) {
+          final existingGarageId = existingMap[doc.id];
+          if (existingGarageId != null && existingGarageId.isNotEmpty && existingGarageId != garageId) {
+            continue;
+          }
           final item = SecondHandItem.fromMap(doc.data()..['id'] = doc.id);
           _insertItemToBatch(batch, item);
         }
@@ -301,7 +347,7 @@ class SecondHandInventoryRepository {
 
       if (!hasMore) {
         // Find maximum updatedAt from local database (Fix 4)
-        final maxRow = await db.rawQuery('SELECT MAX(updated_at) as maxVal FROM secondhand_inventory');
+        final maxRow = await db.rawQuery('SELECT MAX(updated_at) as maxVal FROM secondhand_inventory WHERE garage_id = ?', [garageId]);
         final maxVal = maxRow.first['maxVal'] as int? ?? 0;
         await prefs.setInt(lastSyncKey, maxVal > 0 ? maxVal : DateTime.now().millisecondsSinceEpoch);
 
@@ -314,13 +360,7 @@ class SecondHandInventoryRepository {
       return totalSynced;
     } else {
       // Fix 6: One-time repair scan for legacy docs that are missing the
-      // 'updatedAt' field entirely. Firestore query filters (isGreaterThan,
-      // isEqualTo, isNull, orderBy, etc.) ALL silently exclude documents where
-      // the filtered field doesn't exist on the document at all — there is no
-      // query that can find them. The only way is a full, unfiltered scan,
-      // which we do exactly once (tracked via a prefs flag) and use to
-      // backfill 'updatedAt' on Firestore so future delta syncs pick these
-      // docs up naturally.
+      // 'updatedAt' field entirely.
       final repairFlagKey = 'secondhand_updatedAt_repaired_$garageId';
       final alreadyRepaired = prefs.getBool(repairFlagKey) ?? false;
       int repairedCount = 0;
@@ -329,11 +369,30 @@ class SecondHandInventoryRepository {
         final allSnap = await _collection.get();
 
         if (allSnap.docs.isNotEmpty) {
+          // Clarification B check
+          final ids = allSnap.docs.map((d) => d.id).toList();
+          final placeholders = List.filled(ids.length, '?').join(',');
+          final existingRows = await db.query(
+            'secondhand_inventory',
+            columns: ['id', 'garage_id'],
+            where: 'id IN ($placeholders)',
+            whereArgs: ids,
+          );
+          final existingMap = {
+            for (final row in existingRows)
+              row['id'] as String: row['garage_id'] as String? ?? ''
+          };
+
           final repairDbBatch = db.batch();
           WriteBatch? fsBatch;
           int fsWrites = 0;
 
           for (final doc in allSnap.docs) {
+            final existingGarageId = existingMap[doc.id];
+            if (existingGarageId != null && existingGarageId.isNotEmpty && existingGarageId != garageId) {
+              continue;
+            }
+
             final data = doc.data();
 
             if (!data.containsKey('updatedAt')) {
@@ -359,27 +418,103 @@ class SecondHandInventoryRepository {
       // Subsequent delta sync (Fix 4)
       Query<Map<String, dynamic>> query = _collection.where('updatedAt', isGreaterThan: Timestamp.fromDate(lastSyncDateTime));
       final snap = await query.get();
-      if (snap.docs.isEmpty) {
-        return repairedCount;
-      }
+      int deltaCount = 0;
+      if (snap.docs.isNotEmpty) {
+        // Clarification B check
+        final ids = snap.docs.map((d) => d.id).toList();
+        final placeholders = List.filled(ids.length, '?').join(',');
+        final existingRows = await db.query(
+          'secondhand_inventory',
+          columns: ['id', 'garage_id'],
+          where: 'id IN ($placeholders)',
+          whereArgs: ids,
+        );
+        final existingMap = {
+          for (final row in existingRows)
+            row['id'] as String: row['garage_id'] as String? ?? ''
+        };
 
-      final batch = db.batch();
-      DateTime maxUpdatedAt = lastSyncDateTime;
+        final batch = db.batch();
+        DateTime maxUpdatedAt = lastSyncDateTime;
 
-      for (final doc in snap.docs) {
-        final item = SecondHandItem.fromMap(doc.data()..['id'] = doc.id);
-        _insertItemToBatch(batch, item);
+        for (final doc in snap.docs) {
+          final existingGarageId = existingMap[doc.id];
+          if (existingGarageId != null && existingGarageId.isNotEmpty && existingGarageId != garageId) {
+            continue;
+          }
+          final item = SecondHandItem.fromMap(doc.data()..['id'] = doc.id);
+          _insertItemToBatch(batch, item);
+          deltaCount++;
 
-        if (item.updatedAt != null && item.updatedAt!.isAfter(maxUpdatedAt)) {
-          maxUpdatedAt = item.updatedAt!;
+          if (item.updatedAt != null && item.updatedAt!.isAfter(maxUpdatedAt)) {
+            maxUpdatedAt = item.updatedAt!;
+          }
         }
+
+        await batch.commit(noResult: true);
+
+        // Persist maximum batch-derived updatedAt timestamp (Fix 4)
+        await prefs.setInt(lastSyncKey, maxUpdatedAt.millisecondsSinceEpoch);
       }
 
-      await batch.commit(noResult: true);
+      // Periodic orphan check for secondhand (small collection, check every 24 hours via full get)
+      int orphanSyncedCount = 0;
+      final now = DateTime.now();
+      final lastOrphanCheckKey = 'secondhand_last_orphan_check_$garageId';
+      final lastOrphanCheckMs = prefs.getInt(lastOrphanCheckKey) ?? 0;
 
-      // Persist maximum batch-derived updatedAt timestamp (Fix 4)
-      await prefs.setInt(lastSyncKey, maxUpdatedAt.millisecondsSinceEpoch);
-      return repairedCount + snap.docs.length;
+      if (now.millisecondsSinceEpoch - lastOrphanCheckMs >= 24 * 60 * 60 * 1000) {
+        final orphanSnap = await _collection.get();
+        if (orphanSnap.docs.isNotEmpty) {
+          final ids = orphanSnap.docs.map((d) => d.id).toList();
+          final placeholders = List.filled(ids.length, '?').join(',');
+          final existingRows = await db.query(
+            'secondhand_inventory',
+            columns: ['id', 'garage_id'],
+            where: 'id IN ($placeholders)',
+            whereArgs: ids,
+          );
+          final existingMap = {
+            for (final row in existingRows)
+              row['id'] as String: row['garage_id'] as String? ?? ''
+          };
+
+          final dbBatch = db.batch();
+          WriteBatch? fsBatch;
+          int fsWrites = 0;
+
+          for (final doc in orphanSnap.docs) {
+            final existingGarageId = existingMap[doc.id];
+            if (existingGarageId != null && existingGarageId.isNotEmpty && existingGarageId != garageId) {
+              continue;
+            }
+
+            final data = doc.data();
+            if (!data.containsKey('updatedAt')) {
+              fsBatch ??= _firestore.batch();
+              fsBatch.update(doc.reference, {'updatedAt': FieldValue.serverTimestamp()});
+              fsWrites++;
+              if (fsWrites >= 500) {
+                await fsBatch.commit();
+                fsBatch = _firestore.batch();
+                fsWrites = 0;
+              }
+            }
+
+            final item = SecondHandItem.fromMap({...data, 'id': doc.id});
+            _insertItemToBatch(dbBatch, item);
+            orphanSyncedCount++;
+          }
+
+          if (fsBatch != null && fsWrites > 0) {
+            await fsBatch.commit();
+          }
+          await dbBatch.commit(noResult: true);
+        }
+        await prefs.setInt(lastOrphanCheckKey, now.millisecondsSinceEpoch);
+      }
+
+      return repairedCount + deltaCount + orphanSyncedCount;
     }
   }
 
@@ -405,6 +540,7 @@ class SecondHandInventoryRepository {
         'name_lower': item.name.toLowerCase(),
         'sku_lower': item.sku.toLowerCase(),
         'category_lower': item.category.toLowerCase(),
+        'garage_id': garageId,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );

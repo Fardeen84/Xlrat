@@ -471,7 +471,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         Icons.person_add_rounded,
                         const Color(0xFFE3F2FD),
                         Colors.blue,
-                        () => context.go('/customers'),
+                        () => context.push('/customers'),
                       ),
                       const SizedBox(height: 12),
                       _buildPCQuickActionRow(
@@ -1065,7 +1065,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 const SizedBox(height: 14),
                 _LowStockBanner(
                   count: lowStock.length,
-                  onTap: () => context.push('/reports'),
+                  onTap: () => context.push('/InvoiceHistory'),
                 ),
               ],
 
@@ -1088,7 +1088,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     Icons.person_add_rounded,
                     const Color(0xFFE3F2FD),
                     Colors.blue,
-                    () {},
+                        () => context.push('/customers'),
                   ),
                   const SizedBox(width: 10),
                   _buildQuickAction(

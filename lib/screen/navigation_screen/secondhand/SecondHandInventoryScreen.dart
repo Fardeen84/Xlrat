@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:xlrat/l10n/app_localizations.dart';
 
 import '../../../models/SecondHandItem.dart';
 import '../../../providers/secondHandInventoryProvider.dart';
@@ -122,6 +121,7 @@ class _SecondHandInventoryScreenState extends ConsumerState<SecondHandInventoryS
   }
 
   void _showAddPartDialog(BuildContext context) {
+    final screenContext = context;
     final nameCtrl = TextEditingController();
     final skuCtrl = TextEditingController();
     final categoryCtrl = TextEditingController();
@@ -294,13 +294,53 @@ class _SecondHandInventoryScreenState extends ConsumerState<SecondHandInventoryS
             style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
             onPressed: () async {
               if (formKey.currentState!.validate()) {
+                final name = nameCtrl.text.trim();
+                final existing = await ref.read(secondHandInventoryRepositoryProvider).findByName(name);
+                if (existing != null) {
+                  if (context.mounted) {
+                    showDialog(
+                      context: context,
+                      builder: (warningContext) => AlertDialog(
+                        backgroundColor: kCard,
+                        title: Text(
+                          'Duplicate Item',
+                          style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
+                        ),
+                        content: Text(
+                          "An item named '$name' already exists. Do you want to update its stock instead, or use a different name?",
+                          style: TextStyle(color: kForeground),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(warningContext),
+                            child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: kPrimary,
+                              foregroundColor: kPrimaryDark,
+                            ),
+                            onPressed: () {
+                              Navigator.pop(warningContext);
+                              Navigator.pop(context);
+                              _showAdjustStockDialog(screenContext, existing, true);
+                            },
+                            child: const Text('Update Stock'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  return;
+                }
+
                 final category = categoryCtrl.text.trim();
                 final sku = skuCtrl.text.trim().isNotEmpty
                     ? skuCtrl.text.trim()
                     : _generateSku(category);
 
                 final newItem = SecondHandItem(
-                  name: nameCtrl.text.trim(),
+                  name: name,
                   category: category,
                   stock: int.parse(stockCtrl.text.trim()),
                   unit: unitCtrl.text.trim().isNotEmpty
@@ -331,6 +371,7 @@ class _SecondHandInventoryScreenState extends ConsumerState<SecondHandInventoryS
   }
 
   void _showEditPartDialog(BuildContext context, SecondHandItem item) {
+    final screenContext = context;
     final nameCtrl = TextEditingController(text: item.name);
     final skuCtrl = TextEditingController(text: item.sku);
     final categoryCtrl = TextEditingController(text: item.category);
@@ -503,8 +544,48 @@ class _SecondHandInventoryScreenState extends ConsumerState<SecondHandInventoryS
             style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
             onPressed: () async {
               if (formKey.currentState!.validate()) {
+                final name = nameCtrl.text.trim();
+                final existing = await ref.read(secondHandInventoryRepositoryProvider).findByName(name);
+                if (existing != null && existing.id != item.id) {
+                  if (context.mounted) {
+                    showDialog(
+                      context: context,
+                      builder: (warningContext) => AlertDialog(
+                        backgroundColor: kCard,
+                        title: Text(
+                          'Duplicate Item',
+                          style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
+                        ),
+                        content: Text(
+                          "An item named '$name' already exists. Do you want to update its stock instead, or use a different name?",
+                          style: TextStyle(color: kForeground),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(warningContext),
+                            child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: kPrimary,
+                              foregroundColor: kPrimaryDark,
+                            ),
+                            onPressed: () {
+                              Navigator.pop(warningContext);
+                              Navigator.pop(context);
+                              _showAdjustStockDialog(screenContext, existing, true);
+                            },
+                            child: const Text('Update Stock'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  return;
+                }
+
                 final updatedItem = item.copyWith(
-                  name: nameCtrl.text.trim(),
+                  name: name,
                   category: categoryCtrl.text.trim(),
                   stock: int.parse(stockCtrl.text.trim()),
                   unit: unitCtrl.text.trim().isNotEmpty
@@ -690,20 +771,39 @@ class _SecondHandInventoryScreenState extends ConsumerState<SecondHandInventoryS
                         color: kForeground,
                       ),
                     ),
-                    ElevatedButton.icon(
-                      onPressed: () => _showAddPartDialog(context),
-                      icon: const Icon(Icons.add_rounded, color: Colors.white, size: 16),
-                      label: const Text(
-                        'Add Second Hand Part',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: kPrimary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.sync_rounded, color: kMutedForeground),
+                          tooltip: 'Resync All',
+                          onPressed: () async {
+                            final scaffoldMessenger = ScaffoldMessenger.of(context);
+                            scaffoldMessenger.showSnackBar(
+                              const SnackBar(content: Text('Starting full resync...')),
+                            );
+                            await ref.read(secondHandInventoryListStateProvider.notifier).resyncAll();
+                            scaffoldMessenger.showSnackBar(
+                              const SnackBar(content: Text('Full resync completed!')),
+                            );
+                          },
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          onPressed: () => _showAddPartDialog(context),
+                          icon: const Icon(Icons.add_rounded, color: Colors.white, size: 16),
+                          label: const Text(
+                            'Add Second Hand Part',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: kPrimary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -919,17 +1019,36 @@ class _SecondHandInventoryScreenState extends ConsumerState<SecondHandInventoryS
                         color: kForeground,
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () => _showAddPartDialog(context),
-                      child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: kPrimary,
-                          borderRadius: BorderRadius.circular(10),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.sync_rounded, color: kMutedForeground, size: 20),
+                          onPressed: () async {
+                            final scaffoldMessenger = ScaffoldMessenger.of(context);
+                            scaffoldMessenger.showSnackBar(
+                              const SnackBar(content: Text('Starting full resync...')),
+                            );
+                            await ref.read(secondHandInventoryListStateProvider.notifier).resyncAll();
+                            scaffoldMessenger.showSnackBar(
+                              const SnackBar(content: Text('Full resync completed!')),
+                            );
+                          },
+                          tooltip: 'Resync All',
                         ),
-                        child: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
-                      ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => _showAddPartDialog(context),
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: kPrimary,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

@@ -106,11 +106,11 @@ class ProfileScreen extends ConsumerWidget {
           id: 'language',
         ),
       ]),
-      _Section('Account', [
-        _Item(Icons.person_rounded, 'My Profile', displayName, id: 'profile'),
-        _Item(Icons.lock_rounded, 'Security & PIN', 'Biometric enabled'),
-        _Item(Icons.help_outline_rounded, 'Help & Support', 'v2.4.1'),
-      ]),
+      // _Section('Account', [
+      //   _Item(Icons.person_rounded, 'My Profile', displayName, id: 'profile'),
+      //   _Item(Icons.lock_rounded, 'Security & PIN', 'Biometric enabled'),
+      //   _Item(Icons.help_outline_rounded, 'Help & Support', 'v2.4.1'),
+      // ]),
     ];
 
     return Scaffold(

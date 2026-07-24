@@ -168,11 +168,77 @@ void main() async {
   );
 }
 
-class MyApp extends ConsumerWidget {
+class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends ConsumerState<MyApp> with WindowListener {
+  @override
+  void initState() {
+    super.initState();
+    if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {
+      windowManager.addListener(this);
+      _initPreventClose();
+    }
+  }
+
+  @override
+  void dispose() {
+    if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {
+      windowManager.removeListener(this);
+    }
+    super.dispose();
+  }
+
+  Future<void> _initPreventClose() async {
+    await windowManager.setPreventClose(true);
+  }
+
+  @override
+  void onWindowClose() async {
+    final context = rootNavigatorKey.currentContext;
+    if (context != null) {
+      final shouldExit = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: kCard,
+          title: Text(
+            'Exit App',
+            style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
+          ),
+          content: Text(
+            'Are you sure you want to exit?',
+            style: TextStyle(color: kForeground),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kPrimary,
+                foregroundColor: kPrimaryDark,
+              ),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Exit'),
+            ),
+          ],
+        ),
+      );
+      if (shouldExit == true) {
+        await windowManager.destroy();
+      }
+    } else {
+      await windowManager.destroy();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider);
     final themeMode = ref.watch(themeModeProvider);
     final router = ref.watch(appRouterProvider);

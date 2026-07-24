@@ -64,7 +64,7 @@ class BillingDatabase {
     return openDatabase(
       path,
       version:
-          10, // 9 se 10 kiya for text primary keys, lowercased columns & indices
+          11, // 10 -> 11: Added garage_id column, indexes & scoping for inventory and secondhand_inventory
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -187,6 +187,31 @@ class BillingDatabase {
             // Non-fatal — don't block the DB migration if prefs aren't reachable.
           }
         }
+        if (oldVersion < 11) {
+          await db.execute(
+            "ALTER TABLE inventory ADD COLUMN garage_id TEXT NOT NULL DEFAULT ''",
+          );
+          await db.execute(
+            "ALTER TABLE secondhand_inventory ADD COLUMN garage_id TEXT NOT NULL DEFAULT ''",
+          );
+          await db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_inventory_garage ON inventory(garage_id)",
+          );
+          await db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_secondhand_garage ON secondhand_inventory(garage_id)",
+          );
+
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            final garageId = prefs.getString('garage_id') ?? '';
+            if (garageId.isNotEmpty) {
+              await db.update('inventory', {'garage_id': garageId});
+              await db.update('secondhand_inventory', {'garage_id': garageId});
+            }
+          } catch (_) {
+            // Non-fatal
+          }
+        }
       },
     );
   }
@@ -203,6 +228,8 @@ class BillingDatabase {
     await db.execute(_sqlSecondHandInventory);
     await db.execute("CREATE INDEX IF NOT EXISTS idx_inventory_search ON inventory(name_lower, sku_lower, category_lower)");
     await db.execute("CREATE INDEX IF NOT EXISTS idx_secondhand_search ON secondhand_inventory(name_lower, sku_lower, category_lower)");
+    await db.execute("CREATE INDEX IF NOT EXISTS idx_inventory_garage ON inventory(garage_id)");
+    await db.execute("CREATE INDEX IF NOT EXISTS idx_secondhand_garage ON secondhand_inventory(garage_id)");
     // Seed invoice counter
     await db.insert('invoice_counter', {'id': 1, 'last_number': 0});
     // Seed mock jobs
@@ -211,6 +238,12 @@ class BillingDatabase {
 
   // ─── DDL ──────────────────────────────────────────────────────────────────
 
+  // NOTE (Clarification A): The primary key remains id-only (not composite with garage_id)
+  // because SQLite does not support changing primary key constraints via ALTER TABLE.
+  // Consequently, colliding IDs across different garages would overwrite each other in the DB
+  // if ConflictAlgorithm.replace is triggered. However, since Firestore document IDs are
+  // globally unique random 20-character strings, this risk is negligible.
+  // Application-level scoping (WHERE garage_id = ?) prevents reading across garages.
   static const _sqlInventory = '''
     CREATE TABLE inventory (
       id          TEXT    PRIMARY KEY,
@@ -228,7 +261,8 @@ class BillingDatabase {
       is_deleted  INTEGER NOT NULL DEFAULT 0,
       name_lower  TEXT,
       sku_lower   TEXT,
-      category_lower TEXT
+      category_lower TEXT,
+      garage_id   TEXT    NOT NULL DEFAULT ''
     )
   ''';
 
@@ -347,6 +381,12 @@ class BillingDatabase {
     )
   ''';
 
+  // NOTE (Clarification A): The primary key remains id-only (not composite with garage_id)
+  // because SQLite does not support changing primary key constraints via ALTER TABLE.
+  // Consequently, colliding IDs across different garages would overwrite each other in the DB
+  // if ConflictAlgorithm.replace is triggered. However, since Firestore document IDs are
+  // globally unique random 20-character strings, this risk is negligible.
+  // Application-level scoping (WHERE garage_id = ?) prevents reading across garages.
   static const _sqlSecondHandInventory = '''
     CREATE TABLE secondhand_inventory (
       id              TEXT    PRIMARY KEY,
@@ -366,7 +406,8 @@ class BillingDatabase {
       is_deleted      INTEGER NOT NULL DEFAULT 0,
       name_lower      TEXT,
       sku_lower       TEXT,
-      category_lower  TEXT
+      category_lower  TEXT,
+      garage_id       TEXT    NOT NULL DEFAULT ''
     )
   ''';
 

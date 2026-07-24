@@ -7,6 +7,8 @@ import '../repository/InventoryRepository.dart';
 import 'profile_provider.dart';
 import 'billing_providers.dart';
 
+import '../local_database/billing_database.dart';
+
 final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
   final garageId = ref.watch(profileProvider).garageId;
   return InventoryRepository(
@@ -103,6 +105,40 @@ class InventoryListNotifier extends StateNotifier<InventoryState> {
     state = state.copyWith(isSyncing: true, syncedCount: 0);
     try {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await _repo.syncFromFirestore(
+        prefs,
+        onProgress: (count) {
+          state = state.copyWith(syncedCount: count);
+        },
+      );
+      await _loadFromLocal();
+      state = state.copyWith(isSyncing: false);
+    } catch (e) {
+      state = state.copyWith(isSyncing: false, error: e.toString());
+    }
+  }
+
+  Future<void> resyncAll() async {
+    state = state.copyWith(isSyncing: true, syncedCount: 0);
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final garageId = _repo.garageId;
+
+      // Clear shared preferences keys
+      await prefs.remove('inventory_last_sync_$garageId');
+      await prefs.remove('inventory_updatedAt_repaired_$garageId');
+      await prefs.remove('inventory_sync_date_$garageId');
+      await prefs.remove('inventory_sync_daily_count_$garageId');
+      await prefs.remove('inventory_sync_last_doc_id_$garageId');
+      await prefs.remove('inventory_sync_total_synced_$garageId');
+      await prefs.remove('inventory_last_orphan_check_$garageId');
+      await prefs.remove('inventory_orphan_check_last_doc_id_$garageId');
+
+      // Clear local database rows for this garage
+      final db = await BillingDatabase.instance.database;
+      await db.delete('inventory', where: 'garage_id = ?', whereArgs: [garageId]);
+
+      // Re-trigger sync
       await _repo.syncFromFirestore(
         prefs,
         onProgress: (count) {

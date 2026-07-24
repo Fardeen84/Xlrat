@@ -60,6 +60,7 @@ class InventoryRepository {
           'name_lower': toSave.name.toLowerCase(),
           'sku_lower': toSave.sku.toLowerCase(),
           'category_lower': toSave.category.toLowerCase(),
+          'garage_id': garageId,
         },
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
@@ -76,7 +77,7 @@ class InventoryRepository {
   Future<InventoryItem?> getItem(String id) async {
     // Read from SQLite first
     final db = await BillingDatabase.instance.database;
-    final rows = await db.query('inventory', where: 'id = ?', whereArgs: [id]);
+    final rows = await db.query('inventory', where: 'id = ? AND garage_id = ?', whereArgs: [id, garageId]);
     if (rows.isNotEmpty) {
       return InventoryItem.fromMap(rows.first);
     }
@@ -87,9 +88,22 @@ class InventoryRepository {
     return InventoryItem.fromMap(doc.data()!..['id'] = doc.id);
   }
 
+  Future<InventoryItem?> findByName(String name) async {
+    final db = await BillingDatabase.instance.database;
+    final rows = await db.query(
+      'inventory',
+      where: 'name_lower = ? AND garage_id = ? AND is_deleted = 0',
+      whereArgs: [name.trim().toLowerCase(), garageId],
+    );
+    if (rows.isNotEmpty) {
+      return InventoryItem.fromMap(rows.first);
+    }
+    return null;
+  }
+
   Future<List<InventoryItem>> getLocalItems() async {
     final db = await BillingDatabase.instance.database;
-    final rows = await db.query('inventory', where: 'is_deleted = 0', orderBy: 'name ASC');
+    final rows = await db.query('inventory', where: 'is_deleted = 0 AND garage_id = ?', whereArgs: [garageId], orderBy: 'name ASC');
     return rows.map((row) => InventoryItem.fromMap(row)).toList();
   }
 
@@ -100,8 +114,8 @@ class InventoryRepository {
     final q = '%${query.trim().toLowerCase()}%';
     final rows = await db.query(
       'inventory',
-      where: 'is_deleted = 0 AND (name_lower LIKE ? OR sku_lower LIKE ? OR category_lower LIKE ?)',
-      whereArgs: [q, q, q],
+      where: 'is_deleted = 0 AND garage_id = ? AND (name_lower LIKE ? OR sku_lower LIKE ? OR category_lower LIKE ?)',
+      whereArgs: [garageId, q, q, q],
       orderBy: 'name ASC',
     );
     return rows.map((row) => InventoryItem.fromMap(row)).toList();
@@ -131,6 +145,19 @@ class InventoryRepository {
 
       // Write to local SQLite
       final db = await BillingDatabase.instance.database;
+      final existing = await db.query(
+        'inventory',
+        columns: ['garage_id'],
+        where: 'id = ?',
+        whereArgs: [toSave.id],
+      );
+      if (existing.isNotEmpty) {
+        final existingGarageId = existing.first['garage_id'] as String? ?? '';
+        if (existingGarageId.isNotEmpty && existingGarageId != garageId) {
+          // Do not overwrite other garage's item.
+          return toSave;
+        }
+      }
       await db.insert(
         'inventory',
         {
@@ -150,6 +177,7 @@ class InventoryRepository {
           'name_lower': toSave.name.toLowerCase(),
           'sku_lower': toSave.sku.toLowerCase(),
           'category_lower': toSave.category.toLowerCase(),
+          'garage_id': garageId,
         },
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
@@ -183,8 +211,8 @@ class InventoryRepository {
           'stock': newStock,
           'updated_at': now.millisecondsSinceEpoch,
         },
-        where: 'id = ?',
-        whereArgs: [id],
+        where: 'id = ? AND garage_id = ?',
+        whereArgs: [id, garageId],
       );
     } catch (e) {
       onWriteError?.call(e.toString());
@@ -201,7 +229,7 @@ class InventoryRepository {
 
       // Delete from SQLite
       final db = await BillingDatabase.instance.database;
-      await db.delete('inventory', where: 'id = ?', whereArgs: [id]);
+      await db.delete('inventory', where: 'id = ? AND garage_id = ?', whereArgs: [id, garageId]);
     } catch (e) {
       onWriteError?.call(e.toString());
       rethrow;
@@ -263,8 +291,26 @@ class InventoryRepository {
           break;
         }
 
+        // Clarification B: collect all the doc IDs first and query their existing garage_id
+        final ids = snap.docs.map((d) => d.id).toList();
+        final placeholders = List.filled(ids.length, '?').join(',');
+        final existingRows = await db.query(
+          'inventory',
+          columns: ['id', 'garage_id'],
+          where: 'id IN ($placeholders)',
+          whereArgs: ids,
+        );
+        final existingMap = {
+          for (final row in existingRows)
+            row['id'] as String: row['garage_id'] as String? ?? ''
+        };
+
         final batch = db.batch();
         for (final doc in snap.docs) {
+          final existingGarageId = existingMap[doc.id];
+          if (existingGarageId != null && existingGarageId.isNotEmpty && existingGarageId != garageId) {
+            continue;
+          }
           final item = InventoryItem.fromMap(doc.data()..['id'] = doc.id);
           _insertItemToBatch(batch, item);
         }
@@ -289,7 +335,7 @@ class InventoryRepository {
 
       if (!hasMore) {
         // Find maximum updatedAt from local database (Fix 4)
-        final maxRow = await db.rawQuery('SELECT MAX(updated_at) as maxVal FROM inventory');
+        final maxRow = await db.rawQuery('SELECT MAX(updated_at) as maxVal FROM inventory WHERE garage_id = ?', [garageId]);
         final maxVal = maxRow.first['maxVal'] as int? ?? 0;
         await prefs.setInt(lastSyncKey, maxVal > 0 ? maxVal : DateTime.now().millisecondsSinceEpoch);
 
@@ -302,13 +348,7 @@ class InventoryRepository {
       return totalSynced;
     } else {
       // Fix 6: One-time repair scan for legacy docs that are missing the
-      // 'updatedAt' field entirely. Firestore query filters (isGreaterThan,
-      // isEqualTo, isNull, orderBy, etc.) ALL silently exclude documents where
-      // the filtered field doesn't exist on the document at all — there is no
-      // query that can find them. The only way is a full, unfiltered scan,
-      // which we do exactly once (tracked via a prefs flag) and use to
-      // backfill 'updatedAt' on Firestore so future delta syncs pick these
-      // docs up naturally.
+      // 'updatedAt' field entirely.
       final repairFlagKey = 'inventory_updatedAt_repaired_$garageId';
       final alreadyRepaired = prefs.getBool(repairFlagKey) ?? false;
       int repairedCount = 0;
@@ -317,11 +357,30 @@ class InventoryRepository {
         final allSnap = await _collection.get();
 
         if (allSnap.docs.isNotEmpty) {
+          // Clarification B check
+          final ids = allSnap.docs.map((d) => d.id).toList();
+          final placeholders = List.filled(ids.length, '?').join(',');
+          final existingRows = await db.query(
+            'inventory',
+            columns: ['id', 'garage_id'],
+            where: 'id IN ($placeholders)',
+            whereArgs: ids,
+          );
+          final existingMap = {
+            for (final row in existingRows)
+              row['id'] as String: row['garage_id'] as String? ?? ''
+          };
+
           final repairDbBatch = db.batch();
           WriteBatch? fsBatch;
           int fsWrites = 0;
 
           for (final doc in allSnap.docs) {
+            final existingGarageId = existingMap[doc.id];
+            if (existingGarageId != null && existingGarageId.isNotEmpty && existingGarageId != garageId) {
+              continue;
+            }
+
             final data = doc.data();
 
             if (!data.containsKey('updatedAt')) {
@@ -347,27 +406,139 @@ class InventoryRepository {
       // Subsequent delta sync (Fix 4)
       Query<Map<String, dynamic>> query = _collection.where('updatedAt', isGreaterThan: Timestamp.fromDate(lastSyncDateTime));
       final snap = await query.get();
-      if (snap.docs.isEmpty) {
-        return repairedCount;
+      int deltaCount = 0;
+      if (snap.docs.isNotEmpty) {
+        // Clarification B check
+        final ids = snap.docs.map((d) => d.id).toList();
+        final placeholders = List.filled(ids.length, '?').join(',');
+        final existingRows = await db.query(
+          'inventory',
+          columns: ['id', 'garage_id'],
+          where: 'id IN ($placeholders)',
+          whereArgs: ids,
+        );
+        final existingMap = {
+          for (final row in existingRows)
+            row['id'] as String: row['garage_id'] as String? ?? ''
+        };
+
+        final batch = db.batch();
+        DateTime maxUpdatedAt = lastSyncDateTime;
+
+        for (final doc in snap.docs) {
+          final existingGarageId = existingMap[doc.id];
+          if (existingGarageId != null && existingGarageId.isNotEmpty && existingGarageId != garageId) {
+            continue;
+          }
+          final item = InventoryItem.fromMap(doc.data()..['id'] = doc.id);
+          _insertItemToBatch(batch, item);
+          deltaCount++;
+
+          if (item.updatedAt != null && item.updatedAt!.isAfter(maxUpdatedAt)) {
+            maxUpdatedAt = item.updatedAt!;
+          }
+        }
+
+        await batch.commit(noResult: true);
+
+        // Persist maximum batch-derived updatedAt timestamp (Fix 4)
+        await prefs.setInt(lastSyncKey, maxUpdatedAt.millisecondsSinceEpoch);
       }
 
-      final batch = db.batch();
-      DateTime maxUpdatedAt = lastSyncDateTime;
+      // Periodic & resumable orphan check (Clarification C)
+      int orphanSyncedCount = 0;
+      final now = DateTime.now();
+      final lastOrphanCheckKey = 'inventory_last_orphan_check_$garageId';
+      final resumeDocIdKey = 'inventory_orphan_check_last_doc_id_$garageId';
 
-      for (final doc in snap.docs) {
-        final item = InventoryItem.fromMap(doc.data()..['id'] = doc.id);
-        _insertItemToBatch(batch, item);
+      final lastOrphanCheckMs = prefs.getInt(lastOrphanCheckKey) ?? 0;
+      final resumeDocId = prefs.getString(resumeDocIdKey) ?? '';
 
-        if (item.updatedAt != null && item.updatedAt!.isAfter(maxUpdatedAt)) {
-          maxUpdatedAt = item.updatedAt!;
+      bool shouldRunOrphanCheck = false;
+      if (resumeDocId.isNotEmpty) {
+        // Continue the scan regardless of the 24-hour gate
+        shouldRunOrphanCheck = true;
+      } else {
+        // Only start a new scan if 24 hours have elapsed
+        if (now.millisecondsSinceEpoch - lastOrphanCheckMs >= 24 * 60 * 60 * 1000) {
+          shouldRunOrphanCheck = true;
         }
       }
 
-      await batch.commit(noResult: true);
+      if (shouldRunOrphanCheck) {
+        Query<Map<String, dynamic>> orphanQuery = _collection.orderBy(FieldPath.documentId);
+        if (resumeDocId.isNotEmpty) {
+          final resumeDocSnap = await _collection.doc(resumeDocId).get();
+          if (resumeDocSnap.exists) {
+            orphanQuery = orphanQuery.startAfterDocument(resumeDocSnap);
+          }
+        }
+        orphanQuery = orphanQuery.limit(1000);
 
-      // Persist maximum batch-derived updatedAt timestamp (Fix 4)
-      await prefs.setInt(lastSyncKey, maxUpdatedAt.millisecondsSinceEpoch);
-      return repairedCount + snap.docs.length;
+        final orphanSnap = await orphanQuery.get();
+        if (orphanSnap.docs.isNotEmpty) {
+          final ids = orphanSnap.docs.map((d) => d.id).toList();
+          final placeholders = List.filled(ids.length, '?').join(',');
+          final existingRows = await db.query(
+            'inventory',
+            columns: ['id', 'garage_id'],
+            where: 'id IN ($placeholders)',
+            whereArgs: ids,
+          );
+          final existingMap = {
+            for (final row in existingRows)
+              row['id'] as String: row['garage_id'] as String? ?? ''
+          };
+
+          final dbBatch = db.batch();
+          WriteBatch? fsBatch;
+          int fsWrites = 0;
+
+          for (final doc in orphanSnap.docs) {
+            final existingGarageId = existingMap[doc.id];
+            if (existingGarageId != null && existingGarageId.isNotEmpty && existingGarageId != garageId) {
+              continue;
+            }
+
+            final data = doc.data();
+            if (!data.containsKey('updatedAt')) {
+              fsBatch ??= _firestore.batch();
+              fsBatch.update(doc.reference, {'updatedAt': FieldValue.serverTimestamp()});
+              fsWrites++;
+              if (fsWrites >= 500) {
+                await fsBatch.commit();
+                fsBatch = _firestore.batch();
+                fsWrites = 0;
+              }
+            }
+
+            final item = InventoryItem.fromMap({...data, 'id': doc.id});
+            _insertItemToBatch(dbBatch, item);
+            orphanSyncedCount++;
+          }
+
+          if (fsBatch != null && fsWrites > 0) {
+            await fsBatch.commit();
+          }
+          await dbBatch.commit(noResult: true);
+
+          // Update progress cursors
+          if (orphanSnap.docs.length < 1000) {
+            // Finished full scan
+            await prefs.setInt(lastOrphanCheckKey, now.millisecondsSinceEpoch);
+            await prefs.remove(resumeDocIdKey);
+          } else {
+            // Save last doc ID for next cycle
+            await prefs.setString(resumeDocIdKey, orphanSnap.docs.last.id);
+          }
+        } else {
+          // Finished scan (empty)
+          await prefs.setInt(lastOrphanCheckKey, now.millisecondsSinceEpoch);
+          await prefs.remove(resumeDocIdKey);
+        }
+      }
+
+      return repairedCount + deltaCount + orphanSyncedCount;
     }
   }
 
@@ -391,6 +562,7 @@ class InventoryRepository {
         'name_lower': item.name.toLowerCase(),
         'sku_lower': item.sku.toLowerCase(),
         'category_lower': item.category.toLowerCase(),
+        'garage_id': garageId,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );

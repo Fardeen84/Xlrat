@@ -64,15 +64,19 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
     });
   }
 
+  Future<void> _handleRefresh() async {
+    await ref.read(inventoryListStateProvider.notifier).resyncAll();
+  }
+
   String _generateSku(String category) {
     final prefix = category.trim().isNotEmpty
         ? category
-              .trim()
-              .substring(
-                0,
-                category.trim().length >= 3 ? 3 : category.trim().length,
-              )
-              .toUpperCase()
+        .trim()
+        .substring(
+      0,
+      category.trim().length >= 3 ? 3 : category.trim().length,
+    )
+        .toUpperCase()
         : 'PRT';
     final suffix = DateTime.now().millisecondsSinceEpoch.toString().substring(
       7,
@@ -81,9 +85,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   }
 
   List<InventoryItem> _getFilteredAndSortedItems(
-    List<InventoryItem> items,
-    List<InventoryItem> lowStock,
-  ) {
+      List<InventoryItem> items,
+      List<InventoryItem> lowStock,
+      ) {
     List<InventoryItem> displayList = _selectedTab == 0
         ? items
         : items.where((i) => i.isLowStock).toList();
@@ -135,6 +139,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   }
 
   void _showAddPartDialog(BuildContext context) {
+    final screenContext = context;
     final nameCtrl = TextEditingController();
     final skuCtrl = TextEditingController();
     final categoryCtrl = TextEditingController();
@@ -171,12 +176,6 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       : null,
                 ),
                 const SizedBox(height: 8),
-                // TextFormField(
-                //   controller: skuCtrl,
-                //   decoration: InputDecoration(labelText: 'SKU (Optional)', labelStyle: TextStyle(color: kMutedForeground)),
-                //   style: TextStyle(color: kForeground),
-                // ),
-                // const SizedBox(height: 8),
                 TextFormField(
                   controller: categoryCtrl,
                   decoration: InputDecoration(
@@ -201,7 +200,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                         keyboardType: TextInputType.number,
                         style: TextStyle(color: kForeground),
                         validator: (value) =>
-                            (value == null || int.tryParse(value) == null)
+                        (value == null || int.tryParse(value) == null)
                             ? 'Invalid'
                             : null,
                       ),
@@ -232,7 +231,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                         keyboardType: TextInputType.number,
                         style: TextStyle(color: kForeground),
                         validator: (value) =>
-                            (value == null || int.tryParse(value) == null)
+                        (value == null || int.tryParse(value) == null)
                             ? 'Invalid'
                             : null,
                       ),
@@ -248,7 +247,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                         keyboardType: TextInputType.number,
                         style: TextStyle(color: kForeground),
                         validator: (value) =>
-                            (value == null || int.tryParse(value) == null)
+                        (value == null || int.tryParse(value) == null)
                             ? 'Invalid'
                             : null,
                       ),
@@ -265,7 +264,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                   keyboardType: TextInputType.number,
                   style: TextStyle(color: kForeground),
                   validator: (value) =>
-                      (value == null || int.tryParse(value) == null)
+                  (value == null || int.tryParse(value) == null)
                       ? 'Invalid'
                       : null,
                 ),
@@ -282,8 +281,48 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
             onPressed: () async {
               if (formKey.currentState!.validate()) {
+                final name = nameCtrl.text.trim();
+                final existing = await ref.read(inventoryRepositoryProvider).findByName(name);
+                if (existing != null) {
+                  if (context.mounted) {
+                    showDialog(
+                      context: context,
+                      builder: (warningContext) => AlertDialog(
+                        backgroundColor: kCard,
+                        title: Text(
+                          'Duplicate Item',
+                          style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
+                        ),
+                        content: Text(
+                          "An item named '$name' already exists. Do you want to update its stock instead, or use a different name?",
+                          style: TextStyle(color: kForeground),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(warningContext),
+                            child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: kPrimary,
+                              foregroundColor: kPrimaryDark,
+                            ),
+                            onPressed: () {
+                              Navigator.pop(warningContext);
+                              Navigator.pop(context);
+                              _showAdjustStockDialog(screenContext, existing, true);
+                            },
+                            child: const Text('Update Stock'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  return;
+                }
+
                 final newItem = InventoryItem(
-                  name: nameCtrl.text.trim(),
+                  name: name,
                   category: categoryCtrl.text.trim(),
                   stock: int.parse(stockCtrl.text.trim()),
                   unit: unitCtrl.text.trim().isNotEmpty
@@ -310,10 +349,10 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   }
 
   void _showAdjustStockDialog(
-    BuildContext context,
-    InventoryItem item,
-    bool isAddition,
-  ) {
+      BuildContext context,
+      InventoryItem item,
+      bool isAddition,
+      ) {
     final qtyCtrl = TextEditingController(text: '1');
     final formKey = GlobalKey<FormState>();
 
@@ -378,9 +417,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                             contentPadding: EdgeInsets.zero,
                           ),
                           validator: (value) =>
-                              (value == null ||
-                                  int.tryParse(value) == null ||
-                                  int.parse(value) <= 0)
+                          (value == null ||
+                              int.tryParse(value) == null ||
+                              int.parse(value) <= 0)
                               ? 'Invalid'
                               : null,
                         ),
@@ -409,22 +448,22 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                     children: [5, 10, 20]
                         .map(
                           (step) => OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                            ),
-                            onPressed: () {
-                              final current = getQty();
-                              setStateDialog(() => setQty(current + step));
-                            },
-                            child: Text('+$step'),
+                        style: OutlinedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                        )
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                        ),
+                        onPressed: () {
+                          final current = getQty();
+                          setStateDialog(() => setQty(current + step));
+                        },
+                        child: Text('+$step'),
+                      ),
+                    )
                         .toList(),
                   ),
                   if (!isAddition) ...[
@@ -490,6 +529,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
   }
 
   void _showEditPartDialog(BuildContext context, InventoryItem item) {
+    final screenContext = context;
     final nameCtrl = TextEditingController(text: item.name);
     final skuCtrl = TextEditingController(text: item.sku);
     final categoryCtrl = TextEditingController(text: item.category);
@@ -559,7 +599,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                         keyboardType: TextInputType.number,
                         style: TextStyle(color: kForeground),
                         validator: (value) =>
-                            (value == null || int.tryParse(value) == null)
+                        (value == null || int.tryParse(value) == null)
                             ? 'Invalid'
                             : null,
                       ),
@@ -590,7 +630,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                         keyboardType: TextInputType.number,
                         style: TextStyle(color: kForeground),
                         validator: (value) =>
-                            (value == null || int.tryParse(value) == null)
+                        (value == null || int.tryParse(value) == null)
                             ? 'Invalid'
                             : null,
                       ),
@@ -606,7 +646,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                         keyboardType: TextInputType.number,
                         style: TextStyle(color: kForeground),
                         validator: (value) =>
-                            (value == null || int.tryParse(value) == null)
+                        (value == null || int.tryParse(value) == null)
                             ? 'Invalid'
                             : null,
                       ),
@@ -623,7 +663,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                   keyboardType: TextInputType.number,
                   style: TextStyle(color: kForeground),
                   validator: (value) =>
-                      (value == null || int.tryParse(value) == null)
+                  (value == null || int.tryParse(value) == null)
                       ? 'Invalid'
                       : null,
                 ),
@@ -640,8 +680,48 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
             onPressed: () async {
               if (formKey.currentState!.validate()) {
+                final name = nameCtrl.text.trim();
+                final existing = await ref.read(inventoryRepositoryProvider).findByName(name);
+                if (existing != null && existing.id != item.id) {
+                  if (context.mounted) {
+                    showDialog(
+                      context: context,
+                      builder: (warningContext) => AlertDialog(
+                        backgroundColor: kCard,
+                        title: Text(
+                          'Duplicate Item',
+                          style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
+                        ),
+                        content: Text(
+                          "An item named '$name' already exists. Do you want to update its stock instead, or use a different name?",
+                          style: TextStyle(color: kForeground),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(warningContext),
+                            child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: kPrimary,
+                              foregroundColor: kPrimaryDark,
+                            ),
+                            onPressed: () {
+                              Navigator.pop(warningContext);
+                              Navigator.pop(context);
+                              _showAdjustStockDialog(screenContext, existing, true);
+                            },
+                            child: const Text('Update Stock'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  return;
+                }
+
                 final updatedItem = item.copyWith(
-                  name: nameCtrl.text.trim(),
+                  name: name,
                   category: categoryCtrl.text.trim(),
                   stock: int.parse(stockCtrl.text.trim()),
                   unit: unitCtrl.text.trim().isNotEmpty
@@ -765,11 +845,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
   // ── PC Mode Layout (Data Table View) ───────────────────────────────────────
   Widget _buildPCLayout(
-    BuildContext context,
-    AsyncValue<List<InventoryItem>> itemsAsync,
-    AsyncValue<List<InventoryItem>> lowStockItemsAsync,
-    InventoryState inventoryState,
-  ) {
+      BuildContext context,
+      AsyncValue<List<InventoryItem>> itemsAsync,
+      AsyncValue<List<InventoryItem>> lowStockItemsAsync,
+      InventoryState inventoryState,
+      ) {
     final items = itemsAsync.value ?? [];
     final lowStockItems = lowStockItemsAsync.value ?? [];
     final displayItems = _getFilteredAndSortedItems(items, lowStockItems);
@@ -796,30 +876,34 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                         color: kForeground,
                       ),
                     ),
-                    ElevatedButton.icon(
-                      onPressed: () => _showAddPartDialog(context),
-                      icon: const Icon(
-                        Icons.add_rounded,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                      label: Text(
-                        AppLocalizations.of(context)!.inventoryAddPart,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                    Row(
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () => _showAddPartDialog(context),
+                          icon: const Icon(
+                            Icons.add_rounded,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                          label: Text(
+                            AppLocalizations.of(context)!.inventoryAddPart,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: kPrimary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
                         ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: kPrimary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                      ),
+                      ],
                     ),
                   ],
                 ),
@@ -869,7 +953,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
               builder: (context, constraints) {
                 return itemsAsync.when(
                   loading: () =>
-                      const Center(child: CircularProgressIndicator()),
+                  const Center(child: CircularProgressIndicator()),
                   error: (err, stack) => Center(
                     child: Text(
                       'Error: $err',
@@ -877,326 +961,319 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                     ),
                   ),
                   data: (items) {
-                    return lowStockItemsAsync.when(
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
-                      error: (err, stack) => Center(
-                        child: Text(
-                          'Error: $err',
-                          style: const TextStyle(color: kRed),
-                        ),
-                      ),
-                      data: (lowStockItems) {
-                        final displayItems = _getFilteredAndSortedItems(
-                          items,
-                          lowStockItems,
-                        );
-                        return SingleChildScrollView(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            children: [
-                              Container(
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  color: kCard,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: kBorder,
-                                    width: 0.8,
-                                  ),
+                    final lowStockItems = lowStockItemsAsync.value ?? [];
+                    final displayItems = _getFilteredAndSortedItems(
+                      items,
+                      lowStockItems,
+                    );
+                    return RefreshIndicator(
+                      onRefresh: _handleRefresh,
+                      child: SingleChildScrollView(
+                        controller: _scrollController,
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          children: [
+                            Container(
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: kCard,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: kBorder,
+                                  width: 0.8,
                                 ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: Theme(
-                                    data: Theme.of(
-                                      context,
-                                    ).copyWith(dividerColor: kBorder),
-                                    child: SingleChildScrollView(
-                                      scrollDirection: Axis.horizontal,
-                                      child: ConstrainedBox(
-                                        constraints: BoxConstraints(
-                                          minWidth: constraints.maxWidth - 48,
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Theme(
+                                  data: Theme.of(
+                                    context,
+                                  ).copyWith(dividerColor: kBorder),
+                                  child: SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: ConstrainedBox(
+                                      constraints: BoxConstraints(
+                                        minWidth: constraints.maxWidth - 48,
+                                      ),
+                                      child: DataTable(
+                                        showCheckboxColumn: false,
+                                        headingRowColor:
+                                        WidgetStateProperty.all(
+                                          kMuted.withOpacity(0.4),
                                         ),
-                                        child: DataTable(
-                                          showCheckboxColumn: false,
-                                          headingRowColor:
-                                              WidgetStateProperty.all(
-                                                kMuted.withOpacity(0.4),
-                                              ),
-                                          headingTextStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: kForeground,
+                                        headingTextStyle: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: kForeground,
+                                        ),
+                                        columnSpacing: 32,
+                                        sortColumnIndex: _sortColumnIndex,
+                                        sortAscending: _sortAscending,
+                                        columns: [
+                                          DataColumn(
+                                            label: Text(
+                                              AppLocalizations.of(
+                                                context,
+                                              )!.inventoryColName,
+                                            ),
+                                            onSort: (index, asc) =>
+                                                _setSort(index, asc),
                                           ),
-                                          columnSpacing: 32,
-                                          sortColumnIndex: _sortColumnIndex,
-                                          sortAscending: _sortAscending,
-                                          columns: [
-                                            DataColumn(
-                                              label: Text(
-                                                AppLocalizations.of(
-                                                  context,
-                                                )!.inventoryColName,
-                                              ),
-                                              onSort: (index, asc) =>
-                                                  _setSort(index, asc),
+                                          DataColumn(
+                                            label: Text(
+                                              AppLocalizations.of(
+                                                context,
+                                              )!.inventoryColSku,
                                             ),
-                                            DataColumn(
-                                              label: Text(
-                                                AppLocalizations.of(
-                                                  context,
-                                                )!.inventoryColSku,
-                                              ),
-                                              onSort: (index, asc) =>
-                                                  _setSort(index, asc),
+                                            onSort: (index, asc) =>
+                                                _setSort(index, asc),
+                                          ),
+                                          DataColumn(
+                                            label: Text(
+                                              AppLocalizations.of(
+                                                context,
+                                              )!.inventoryColCategory,
                                             ),
-                                            DataColumn(
-                                              label: Text(
-                                                AppLocalizations.of(
-                                                  context,
-                                                )!.inventoryColCategory,
-                                              ),
-                                              onSort: (index, asc) =>
-                                                  _setSort(index, asc),
+                                            onSort: (index, asc) =>
+                                                _setSort(index, asc),
+                                          ),
+                                          DataColumn(
+                                            label: Text(
+                                              AppLocalizations.of(
+                                                context,
+                                              )!.inventoryColPurchase,
                                             ),
-                                            DataColumn(
-                                              label: Text(
-                                                AppLocalizations.of(
-                                                  context,
-                                                )!.inventoryColPurchase,
-                                              ),
-                                              numeric: true,
-                                              onSort: (index, asc) =>
-                                                  _setSort(index, asc),
+                                            numeric: true,
+                                            onSort: (index, asc) =>
+                                                _setSort(index, asc),
+                                          ),
+                                          DataColumn(
+                                            label: Text(
+                                              AppLocalizations.of(
+                                                context,
+                                              )!.inventoryColSelling,
                                             ),
-                                            DataColumn(
-                                              label: Text(
-                                                AppLocalizations.of(
-                                                  context,
-                                                )!.inventoryColSelling,
-                                              ),
-                                              numeric: true,
-                                              onSort: (index, asc) =>
-                                                  _setSort(index, asc),
+                                            numeric: true,
+                                            onSort: (index, asc) =>
+                                                _setSort(index, asc),
+                                          ),
+                                          DataColumn(
+                                            label: Text(
+                                              AppLocalizations.of(
+                                                context,
+                                              )!.inventoryColStock,
                                             ),
-                                            DataColumn(
-                                              label: Text(
-                                                AppLocalizations.of(
-                                                  context,
-                                                )!.inventoryColStock,
-                                              ),
-                                              onSort: (index, asc) =>
-                                                  _setSort(index, asc),
+                                            onSort: (index, asc) =>
+                                                _setSort(index, asc),
+                                          ),
+                                          DataColumn(
+                                            label: Text(
+                                              AppLocalizations.of(
+                                                context,
+                                              )!.inventoryColMinStock,
                                             ),
-                                            DataColumn(
-                                              label: Text(
-                                                AppLocalizations.of(
-                                                  context,
-                                                )!.inventoryColMinStock,
-                                              ),
-                                              numeric: true,
-                                              onSort: (index, asc) =>
-                                                  _setSort(index, asc),
+                                            numeric: true,
+                                            onSort: (index, asc) =>
+                                                _setSort(index, asc),
+                                          ),
+                                          DataColumn(
+                                            label: Text(
+                                              AppLocalizations.of(
+                                                context,
+                                              )!.inventoryColActions,
                                             ),
-                                            DataColumn(
-                                              label: Text(
-                                                AppLocalizations.of(
-                                                  context,
-                                                )!.inventoryColActions,
-                                              ),
-                                            ),
-                                          ],
-                                          rows: displayItems.map((item) {
-                                            return DataRow(
-                                              cells: [
-                                                DataCell(
-                                                  SizedBox(
-                                                    width: 220,
-                                                    child: Row(
-                                                      children: [
-                                                        Icon(
-                                                          Icons
-                                                              .inventory_2_rounded,
-                                                          size: 16,
-                                                          color: item.isLowStock
-                                                              ? kRed
-                                                              : kPrimary,
-                                                        ),
-                                                        const SizedBox(
-                                                          width: 8,
-                                                        ),
-                                                        Expanded(
-                                                          child: Text(
-                                                            item.name,
-                                                            style:
-                                                                const TextStyle(
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w600,
-                                                                ),
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .ellipsis,
-                                                            maxLines: 1,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                                DataCell(Text(item.sku)),
-                                                DataCell(Text(item.category)),
-                                                DataCell(
-                                                  Text(
-                                                    formatCurrency(
-                                                      item.purchase,
-                                                    ),
-                                                  ),
-                                                ),
-                                                DataCell(
-                                                  Text(
-                                                    formatCurrency(
-                                                      item.selling,
-                                                    ),
-                                                  ),
-                                                ),
-                                                DataCell(
-                                                  Container(
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal: 8,
-                                                          vertical: 4,
-                                                        ),
-                                                    decoration: BoxDecoration(
-                                                      color: item.isLowStock
-                                                          ? kRed.withOpacity(
-                                                              0.1,
-                                                            )
-                                                          : Colors.transparent,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            6,
-                                                          ),
-                                                    ),
-                                                    child: Text(
-                                                      '${item.stock} ${item.unit}',
-                                                      style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
+                                          ),
+                                        ],
+                                        rows: displayItems.map((item) {
+                                          return DataRow(
+                                            cells: [
+                                              DataCell(
+                                                SizedBox(
+                                                  width: 220,
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(
+                                                        Icons
+                                                            .inventory_2_rounded,
+                                                        size: 16,
                                                         color: item.isLowStock
                                                             ? kRed
-                                                            : kForeground,
+                                                            : kPrimary,
                                                       ),
-                                                    ),
-                                                  ),
-                                                ),
-                                                DataCell(
-                                                  Text(
-                                                    '${item.minStock} ${item.unit}',
-                                                  ),
-                                                ),
-                                                DataCell(
-                                                  Row(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    children: [
-                                                      IconButton(
-                                                        icon: const Icon(
-                                                          Icons
-                                                              .add_circle_outline_rounded,
-                                                          size: 18,
-                                                          color: kPrimary,
-                                                        ),
-                                                        onPressed: () =>
-                                                            _showAdjustStockDialog(
-                                                              context,
-                                                              item,
-                                                              true,
-                                                            ),
-                                                        tooltip: 'Add Stock',
+                                                      const SizedBox(
+                                                        width: 8,
                                                       ),
-                                                      IconButton(
-                                                        icon: Icon(
-                                                          Icons
-                                                              .remove_circle_outline_rounded,
-                                                          size: 18,
-                                                          color:
-                                                              kMutedForeground,
+                                                      Expanded(
+                                                        child: Text(
+                                                          item.name,
+                                                          style:
+                                                          const TextStyle(
+                                                            fontWeight:
+                                                            FontWeight
+                                                                .w600,
+                                                          ),
+                                                          overflow:
+                                                          TextOverflow
+                                                              .ellipsis,
+                                                          maxLines: 1,
                                                         ),
-                                                        onPressed: () =>
-                                                            _showAdjustStockDialog(
-                                                              context,
-                                                              item,
-                                                              false,
-                                                            ),
-                                                        tooltip: 'Deduct Stock',
-                                                      ),
-                                                      IconButton(
-                                                        icon: Icon(
-                                                          Icons.edit_rounded,
-                                                          size: 18,
-                                                          color:
-                                                              kMutedForeground,
-                                                        ),
-                                                        onPressed: () =>
-                                                            _showEditPartDialog(
-                                                              context,
-                                                              item,
-                                                            ),
-                                                        tooltip: 'Edit Part',
-                                                      ),
-                                                      IconButton(
-                                                        icon: const Icon(
-                                                          Icons
-                                                              .delete_outline_rounded,
-                                                          size: 18,
-                                                          color: kRed,
-                                                        ),
-                                                        onPressed: () =>
-                                                            _showDeleteConfirmDialog(
-                                                              context,
-                                                              item,
-                                                            ),
-                                                        tooltip: 'Delete Part',
                                                       ),
                                                     ],
                                                   ),
                                                 ),
-                                              ],
-                                            );
-                                          }).toList(),
-                                        ),
+                                              ),
+                                              DataCell(Text(item.sku)),
+                                              DataCell(Text(item.category)),
+                                              DataCell(
+                                                Text(
+                                                  formatCurrency(
+                                                    item.purchase,
+                                                  ),
+                                                ),
+                                              ),
+                                              DataCell(
+                                                Text(
+                                                  formatCurrency(
+                                                    item.selling,
+                                                  ),
+                                                ),
+                                              ),
+                                              DataCell(
+                                                Container(
+                                                  padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 4,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: item.isLowStock
+                                                        ? kRed.withOpacity(
+                                                      0.1,
+                                                    )
+                                                        : Colors.transparent,
+                                                    borderRadius:
+                                                    BorderRadius.circular(
+                                                      6,
+                                                    ),
+                                                  ),
+                                                  child: Text(
+                                                    '${item.stock} ${item.unit}',
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                      FontWeight.bold,
+                                                      color: item.isLowStock
+                                                          ? kRed
+                                                          : kForeground,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              DataCell(
+                                                Text(
+                                                  '${item.minStock} ${item.unit}',
+                                                ),
+                                              ),
+                                              DataCell(
+                                                Row(
+                                                  mainAxisSize:
+                                                  MainAxisSize.min,
+                                                  children: [
+                                                    IconButton(
+                                                      icon: const Icon(
+                                                        Icons
+                                                            .add_circle_outline_rounded,
+                                                        size: 18,
+                                                        color: kPrimary,
+                                                      ),
+                                                      onPressed: () =>
+                                                          _showAdjustStockDialog(
+                                                            context,
+                                                            item,
+                                                            true,
+                                                          ),
+                                                      tooltip: 'Add Stock',
+                                                    ),
+                                                    IconButton(
+                                                      icon: Icon(
+                                                        Icons
+                                                            .remove_circle_outline_rounded,
+                                                        size: 18,
+                                                        color:
+                                                        kMutedForeground,
+                                                      ),
+                                                      onPressed: () =>
+                                                          _showAdjustStockDialog(
+                                                            context,
+                                                            item,
+                                                            false,
+                                                          ),
+                                                      tooltip: 'Deduct Stock',
+                                                    ),
+                                                    IconButton(
+                                                      icon: Icon(
+                                                        Icons.edit_rounded,
+                                                        size: 18,
+                                                        color:
+                                                        kMutedForeground,
+                                                      ),
+                                                      onPressed: () =>
+                                                          _showEditPartDialog(
+                                                            context,
+                                                            item,
+                                                          ),
+                                                      tooltip: 'Edit Part',
+                                                    ),
+                                                    IconButton(
+                                                      icon: const Icon(
+                                                        Icons
+                                                            .delete_outline_rounded,
+                                                        size: 18,
+                                                        color: kRed,
+                                                      ),
+                                                      onPressed: () =>
+                                                          _showDeleteConfirmDialog(
+                                                            context,
+                                                            item,
+                                                          ),
+                                                      tooltip: 'Delete Part',
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        }).toList(),
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
-                              if (inventoryState.hasMore) ...[
-                                const SizedBox(height: 24),
-                                if (inventoryState.isLoadMore)
-                                  const Center(
-                                    child: CircularProgressIndicator(),
-                                  )
-                                else
-                                  ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: kPrimary,
-                                    ),
-                                    onPressed: () => ref
-                                        .read(
-                                          inventoryListStateProvider.notifier,
-                                        )
-                                        .loadMore(),
-                                    child: const Text(
-                                      'Load More',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
+                            ),
+                            if (inventoryState.hasMore) ...[
+                              const SizedBox(height: 24),
+                              if (inventoryState.isLoadMore)
+                                const Center(
+                                  child: CircularProgressIndicator(),
+                                )
+                              else
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: kPrimary,
                                   ),
-                              ],
+                                  onPressed: () => ref
+                                      .read(
+                                    inventoryListStateProvider.notifier,
+                                  )
+                                      .loadMore(),
+                                  child: const Text(
+                                    'Load More',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
                             ],
-                          ),
-                        );
-                      },
+                          ],
+                        ),
+                      ),
                     );
                   },
                 );
@@ -1220,12 +1297,12 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
           borderRadius: BorderRadius.circular(8),
           boxShadow: isSelected
               ? [
-                  const BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  ),
-                ]
+            const BoxShadow(
+              color: Colors.black12,
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            ),
+          ]
               : null,
         ),
         child: Row(
@@ -1260,11 +1337,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
   // ── Mobile Mode Layout (List Card View) ────────────────────────────────────
   Widget _buildMobileLayout(
-    BuildContext context,
-    AsyncValue<List<InventoryItem>> itemsAsync,
-    AsyncValue<List<InventoryItem>> lowStockItemsAsync,
-    InventoryState inventoryState,
-  ) {
+      BuildContext context,
+      AsyncValue<List<InventoryItem>> itemsAsync,
+      AsyncValue<List<InventoryItem>> lowStockItemsAsync,
+      InventoryState inventoryState,
+      ) {
     final items = itemsAsync.value ?? [];
     final lowStockItems = lowStockItemsAsync.value ?? [];
     final displayItems = _selectedTab == 0 ? items : lowStockItems;
@@ -1291,15 +1368,20 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      AppLocalizations.of(context)!.inventoryTitle,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: kForeground,
+                    Expanded(
+                      child: Text(
+                        AppLocalizations.of(context)!.inventoryTitle,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: kForeground,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ),
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         PopupMenuButton<int>(
                           icon: Icon(
@@ -1365,94 +1447,87 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                 child: Text('Error: $err', style: const TextStyle(color: kRed)),
               ),
               data: (items) {
-                return lowStockItemsAsync.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (err, stack) => Center(
-                    child: Text(
-                      'Error: $err',
-                      style: const TextStyle(color: kRed),
-                    ),
-                  ),
-                  data: (lowStockItems) {
-                    final displayItems = _selectedTab == 0
-                        ? items
-                        : lowStockItems;
-                    final showLowStockHeader =
-                        _selectedTab == 1 && lowStockItems.isNotEmpty;
+                final lowStockItems = lowStockItemsAsync.value ?? [];
+                final displayItems = _selectedTab == 0
+                    ? items
+                    : lowStockItems;
+                final showLowStockHeader =
+                    _selectedTab == 1 && lowStockItems.isNotEmpty;
 
-                    final int headerCount = showLowStockHeader ? 1 : 0;
-                    final int footerCount = inventoryState.hasMore ? 1 : 0;
-                    final int totalCount =
-                        headerCount + displayItems.length + footerCount;
+                final int headerCount = showLowStockHeader ? 1 : 0;
+                final int footerCount = inventoryState.hasMore ? 1 : 0;
+                final int totalCount =
+                    headerCount + displayItems.length + footerCount;
 
-                    return ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-                      itemCount: totalCount,
-                      itemBuilder: (context, index) {
-                        if (showLowStockHeader && index == 0) {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.shade400,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  '${lowStockItems.length} items below minimum stock',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.red.shade600,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }
-
-                        final itemIndex = index - headerCount;
-
-                        if (itemIndex < displayItems.length) {
-                          final item = displayItems[itemIndex];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: _InventoryCard(
-                              item: item,
-                              onAdjustStock: _showAdjustStockDialog,
-                              onEdit: _showEditPartDialog,
-                              onDelete: _showDeleteConfirmDialog,
-                            ),
-                          );
-                        }
-
-                        if (inventoryState.isLoadMore) {
-                          return const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16),
-                            child: Center(child: CircularProgressIndicator()),
-                          );
-                        }
+                return RefreshIndicator(
+                  onRefresh: _handleRefresh,
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                    itemCount: totalCount,
+                    itemBuilder: (context, index) {
+                      if (showLowStockHeader && index == 0) {
                         return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Center(
-                            child: TextButton(
-                              onPressed: () => ref
-                                  .read(inventoryListStateProvider.notifier)
-                                  .loadMore(),
-                              child: const Text('Load More'),
-                            ),
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: Colors.red.shade400,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                '${lowStockItems.length} items below minimum stock',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.red.shade600,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
                           ),
                         );
-                      },
-                    );
-                  },
+                      }
+
+                      final itemIndex = index - headerCount;
+
+                      if (itemIndex < displayItems.length) {
+                        final item = displayItems[itemIndex];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _InventoryCard(
+                            item: item,
+                            onAdjustStock: _showAdjustStockDialog,
+                            onEdit: _showEditPartDialog,
+                            onDelete: _showDeleteConfirmDialog,
+                          ),
+                        );
+                      }
+
+                      if (inventoryState.isLoadMore) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Center(
+                          child: TextButton(
+                            onPressed: () => ref
+                                .read(inventoryListStateProvider.notifier)
+                                .loadMore(),
+                            child: const Text('Load More'),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 );
               },
             ),

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -24,6 +25,8 @@ import '../screen/navigation_screen/mechanics/MechanicsScreen.dart';
 import '../providers/profile_provider.dart';
 import 'MainShell.dart';
 
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+
 class GoRouterRefreshStream extends ChangeNotifier {
   GoRouterRefreshStream(Ref ref) {
     ref.listen(profileProvider, (previous, next) {
@@ -34,6 +37,7 @@ class GoRouterRefreshStream extends ChangeNotifier {
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/',
     refreshListenable: GoRouterRefreshStream(ref),
     redirect: (context, state) {
@@ -61,81 +65,86 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       // ── Auth / Splash (no bottom nav) ──────────────────────────────────────
       GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
-      GoRoute(path: '/setup-garage', builder: (context, state) => const SetupGarageScreen()),
+      GoRoute(
+        path: '/setup-garage',
+        builder: (context, state) => const SetupGarageScreen(),
+      ),
 
-
-    // ── Main Shell ───────────────────────────────────────────────────────
-    ShellRoute(
-      builder: (context, state, child) => MainShell(child: child),
-      routes: [
-        GoRoute(
-          path: '/dashboard',
-          builder: (context, state) => const DashboardScreen(),
-        ),
-        GoRoute(
-          path: '/customers',
-          builder: (context, state) => const CustomersScreen(),
-        ),
-        GoRoute(path: '/jobs', builder: (context, state) => const JobsScreen()),
-        GoRoute(
-          path: '/inventory',
-          builder: (context, state) => const InventoryScreen(),
-        ),
-        GoRoute(
-          path: '/secondhand-inventory',
-          builder: (context, state) => const SecondHandInventoryScreen(),
-        ),
-        GoRoute(
-          path: '/reports',
-          builder: (context, state) => const ReportsScreen(),
-        ),
-        GoRoute(
-          path: '/profile',
-          builder: (context, state) => const ProfileScreen(),
-        ),
-        GoRoute(
-          path: '/mechanics',
-          builder: (context, state) => const MechanicsScreen(),
-        ),
-        GoRoute(
-          path: '/customer-detail/:id',
-          builder: (context, state) {
-            final customerId = state.pathParameters['id']!;
-            return CustomerDetailScreen(customerId: customerId);
-          },
-        ),
-        GoRoute(
-          path: '/job-detail/:id',
-          builder: (context, state) {
-            final jobId = state.pathParameters['id']!;
-            return JobDetailScreen(jobId: jobId);
-          },
-        ),
-        GoRoute(
-          path: '/new-job',
-          builder: (context, state) => const NewJobScreen(),
-        ),
-        GoRoute(
-          path: '/billing',
-          builder: (context, state) => const BillingScreen(),
-        ),
-        GoRoute(
-          path: '/InvoiceHistory',
-          builder: (context, state) => const InvoiceHistoryScreen(),
-        ),
-        GoRoute(
-          path: '/invoice/:id',
-          builder: (context, state) {
-            final invoiceId = state.pathParameters['id']!;
-            return InvoiceScreen(invoiceId: invoiceId);
-          },
-        ),
-        GoRoute(
-          path: '/notifications',
-          builder: (context, state) => const NotificationsScreen(),
-        ),
-      ],
-    ),
-  ],
-);
+      // ── Main Shell ───────────────────────────────────────────────────────
+      ShellRoute(
+        builder: (context, state, child) => MainShell(child: child),
+        routes: [
+          GoRoute(
+            path: '/dashboard',
+            builder: (context, state) => const DashboardScreen(),
+          ),
+          GoRoute(
+            path: '/customers',
+            builder: (context, state) => const CustomersScreen(),
+          ),
+          GoRoute(
+            path: '/jobs',
+            builder: (context, state) => const JobsScreen(),
+          ),
+          GoRoute(
+            path: '/inventory',
+            builder: (context, state) => const InventoryScreen(),
+          ),
+          GoRoute(
+            path: '/secondhand-inventory',
+            builder: (context, state) => const SecondHandInventoryScreen(),
+          ),
+          GoRoute(
+            path: '/reports',
+            builder: (context, state) => const ReportsScreen(),
+          ),
+          GoRoute(
+            path: '/profile',
+            builder: (context, state) => const ProfileScreen(),
+          ),
+          GoRoute(
+            path: '/mechanics',
+            builder: (context, state) => const MechanicsScreen(),
+          ),
+          GoRoute(
+            path: '/customer-detail/:id',
+            builder: (context, state) {
+              final customerId = state.pathParameters['id']!;
+              return CustomerDetailScreen(customerId: customerId);
+            },
+          ),
+          GoRoute(
+            path: '/job-detail/:id',
+            builder: (context, state) {
+              final jobId = state.pathParameters['id']!;
+              return JobDetailScreen(jobId: jobId);
+            },
+          ),
+          GoRoute(
+            path: '/new-job',
+            builder: (context, state) => const NewJobScreen(),
+          ),
+          GoRoute(
+            path: '/billing',
+            builder: (context, state) => const BillingScreen(),
+          ),
+          GoRoute(
+            path: '/InvoiceHistory',
+            builder: (context, state) => const InvoiceHistoryScreen(),
+          ),
+          GoRoute(
+            path: '/invoice/:id',
+            builder: (context, state) {
+              final invoiceId = state.pathParameters['id']!;
+              return InvoiceScreen(invoiceId: invoiceId);
+            },
+          ),
+          GoRoute(
+            path: '/notifications',
+            builder: (context, state) => const NotificationsScreen(),
+          ),
+        ],
+      ),
+    ],
+  );
 });

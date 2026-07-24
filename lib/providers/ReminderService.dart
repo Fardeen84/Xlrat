@@ -128,8 +128,9 @@ class ReminderService {
       // Cancel all existing scheduled notifications first to avoid duplicates
       await _notificationsPlugin.cancelAll();
 
-      final invoices = await _billingRepository.getInvoices();
       final now = DateTime.now();
+      final cutoff = now.subtract(const Duration(days: 90));
+      final invoices = await _billingRepository.getInvoicesSince(cutoff);
 
       for (final invoice in invoices) {
         final scheduledDate = invoice.invoiceDate.add(const Duration(days: 90));
