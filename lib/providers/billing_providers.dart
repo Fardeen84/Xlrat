@@ -74,6 +74,7 @@ Future<void> _deductInventoryForInvoice(Ref ref, Invoice invoice) async {
 
   for (final item in items) {
     if (item.productId == null) continue;
+    if (item.productSource == 'service') continue;
     if (item.productSource == 'secondhand') {
       final shRepo = ref.read(secondHandInventoryRepositoryProvider);
       final shItem = await shRepo.getItem(item.productId!);

@@ -68,6 +68,7 @@ class InventoryItem {
   Map<String, dynamic> toMap() => {
     if (id != null) 'id': id,
     'name': name,
+    'name_lower': name.toLowerCase(),
     'category': category,
     'stock': stock,
     'unit': unit,

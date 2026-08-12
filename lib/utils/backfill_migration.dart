@@ -124,3 +124,70 @@ Future<void> runOneTimeStatsBackfill(String garageId) async {
     await batch.commit();
   }
 }
+
+/// Backfills name_lower field in garages/{garageId}/inventory, secondhand_inventory, and services collections.
+Future<void> runOneTimeNameLowerBackfill(String garageId) async {
+  final firestore = FirebaseFirestore.instance;
+
+  Future<void> backfillCollection(CollectionReference<Map<String, dynamic>> collection) async {
+    QueryDocumentSnapshot<Map<String, dynamic>>? lastDoc;
+    bool hasMore = true;
+    while (hasMore) {
+      var query = collection.limit(500);
+      if (lastDoc != null) {
+        query = query.startAfterDocument(lastDoc);
+      }
+      final snap = await query.get();
+      if (snap.docs.isEmpty) {
+        hasMore = false;
+        break;
+      }
+      WriteBatch batch = firestore.batch();
+      int counter = 0;
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        if (!data.containsKey('name_lower')) {
+          final name = data['name'] as String? ?? '';
+          batch.update(doc.reference, {
+            'name_lower': name.toLowerCase(),
+            // Without bumping updatedAt, this write is invisible to the
+            // delta sync (`where('updatedAt', isGreaterThan: lastSync)`),
+            // so any device that had already synced this doc before
+            // name_lower existed would keep a stale NULL name_lower in its
+            // local SQLite forever, breaking local search for that item.
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+          counter++;
+        }
+      }
+      if (counter > 0) {
+        await batch.commit();
+      }
+      lastDoc = snap.docs.last;
+      if (snap.docs.length < 500) {
+        hasMore = false;
+      }
+    }
+  }
+
+  // 1. Backfill inventory
+  final inventoryCol = firestore
+      .collection('garages')
+      .doc(garageId)
+      .collection('inventory');
+  await backfillCollection(inventoryCol);
+
+  // 2. Backfill secondhand_inventory
+  final secondhandCol = firestore
+      .collection('garages')
+      .doc(garageId)
+      .collection('secondhand_inventory');
+  await backfillCollection(secondhandCol);
+
+  // 3. Backfill services
+  final servicesCol = firestore
+      .collection('garages')
+      .doc(garageId)
+      .collection('services');
+  await backfillCollection(servicesCol);
+}

@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import '../models/InventoryItem.dart';
 import '../local_database/billing_database.dart';
+import '../utils/fts_query.dart';
 
 /// Direct Firestore repository for inventory items, backed by local SQLite cache.
 class InventoryRepository {
@@ -108,17 +109,68 @@ class InventoryRepository {
   }
 
   Future<List<InventoryItem>> searchItems(String query) async {
-    if (query.trim().isEmpty) return getLocalItems();
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return getLocalItems();
 
-    final db = await BillingDatabase.instance.database;
-    final q = '%${query.trim().toLowerCase()}%';
-    final rows = await db.query(
-      'inventory',
-      where: 'is_deleted = 0 AND garage_id = ? AND (name_lower LIKE ? OR sku_lower LIKE ? OR category_lower LIKE ?)',
-      whereArgs: [garageId, q, q, q],
-      orderBy: 'name ASC',
-    );
-    return rows.map((row) => InventoryItem.fromMap(row)).toList();
+    // 1. Local SQLite search (FTS with LIKE fallback)
+    List<InventoryItem> localResults = [];
+    final ftsQuery = buildFtsPrefixQuery(query);
+
+    if (BillingDatabase.ftsAvailable && ftsQuery != null) {
+      try {
+        final db = await BillingDatabase.instance.database;
+        final rows = await db.rawQuery('''
+          SELECT i.* FROM inventory i
+          JOIN inventory_fts f ON i.id = f.id
+          WHERE inventory_fts MATCH ? AND f.garage_id = ? AND i.is_deleted = 0
+          ORDER BY i.name ASC
+          LIMIT 15
+        ''', [ftsQuery, garageId]);
+        localResults = rows.map((row) => InventoryItem.fromMap(row)).toList();
+      } catch (e) {
+        print('Local FTS inventory search failed, falling back to LIKE: $e');
+      }
+    }
+
+    if (localResults.isEmpty) {
+      try {
+        final db = await BillingDatabase.instance.database;
+        final searchQ = trimmed.toLowerCase();
+        final q = '%$searchQ%';
+        final rows = await db.query(
+          'inventory',
+          where: 'is_deleted = 0 AND garage_id = ? AND (name_lower LIKE ? OR sku_lower LIKE ? OR category_lower LIKE ?)',
+          whereArgs: [garageId, q, q, q],
+          orderBy: 'name ASC',
+          limit: 15,
+        );
+        localResults = rows.map((row) => InventoryItem.fromMap(row)).toList();
+      } catch (e) {
+        print('Local LIKE inventory search failed: $e');
+      }
+    }
+
+    // Return immediately if local search returned results
+    if (localResults.isNotEmpty) {
+      return localResults;
+    }
+
+    // 2. Remote Firestore search (only if local search returned 0 results)
+    try {
+      final searchQ = trimmed.toLowerCase();
+      final snap = await _collection
+          .orderBy('name_lower')
+          .startAt([searchQ])
+          .endAt([searchQ + '\uf8ff'])
+          .limit(15)
+          .get();
+      return snap.docs
+          .map((doc) => InventoryItem.fromMap(doc.data()..['id'] = doc.id))
+          .toList();
+    } catch (e) {
+      print('Firestore inventory search failed: $e');
+      return const [];
+    }
   }
 
   // ─── Update ───────────────────────────────────────────────────────────────

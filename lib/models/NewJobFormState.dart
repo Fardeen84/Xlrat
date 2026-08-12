@@ -7,7 +7,7 @@ class NewJobFormState {
   final BillingVehicle? vehicle;
   final String selectedVehicle;
   final String complaint;
-  final String mechanic;
+  final List<String> mechanics;
   final String jobType;
 
   const NewJobFormState({
@@ -16,7 +16,7 @@ class NewJobFormState {
     this.vehicle,
     this.selectedVehicle = '',
     this.complaint = '',
-    this.mechanic = '',
+    this.mechanics = const [],
     this.jobType = 'vehicle',
   });
 
@@ -26,7 +26,7 @@ class NewJobFormState {
     BillingVehicle? vehicle,
     String? selectedVehicle,
     String? complaint,
-    String? mechanic,
+    List<String>? mechanics,
     String? jobType,
   }) {
     return NewJobFormState(
@@ -35,7 +35,7 @@ class NewJobFormState {
       vehicle: vehicle ?? this.vehicle,
       selectedVehicle: selectedVehicle ?? this.selectedVehicle,
       complaint: complaint ?? this.complaint,
-      mechanic: mechanic ?? this.mechanic,
+      mechanics: mechanics ?? this.mechanics,
       jobType: jobType ?? this.jobType,
     );
   }

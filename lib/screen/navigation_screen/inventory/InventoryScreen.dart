@@ -152,199 +152,237 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: kCard,
-        title: Text(
-          'Add Part',
-          style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
-        ),
-        content: Form(
-          key: formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: nameCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Name *',
-                    labelStyle: TextStyle(color: kMutedForeground),
-                  ),
-                  style: TextStyle(color: kForeground),
-                  validator: (value) => (value == null || value.trim().isEmpty)
-                      ? 'Please enter name'
-                      : null,
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: categoryCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Category *',
-                    labelStyle: TextStyle(color: kMutedForeground),
-                  ),
-                  style: TextStyle(color: kForeground),
-                  validator: (value) => (value == null || value.trim().isEmpty)
-                      ? 'Please enter category'
-                      : null,
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: stockCtrl,
+      builder: (context) {
+        bool isSaving = false;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: kCard,
+              title: Text(
+                'Add Part',
+                style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
+              ),
+              content: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: nameCtrl,
                         decoration: InputDecoration(
-                          labelText: 'Stock',
+                          labelText: 'Name *',
                           labelStyle: TextStyle(color: kMutedForeground),
                         ),
-                        keyboardType: TextInputType.number,
                         style: TextStyle(color: kForeground),
-                        validator: (value) =>
-                        (value == null || int.tryParse(value) == null)
-                            ? 'Invalid'
+                        validator: (value) => (value == null || value.trim().isEmpty)
+                            ? 'Please enter name'
                             : null,
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextFormField(
-                        controller: unitCtrl,
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: categoryCtrl,
                         decoration: InputDecoration(
-                          labelText: 'Unit',
+                          labelText: 'Category *',
                           labelStyle: TextStyle(color: kMutedForeground),
                         ),
                         style: TextStyle(color: kForeground),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: purchaseCtrl,
-                        decoration: InputDecoration(
-                          labelText: 'Purchase Price',
-                          labelStyle: TextStyle(color: kMutedForeground),
-                        ),
-                        keyboardType: TextInputType.number,
-                        style: TextStyle(color: kForeground),
-                        validator: (value) =>
-                        (value == null || int.tryParse(value) == null)
-                            ? 'Invalid'
+                        validator: (value) => (value == null || value.trim().isEmpty)
+                            ? 'Please enter category'
                             : null,
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextFormField(
-                        controller: sellingCtrl,
-                        decoration: InputDecoration(
-                          labelText: 'Selling Price',
-                          labelStyle: TextStyle(color: kMutedForeground),
-                        ),
-                        keyboardType: TextInputType.number,
-                        style: TextStyle(color: kForeground),
-                        validator: (value) =>
-                        (value == null || int.tryParse(value) == null)
-                            ? 'Invalid'
-                            : null,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: minStockCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Min Stock',
-                    labelStyle: TextStyle(color: kMutedForeground),
-                  ),
-                  keyboardType: TextInputType.number,
-                  style: TextStyle(color: kForeground),
-                  validator: (value) =>
-                  (value == null || int.tryParse(value) == null)
-                      ? 'Invalid'
-                      : null,
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                final name = nameCtrl.text.trim();
-                final existing = await ref.read(inventoryRepositoryProvider).findByName(name);
-                if (existing != null) {
-                  if (context.mounted) {
-                    showDialog(
-                      context: context,
-                      builder: (warningContext) => AlertDialog(
-                        backgroundColor: kCard,
-                        title: Text(
-                          'Duplicate Item',
-                          style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
-                        ),
-                        content: Text(
-                          "An item named '$name' already exists. Do you want to update its stock instead, or use a different name?",
-                          style: TextStyle(color: kForeground),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(warningContext),
-                            child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
-                          ),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: kPrimary,
-                              foregroundColor: kPrimaryDark,
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: stockCtrl,
+                              decoration: InputDecoration(
+                                labelText: 'Stock',
+                                labelStyle: TextStyle(color: kMutedForeground),
+                              ),
+                              keyboardType: TextInputType.number,
+                              style: TextStyle(color: kForeground),
+                              validator: (value) =>
+                              (value == null || int.tryParse(value) == null)
+                                  ? 'Invalid'
+                                  : null,
                             ),
-                            onPressed: () {
-                              Navigator.pop(warningContext);
-                              Navigator.pop(context);
-                              _showAdjustStockDialog(screenContext, existing, true);
-                            },
-                            child: const Text('Update Stock'),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextFormField(
+                              controller: unitCtrl,
+                              decoration: InputDecoration(
+                                labelText: 'Unit',
+                                labelStyle: TextStyle(color: kMutedForeground),
+                              ),
+                              style: TextStyle(color: kForeground),
+                            ),
                           ),
                         ],
                       ),
-                    );
-                  }
-                  return;
-                }
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: purchaseCtrl,
+                              decoration: InputDecoration(
+                                labelText: 'Purchase Price',
+                                labelStyle: TextStyle(color: kMutedForeground),
+                              ),
+                              keyboardType: TextInputType.number,
+                              style: TextStyle(color: kForeground),
+                              validator: (value) =>
+                              (value == null || int.tryParse(value) == null)
+                                  ? 'Invalid'
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextFormField(
+                              controller: sellingCtrl,
+                              decoration: InputDecoration(
+                                labelText: 'Selling Price',
+                                labelStyle: TextStyle(color: kMutedForeground),
+                              ),
+                              keyboardType: TextInputType.number,
+                              style: TextStyle(color: kForeground),
+                              validator: (value) =>
+                              (value == null || int.tryParse(value) == null)
+                                  ? 'Invalid'
+                                  : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: minStockCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Min Stock',
+                          labelStyle: TextStyle(color: kMutedForeground),
+                        ),
+                        keyboardType: TextInputType.number,
+                        style: TextStyle(color: kForeground),
+                        validator: (value) =>
+                        (value == null || int.tryParse(value) == null)
+                            ? 'Invalid'
+                            : null,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSaving ? null : () => Navigator.pop(context),
+                  child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          if (formKey.currentState!.validate()) {
+                            setState(() {
+                              isSaving = true;
+                            });
+                            try {
+                              final name = nameCtrl.text.trim();
+                              final existing = await ref.read(inventoryRepositoryProvider).findByName(name);
+                              if (existing != null) {
+                                if (context.mounted) {
+                                  setState(() {
+                                    isSaving = false;
+                                  });
+                                  showDialog(
+                                    context: context,
+                                    builder: (warningContext) => AlertDialog(
+                                      backgroundColor: kCard,
+                                      title: Text(
+                                        'Duplicate Item',
+                                        style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
+                                      ),
+                                      content: Text(
+                                        "An item named '$name' already exists. Do you want to update its stock instead, or use a different name?",
+                                        style: TextStyle(color: kForeground),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(warningContext),
+                                          child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
+                                        ),
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: kPrimary,
+                                            foregroundColor: kPrimaryDark,
+                                          ),
+                                          onPressed: () {
+                                            Navigator.pop(warningContext);
+                                            Navigator.pop(context);
+                                            _showAdjustStockDialog(screenContext, existing, true);
+                                          },
+                                          child: const Text('Update Stock'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
+                                return;
+                              }
 
-                final newItem = InventoryItem(
-                  name: name,
-                  category: categoryCtrl.text.trim(),
-                  stock: int.parse(stockCtrl.text.trim()),
-                  unit: unitCtrl.text.trim().isNotEmpty
-                      ? unitCtrl.text.trim()
-                      : 'pcs',
-                  purchase: int.parse(purchaseCtrl.text.trim()),
-                  selling: int.parse(sellingCtrl.text.trim()),
-                  minStock: int.parse(minStockCtrl.text.trim()),
-                  sku: _generateSku(categoryCtrl.text.trim()),
-                  createdAt: DateTime.now(),
-                );
-                await ref.read(inventoryRepositoryProvider).createItem(newItem);
-                ref.read(inventoryListStateProvider.notifier).loadFirstPage();
-                if (context.mounted) {
-                  Navigator.pop(context);
-                }
-              }
-            },
-            child: const Text('Save', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+                              final newItem = InventoryItem(
+                                name: name,
+                                category: categoryCtrl.text.trim(),
+                                stock: int.parse(stockCtrl.text.trim()),
+                                unit: unitCtrl.text.trim().isNotEmpty
+                                    ? unitCtrl.text.trim()
+                                    : 'pcs',
+                                purchase: int.parse(purchaseCtrl.text.trim()),
+                                selling: int.parse(sellingCtrl.text.trim()),
+                                minStock: int.parse(minStockCtrl.text.trim()),
+                                sku: _generateSku(categoryCtrl.text.trim()),
+                                createdAt: DateTime.now(),
+                              );
+                              await ref.read(inventoryRepositoryProvider).createItem(newItem);
+                              ref.read(inventoryListStateProvider.notifier).loadFirstPage();
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Failed to add part: $e')),
+                                );
+                              }
+                            } finally {
+                              if (context.mounted) {
+                                setState(() {
+                                  isSaving = false;
+                                });
+                              }
+                            }
+                          }
+                        },
+                  child: isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text('Save', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -358,173 +396,211 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setStateDialog) {
-          int getQty() => int.tryParse(qtyCtrl.text) ?? 0;
-          void setQty(int val) {
-            qtyCtrl.text = val.clamp(1, 999999).toString();
-          }
+      builder: (context) {
+        bool isSaving = false;
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            int getQty() => int.tryParse(qtyCtrl.text) ?? 0;
+            void setQty(int val) {
+              qtyCtrl.text = val.clamp(1, 999999).toString();
+            }
 
-          return AlertDialog(
-            backgroundColor: kCard,
-            title: Text(
-              isAddition ? 'Add Stock' : 'Deduct Stock',
-              style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
-            ),
-            content: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    item.name,
-                    style: TextStyle(fontSize: 13, color: kMutedForeground),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          final current = getQty();
-                          if (current > 1) {
-                            setStateDialog(() => setQty(current - 1));
-                          }
-                        },
-                        child: Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: kMuted,
-                            borderRadius: BorderRadius.circular(14),
+            return AlertDialog(
+              backgroundColor: kCard,
+              title: Text(
+                isAddition ? 'Add Stock' : 'Deduct Stock',
+                style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
+              ),
+              content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      item.name,
+                      style: TextStyle(fontSize: 13, color: kMutedForeground),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        GestureDetector(
+                          onTap: isSaving
+                              ? null
+                              : () {
+                                  final current = getQty();
+                                  if (current > 1) {
+                                    setStateDialog(() => setQty(current - 1));
+                                  }
+                                },
+                          child: Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: kMuted,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Icon(Icons.remove_rounded, color: kForeground),
                           ),
-                          child: Icon(Icons.remove_rounded, color: kForeground),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      SizedBox(
-                        width: 80,
-                        child: TextFormField(
-                          controller: qtyCtrl,
-                          textAlign: TextAlign.center,
-                          keyboardType: TextInputType.number,
-                          style: TextStyle(
-                            color: kForeground,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                        const SizedBox(width: 16),
+                        SizedBox(
+                          width: 80,
+                          child: TextFormField(
+                            controller: qtyCtrl,
+                            enabled: !isSaving,
+                            textAlign: TextAlign.center,
+                            keyboardType: TextInputType.number,
+                            style: TextStyle(
+                              color: kForeground,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            decoration: const InputDecoration(
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                            validator: (value) =>
+                            (value == null ||
+                                int.tryParse(value) == null ||
+                                int.parse(value) <= 0)
+                                ? 'Invalid'
+                                : null,
                           ),
-                          decoration: const InputDecoration(
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          validator: (value) =>
-                          (value == null ||
-                              int.tryParse(value) == null ||
-                              int.parse(value) <= 0)
-                              ? 'Invalid'
-                              : null,
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      GestureDetector(
-                        onTap: () {
-                          final current = getQty();
-                          setStateDialog(() => setQty(current + 1));
-                        },
-                        child: Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: kMuted,
-                            borderRadius: BorderRadius.circular(14),
+                        const SizedBox(width: 16),
+                        GestureDetector(
+                          onTap: isSaving
+                              ? null
+                              : () {
+                                  final current = getQty();
+                                  setStateDialog(() => setQty(current + 1));
+                                },
+                          child: Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: kMuted,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Icon(Icons.add_rounded, color: kForeground),
                           ),
-                          child: Icon(Icons.add_rounded, color: kForeground),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [5, 10, 20]
+                          .map(
+                            (step) => OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                          ),
+                          onPressed: isSaving
+                              ? null
+                              : () {
+                                  final current = getQty();
+                                  setStateDialog(() => setQty(current + step));
+                                },
+                          child: Text('+$step'),
+                        ),
+                      )
+                          .toList(),
+                    ),
+                    if (!isAddition) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        'Current stock: ${item.stock} ${item.unit}',
+                        style: TextStyle(fontSize: 12, color: kMutedForeground),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [5, 10, 20]
-                        .map(
-                          (step) => OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                        ),
-                        onPressed: () {
-                          final current = getQty();
-                          setStateDialog(() => setQty(current + step));
-                        },
-                        child: Text('+$step'),
-                      ),
-                    )
-                        .toList(),
-                  ),
-                  if (!isAddition) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      'Current stock: ${item.stock} ${item.unit}',
-                      style: TextStyle(fontSize: 12, color: kMutedForeground),
-                    ),
                   ],
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(
-                  'Cancel',
-                  style: TextStyle(color: kMutedForeground),
                 ),
               ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
-                onPressed: () async {
-                  if (formKey.currentState!.validate()) {
-                    final qty = getQty();
+              actions: [
+                TextButton(
+                  onPressed: isSaving ? null : () => Navigator.pop(context),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(color: kMutedForeground),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          if (formKey.currentState!.validate()) {
+                            setStateDialog(() {
+                              isSaving = true;
+                            });
+                            try {
+                              final qty = getQty();
 
-                    if (!isAddition && qty > item.stock) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Cannot deduct more than current stock (${item.stock} ${item.unit})',
+                              if (!isAddition && qty > item.stock) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Cannot deduct more than current stock (${item.stock} ${item.unit})',
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              final int newStock = isAddition
+                                  ? item.stock + qty
+                                  : (item.stock - qty).clamp(0, 999999).toInt();
+
+                              await ref
+                                  .read(inventoryRepositoryProvider)
+                                  .updateStock(item.id!, newStock);
+                              ref
+                                  .read(inventoryListStateProvider.notifier)
+                                  .loadFirstPage();
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Failed to adjust stock: $e')),
+                                );
+                              }
+                            } finally {
+                              if (context.mounted) {
+                                setStateDialog(() {
+                                  isSaving = false;
+                                });
+                              }
+                            }
+                          }
+                        },
+                  child: isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
+                        )
+                      : const Text(
+                          'Submit',
+                          style: TextStyle(color: Colors.white),
                         ),
-                      );
-                      return;
-                    }
-
-                    final int newStock = isAddition
-                        ? item.stock + qty
-                        : (item.stock - qty).clamp(0, 999999).toInt();
-
-                    await ref
-                        .read(inventoryRepositoryProvider)
-                        .updateStock(item.id!, newStock);
-                    ref
-                        .read(inventoryListStateProvider.notifier)
-                        .loadFirstPage();
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                    }
-                  }
-                },
-                child: const Text(
-                  'Submit',
-                  style: TextStyle(color: Colors.white),
                 ),
-              ),
-            ],
-          );
-        },
-      ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -542,209 +618,247 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: kCard,
-        title: Text(
-          'Edit Part',
-          style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
-        ),
-        content: Form(
-          key: formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: nameCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Name *',
-                    labelStyle: TextStyle(color: kMutedForeground),
-                  ),
-                  style: TextStyle(color: kForeground),
-                  validator: (value) => (value == null || value.trim().isEmpty)
-                      ? 'Please enter name'
-                      : null,
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: skuCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'SKU (Optional)',
-                    labelStyle: TextStyle(color: kMutedForeground),
-                  ),
-                  style: TextStyle(color: kForeground),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: categoryCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Category *',
-                    labelStyle: TextStyle(color: kMutedForeground),
-                  ),
-                  style: TextStyle(color: kForeground),
-                  validator: (value) => (value == null || value.trim().isEmpty)
-                      ? 'Please enter category'
-                      : null,
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: stockCtrl,
+      builder: (context) {
+        bool isSaving = false;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: kCard,
+              title: Text(
+                'Edit Part',
+                style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
+              ),
+              content: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: nameCtrl,
                         decoration: InputDecoration(
-                          labelText: 'Stock',
+                          labelText: 'Name *',
                           labelStyle: TextStyle(color: kMutedForeground),
                         ),
-                        keyboardType: TextInputType.number,
                         style: TextStyle(color: kForeground),
-                        validator: (value) =>
-                        (value == null || int.tryParse(value) == null)
-                            ? 'Invalid'
+                        validator: (value) => (value == null || value.trim().isEmpty)
+                            ? 'Please enter name'
                             : null,
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextFormField(
-                        controller: unitCtrl,
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: skuCtrl,
                         decoration: InputDecoration(
-                          labelText: 'Unit',
+                          labelText: 'SKU (Optional)',
                           labelStyle: TextStyle(color: kMutedForeground),
                         ),
                         style: TextStyle(color: kForeground),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: purchaseCtrl,
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: categoryCtrl,
                         decoration: InputDecoration(
-                          labelText: 'Purchase Price',
+                          labelText: 'Category *',
                           labelStyle: TextStyle(color: kMutedForeground),
                         ),
-                        keyboardType: TextInputType.number,
                         style: TextStyle(color: kForeground),
-                        validator: (value) =>
-                        (value == null || int.tryParse(value) == null)
-                            ? 'Invalid'
+                        validator: (value) => (value == null || value.trim().isEmpty)
+                            ? 'Please enter category'
                             : null,
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextFormField(
-                        controller: sellingCtrl,
-                        decoration: InputDecoration(
-                          labelText: 'Selling Price',
-                          labelStyle: TextStyle(color: kMutedForeground),
-                        ),
-                        keyboardType: TextInputType.number,
-                        style: TextStyle(color: kForeground),
-                        validator: (value) =>
-                        (value == null || int.tryParse(value) == null)
-                            ? 'Invalid'
-                            : null,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: minStockCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Min Stock',
-                    labelStyle: TextStyle(color: kMutedForeground),
-                  ),
-                  keyboardType: TextInputType.number,
-                  style: TextStyle(color: kForeground),
-                  validator: (value) =>
-                  (value == null || int.tryParse(value) == null)
-                      ? 'Invalid'
-                      : null,
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                final name = nameCtrl.text.trim();
-                final existing = await ref.read(inventoryRepositoryProvider).findByName(name);
-                if (existing != null && existing.id != item.id) {
-                  if (context.mounted) {
-                    showDialog(
-                      context: context,
-                      builder: (warningContext) => AlertDialog(
-                        backgroundColor: kCard,
-                        title: Text(
-                          'Duplicate Item',
-                          style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
-                        ),
-                        content: Text(
-                          "An item named '$name' already exists. Do you want to update its stock instead, or use a different name?",
-                          style: TextStyle(color: kForeground),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(warningContext),
-                            child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
-                          ),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: kPrimary,
-                              foregroundColor: kPrimaryDark,
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: stockCtrl,
+                              decoration: InputDecoration(
+                                labelText: 'Stock',
+                                labelStyle: TextStyle(color: kMutedForeground),
+                              ),
+                              keyboardType: TextInputType.number,
+                              style: TextStyle(color: kForeground),
+                              validator: (value) =>
+                              (value == null || int.tryParse(value) == null)
+                                  ? 'Invalid'
+                                  : null,
                             ),
-                            onPressed: () {
-                              Navigator.pop(warningContext);
-                              Navigator.pop(context);
-                              _showAdjustStockDialog(screenContext, existing, true);
-                            },
-                            child: const Text('Update Stock'),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextFormField(
+                              controller: unitCtrl,
+                              decoration: InputDecoration(
+                                labelText: 'Unit',
+                                labelStyle: TextStyle(color: kMutedForeground),
+                              ),
+                              style: TextStyle(color: kForeground),
+                            ),
                           ),
                         ],
                       ),
-                    );
-                  }
-                  return;
-                }
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: purchaseCtrl,
+                              decoration: InputDecoration(
+                                labelText: 'Purchase Price',
+                                labelStyle: TextStyle(color: kMutedForeground),
+                              ),
+                              keyboardType: TextInputType.number,
+                              style: TextStyle(color: kForeground),
+                              validator: (value) =>
+                              (value == null || int.tryParse(value) == null)
+                                  ? 'Invalid'
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextFormField(
+                              controller: sellingCtrl,
+                              decoration: InputDecoration(
+                                labelText: 'Selling Price',
+                                labelStyle: TextStyle(color: kMutedForeground),
+                              ),
+                              keyboardType: TextInputType.number,
+                              style: TextStyle(color: kForeground),
+                              validator: (value) =>
+                              (value == null || int.tryParse(value) == null)
+                                  ? 'Invalid'
+                                  : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: minStockCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Min Stock',
+                          labelStyle: TextStyle(color: kMutedForeground),
+                        ),
+                        keyboardType: TextInputType.number,
+                        style: TextStyle(color: kForeground),
+                        validator: (value) =>
+                        (value == null || int.tryParse(value) == null)
+                            ? 'Invalid'
+                            : null,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSaving ? null : () => Navigator.pop(context),
+                  child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          if (formKey.currentState!.validate()) {
+                            setState(() {
+                              isSaving = true;
+                            });
+                            try {
+                              final name = nameCtrl.text.trim();
+                              final existing = await ref.read(inventoryRepositoryProvider).findByName(name);
+                              if (existing != null && existing.id != item.id) {
+                                if (context.mounted) {
+                                  setState(() {
+                                    isSaving = false;
+                                  });
+                                  showDialog(
+                                    context: context,
+                                    builder: (warningContext) => AlertDialog(
+                                      backgroundColor: kCard,
+                                      title: Text(
+                                        'Duplicate Item',
+                                        style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
+                                      ),
+                                      content: Text(
+                                        "An item named '$name' already exists. Do you want to update its stock instead, or use a different name?",
+                                        style: TextStyle(color: kForeground),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(warningContext),
+                                          child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
+                                        ),
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: kPrimary,
+                                            foregroundColor: kPrimaryDark,
+                                          ),
+                                          onPressed: () {
+                                            Navigator.pop(warningContext);
+                                            Navigator.pop(context);
+                                            _showAdjustStockDialog(screenContext, existing, true);
+                                          },
+                                          child: const Text('Update Stock'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
+                                return;
+                              }
 
-                final updatedItem = item.copyWith(
-                  name: name,
-                  category: categoryCtrl.text.trim(),
-                  stock: int.parse(stockCtrl.text.trim()),
-                  unit: unitCtrl.text.trim().isNotEmpty
-                      ? unitCtrl.text.trim()
-                      : 'pcs',
-                  purchase: int.parse(purchaseCtrl.text.trim()),
-                  selling: int.parse(sellingCtrl.text.trim()),
-                  minStock: int.parse(minStockCtrl.text.trim()),
-                  sku: skuCtrl.text.trim(),
-                );
-                await ref
-                    .read(inventoryRepositoryProvider)
-                    .updateItem(updatedItem);
-                ref.read(inventoryListStateProvider.notifier).loadFirstPage();
-                if (context.mounted) {
-                  Navigator.pop(context);
-                }
-              }
-            },
-            child: const Text('Save', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+                              final updatedItem = item.copyWith(
+                                name: name,
+                                category: categoryCtrl.text.trim(),
+                                stock: int.parse(stockCtrl.text.trim()),
+                                unit: unitCtrl.text.trim().isNotEmpty
+                                    ? unitCtrl.text.trim()
+                                    : 'pcs',
+                                purchase: int.parse(purchaseCtrl.text.trim()),
+                                selling: int.parse(sellingCtrl.text.trim()),
+                                minStock: int.parse(minStockCtrl.text.trim()),
+                                sku: skuCtrl.text.trim(),
+                              );
+                              await ref
+                                  .read(inventoryRepositoryProvider)
+                                  .updateItem(updatedItem);
+                              ref.read(inventoryListStateProvider.notifier).loadFirstPage();
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Failed to update part: $e')),
+                                );
+                              }
+                            } finally {
+                              if (context.mounted) {
+                                setState(() {
+                                  isSaving = false;
+                                });
+                              }
+                            }
+                          }
+                        },
+                  child: isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text('Save', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -878,6 +992,28 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                     ),
                     Row(
                       children: [
+
+                        InkWell(
+
+                            onTap: ()async{
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    scaffoldMessenger.showSnackBar(
+    const SnackBar(content: Text('Starting full resync...')),
+    );
+
+                              _handleRefresh();
+
+
+    scaffoldMessenger.showSnackBar(
+      const SnackBar(content: Text('Full resync completed!')),
+    );
+                              },
+
+
+
+                            child: Icon(Icons.sync_rounded)),
+
+                        SizedBox(width: 20,),
                         ElevatedButton.icon(
                           onPressed: () => _showAddPartDialog(context),
                           icon: const Icon(

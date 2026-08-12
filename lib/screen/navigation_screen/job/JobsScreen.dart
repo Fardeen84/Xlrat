@@ -12,6 +12,12 @@ import '../../../core/Theme.dart';
 import '../../../widgets/StatusBadge.dart';
 import '../../../widgets/EmptyStateView.dart';
 
+String _formatMechanics(List<String> mechanics) {
+  if (mechanics.isEmpty) return 'Unassigned';
+  if (mechanics.length <= 2) return mechanics.join(', ');
+  return '${mechanics.take(2).join(', ')} +${mechanics.length - 2} more';
+}
+
 class JobsScreen extends ConsumerWidget {
   const JobsScreen({super.key});
 
@@ -28,6 +34,58 @@ class JobsScreen extends ConsumerWidget {
         debugPrint('Could not launch call url: $e');
       }
     }
+  }
+
+  void _showDeleteJobConfirmationDialog(
+    BuildContext context,
+    WidgetRef ref,
+    Job job,
+  ) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: kCard,
+        title: Text(
+          'Delete Job Card',
+          style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
+        ),
+        content: Text(
+          'Are you sure you want to delete Job Card ${job.jobNumber}? This action cannot be undone.',
+          style: TextStyle(color: kForeground),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: kRed),
+            onPressed: () async {
+              try {
+                await ref
+                    .read(jobRepositoryProvider)
+                    .deleteJob(job.id!);
+                ref.invalidate(jobsListStateProvider);
+                if (context.mounted) {
+                  Navigator.pop(dialogContext);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Job Card deleted successfully')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  Navigator.pop(dialogContext);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to delete Job Card: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -413,7 +471,7 @@ class JobsScreen extends ConsumerWidget {
                                                   ),
                                                 ),
                                               ),
-                                              DataCell(Text(job.mechanic)),
+                                              DataCell(Text(_formatMechanics(job.mechanics))),
                                               DataCell(
                                                 Text(
                                                   formatCurrency(job.amount),
@@ -423,24 +481,37 @@ class JobsScreen extends ConsumerWidget {
                                                 StatusBadge(status: job.status),
                                               ),
                                               DataCell(
-                                                IconButton(
-                                                  icon: const Icon(
-                                                    Icons.arrow_forward_rounded,
-                                                    color: kPrimary,
-                                                    size: 18,
-                                                  ),
-                                                  onPressed: () {
-                                                    ref
-                                                            .read(
-                                                              selectedJobProvider
-                                                                  .notifier,
-                                                            )
-                                                            .state =
-                                                        job;
-                                                    context.push(
-                                                      '/job-detail/${job.id}',
-                                                    );
-                                                  },
+                                                Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    IconButton(
+                                                      icon: const Icon(
+                                                        Icons.arrow_forward_rounded,
+                                                        color: kPrimary,
+                                                        size: 18,
+                                                      ),
+                                                      onPressed: () {
+                                                        ref
+                                                                .read(
+                                                                  selectedJobProvider
+                                                                      .notifier,
+                                                                )
+                                                                .state =
+                                                            job;
+                                                        context.push(
+                                                          '/job-detail/${job.id}',
+                                                        );
+                                                      },
+                                                    ),
+                                                    IconButton(
+                                                      icon: const Icon(
+                                                        Icons.delete_outline_rounded,
+                                                        color: kRed,
+                                                        size: 18,
+                                                      ),
+                                                      onPressed: () => _showDeleteJobConfirmationDialog(context, ref, job),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
                                             ],
@@ -580,6 +651,7 @@ class JobsScreen extends ConsumerWidget {
                           context.push('/job-detail/${job.id}');
                         },
                         onCall: _makeCall,
+                        onDelete: () => _showDeleteJobConfirmationDialog(context, ref, job),
                       );
                     },
                   ),
@@ -603,12 +675,14 @@ class _JobCard extends StatelessWidget {
   final String? customerPhone;
   final VoidCallback onTap;
   final Future<void> Function(String) onCall;
+  final VoidCallback? onDelete;
 
   const _JobCard({
     required this.job,
     required this.customerPhone,
     required this.onTap,
     required this.onCall,
+    this.onDelete,
   });
 
   @override
@@ -674,7 +748,35 @@ class _JobCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    StatusBadge(status: job.status),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        StatusBadge(status: job.status),
+                        if (onDelete != null) ...[
+                          const SizedBox(width: 4),
+                          PopupMenuButton<String>(
+                            icon: Icon(Icons.more_vert_rounded, color: kMutedForeground, size: 20),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            color: kCard,
+                            onSelected: (val) {
+                              if (val == 'delete') {
+                                onDelete!.call();
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Text(
+                                  'Delete',
+                                  style: TextStyle(color: kRed),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -714,7 +816,7 @@ class _JobCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          job.mechanic,
+                          _formatMechanics(job.mechanics),
                           style: TextStyle(
                             fontSize: 11,
                             color: kMutedForeground,

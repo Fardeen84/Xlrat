@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class Job {
   final String? id;
   final String jobNumber;
@@ -6,7 +8,7 @@ class Job {
   final String vehicleType;
   final String brand;
   final String complaint;
-  final String mechanic;
+  final List<String> mechanics;
   final String status; // 'pending' | 'in-progress' | 'completed'
   final String date;
   final int amount;
@@ -24,7 +26,7 @@ class Job {
     required this.vehicleType,
     required this.brand,
     required this.complaint,
-    required this.mechanic,
+    required this.mechanics,
     required this.status,
     required this.date,
     required this.amount,
@@ -44,7 +46,7 @@ class Job {
       'vehicleType': vehicleType,
       'brand': brand,
       'complaint': complaint,
-      'mechanic': mechanic,
+      'mechanics': mechanics,
       'status': status,
       'date': date,
       'amount': amount,
@@ -68,6 +70,30 @@ class Job {
       return null;
     }
 
+    List<String> parsedMechanics = [];
+    if (map['mechanics'] != null) {
+      final rawMechanics = map['mechanics'];
+      if (rawMechanics is List) {
+        parsedMechanics = rawMechanics.map((e) => e.toString()).toList();
+      } else if (rawMechanics is String) {
+        try {
+          final decoded = jsonDecode(rawMechanics);
+          if (decoded is List) {
+            parsedMechanics = decoded.map((e) => e.toString()).toList();
+          }
+        } catch (_) {
+          if (rawMechanics.trim().isNotEmpty) {
+            parsedMechanics = [rawMechanics];
+          }
+        }
+      }
+    } else if (map['mechanic'] != null) {
+      final rawMechanic = map['mechanic'] as String;
+      if (rawMechanic.trim().isNotEmpty) {
+        parsedMechanics = [rawMechanic];
+      }
+    }
+
     return Job(
       id: map['id']?.toString(),
       jobNumber: (map['job_number'] ?? '') as String,
@@ -76,7 +102,7 @@ class Job {
       vehicleType: (map['vehicleType'] ?? '') as String,
       brand: (map['brand'] ?? '') as String,
       complaint: (map['complaint'] ?? '') as String,
-      mechanic: (map['mechanic'] ?? '') as String,
+      mechanics: parsedMechanics,
       status: (map['status'] ?? '') as String,
       date: (map['date'] ?? '') as String,
       amount: parseInt(map['amount']) ?? 0,
@@ -96,7 +122,7 @@ class Job {
     String? vehicleType,
     String? brand,
     String? complaint,
-    String? mechanic,
+    List<String>? mechanics,
     String? status,
     String? date,
     int? amount,
@@ -114,7 +140,7 @@ class Job {
       vehicleType: vehicleType ?? this.vehicleType,
       brand: brand ?? this.brand,
       complaint: complaint ?? this.complaint,
-      mechanic: mechanic ?? this.mechanic,
+      mechanics: mechanics ?? this.mechanics,
       status: status ?? this.status,
       date: date ?? this.date,
       amount: amount ?? this.amount,

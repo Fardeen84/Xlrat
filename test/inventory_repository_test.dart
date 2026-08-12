@@ -140,5 +140,49 @@ void main() {
       expect(updatedSqliteRows.first['stock'], equals(2));
       expect(updatedSqliteRows.first['updated_at'] as int, isPositive);
     });
+
+    test('searchItems with FTS5 virtual tables returns local matches', () async {
+      final db = await BillingDatabase.instance.database;
+      await db.delete('inventory');
+
+      await db.insert('inventory', {
+        'id': 'item-local-1',
+        'name': 'Super Engine Oil 5W30',
+        'category': 'Lubricants',
+        'stock': 5,
+        'unit': 'pcs',
+        'purchase': 300,
+        'selling': 450,
+        'min_stock': 1,
+        'sku': 'OIL-5W30',
+        'created_at': DateTime.now().toIso8601String(),
+        'sync_status': 'synced',
+        'updated_at': DateTime.now().millisecondsSinceEpoch,
+        'is_deleted': 0,
+        'name_lower': 'super engine oil 5w30',
+        'sku_lower': 'oil-5w30',
+        'category_lower': 'lubricants',
+        'garage_id': 'test-garage',
+      });
+
+      final results = await inventoryRepo.searchItems('engine');
+      expect(results, isNotEmpty);
+      expect(results.first.name, contains('Super Engine Oil'));
+
+      // Test multi-word prefix search
+      final resultsMulti = await inventoryRepo.searchItems('super eng');
+      expect(resultsMulti, isNotEmpty);
+      expect(resultsMulti.first.name, contains('Super Engine Oil'));
+
+      // Test case insensitivity
+      final resultsUpper = await inventoryRepo.searchItems('OIL');
+      expect(resultsUpper, isNotEmpty);
+      expect(resultsUpper.first.name, contains('Super Engine Oil'));
+
+      // Test suffix/model search
+      final resultsSku = await inventoryRepo.searchItems('5w30');
+      expect(resultsSku, isNotEmpty);
+      expect(resultsSku.first.name, contains('Super Engine Oil'));
+    });
   });
 }

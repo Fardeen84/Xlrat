@@ -118,6 +118,13 @@ class JobRepository {
         .toList();
   }
 
+  Future<List<Job>> getJobsForVehicle(String vehicleId) async {
+    final snap = await _collection.where('vehicle_id', isEqualTo: vehicleId).get();
+    return snap.docs
+        .map((doc) => Job.fromMap(doc.data()..['id'] = doc.id))
+        .toList();
+  }
+
   Future<({List<Job> items, DocumentSnapshot? lastDoc, bool hasMore})> getJobsPaginated({
     required int limit,
     DocumentSnapshot? startAfter,

@@ -35,115 +35,150 @@ class _MechanicsScreenState extends ConsumerState<MechanicsScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: kCard,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          isEdit ? 'Edit Mechanic' : 'Add Mechanic',
-          style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
-        ),
-        content: Form(
-          key: formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: 'Name *',
-                    labelStyle: TextStyle(color: kMutedForeground),
+      builder: (context) {
+        bool isSaving = false;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: kCard,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Text(
+                isEdit ? 'Edit Mechanic' : 'Add Mechanic',
+                style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
+              ),
+              content: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: nameController,
+                        decoration: InputDecoration(
+                          labelText: 'Name *',
+                          labelStyle: TextStyle(color: kMutedForeground),
+                        ),
+                        style: TextStyle(color: kForeground),
+                        validator: (value) => (value == null || value.trim().isEmpty)
+                            ? 'Please enter name'
+                            : null,
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: initialsController,
+                        decoration: InputDecoration(
+                          labelText: 'Initials (Optional)',
+                          labelStyle: TextStyle(color: kMutedForeground),
+                          hintText: 'Auto-derived if left blank',
+                          hintStyle: TextStyle(color: kMutedForeground.withOpacity(0.5)),
+                        ),
+                        style: TextStyle(color: kForeground),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: phoneController,
+                        decoration: InputDecoration(
+                          labelText: 'Phone (Optional)',
+                          labelStyle: TextStyle(color: kMutedForeground),
+                        ),
+                        keyboardType: TextInputType.phone,
+                        style: TextStyle(color: kForeground),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: specializationController,
+                        decoration: InputDecoration(
+                          labelText: 'Specialization (Optional)',
+                          labelStyle: TextStyle(color: kMutedForeground),
+                          hintText: 'e.g. Engine, Electrical, Bodywork',
+                          hintStyle: TextStyle(color: kMutedForeground.withOpacity(0.5)),
+                        ),
+                        style: TextStyle(color: kForeground),
+                      ),
+                    ],
                   ),
-                  style: TextStyle(color: kForeground),
-                  validator: (value) => (value == null || value.trim().isEmpty)
-                      ? 'Please enter name'
-                      : null,
                 ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: initialsController,
-                  decoration: InputDecoration(
-                    labelText: 'Initials (Optional)',
-                    labelStyle: TextStyle(color: kMutedForeground),
-                    hintText: 'Auto-derived if left blank',
-                    hintStyle: TextStyle(color: kMutedForeground.withOpacity(0.5)),
-                  ),
-                  style: TextStyle(color: kForeground),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSaving ? null : () => Navigator.pop(context),
+                  child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
                 ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: phoneController,
-                  decoration: InputDecoration(
-                    labelText: 'Phone (Optional)',
-                    labelStyle: TextStyle(color: kMutedForeground),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  keyboardType: TextInputType.phone,
-                  style: TextStyle(color: kForeground),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: specializationController,
-                  decoration: InputDecoration(
-                    labelText: 'Specialization (Optional)',
-                    labelStyle: TextStyle(color: kMutedForeground),
-                    hintText: 'e.g. Engine, Electrical, Bodywork',
-                    hintStyle: TextStyle(color: kMutedForeground.withOpacity(0.5)),
-                  ),
-                  style: TextStyle(color: kForeground),
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          if (formKey.currentState!.validate()) {
+                            setState(() {
+                              isSaving = true;
+                            });
+                            try {
+                              final name = nameController.text.trim();
+                              var initials = initialsController.text.trim();
+                              if (initials.isEmpty) {
+                                initials = deriveInitials(name);
+                              }
+                              final phone = phoneController.text.trim();
+                              final specialization = specializationController.text.trim();
+
+                              final repo = ref.read(mechanicRepositoryProvider);
+                              if (isEdit) {
+                                final updated = mechanic.copyWith(
+                                  name: name,
+                                  initials: initials,
+                                  phone: phone,
+                                  specialization: specialization,
+                                );
+                                await repo.updateMechanic(updated);
+                              } else {
+                                final newMech = Mechanic(
+                                  name: name,
+                                  initials: initials,
+                                  phone: phone,
+                                  specialization: specialization,
+                                  createdAt: DateTime.now(),
+                                );
+                                await repo.createMechanic(newMech);
+                              }
+                              ref.invalidate(mechanicListProvider);
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Failed to save mechanic: $e')),
+                                );
+                              }
+                            } finally {
+                              if (context.mounted) {
+                                setState(() {
+                                  isSaving = false;
+                                });
+                              }
+                            }
+                          }
+                        },
+                  child: isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text('Save', style: TextStyle(color: Colors.white)),
                 ),
               ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kPrimary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                final name = nameController.text.trim();
-                var initials = initialsController.text.trim();
-                if (initials.isEmpty) {
-                  initials = deriveInitials(name);
-                }
-                final phone = phoneController.text.trim();
-                final specialization = specializationController.text.trim();
-
-                final repo = ref.read(mechanicRepositoryProvider);
-                if (isEdit) {
-                  final updated = mechanic.copyWith(
-                    name: name,
-                    initials: initials,
-                    phone: phone,
-                    specialization: specialization,
-                  );
-                  await repo.updateMechanic(updated);
-                } else {
-                  final newMech = Mechanic(
-                    name: name,
-                    initials: initials,
-                    phone: phone,
-                    specialization: specialization,
-                    createdAt: DateTime.now(),
-                  );
-                  await repo.createMechanic(newMech);
-                }
-                ref.invalidate(mechanicListProvider);
-                if (context.mounted) {
-                  Navigator.pop(context);
-                }
-              }
-            },
-            child: const Text('Save', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+            );
+          },
+        );
+      },
     );
   }
 

@@ -28,12 +28,20 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
   int _step = 1;
   BillingCustomer? _selectedCustomer;
   BillingVehicle? _selectedVehicle;
-  String _mechanic = '';
+  List<String> _mechanics = [];
   String _searchQuery = '';
   String _jobType = 'vehicle';
   final _complaintController = TextEditingController();
   final _itemNameController = TextEditingController();
   final _itemDescriptionController = TextEditingController();
+
+  bool _areListsEqual(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
 
 
   @override
@@ -43,7 +51,7 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
     _step = state.step;
     _selectedCustomer = state.customer;
     _selectedVehicle = state.vehicle;
-    _mechanic = state.mechanic;
+    _mechanics = state.mechanics;
     _jobType = state.jobType;
     _complaintController.text = state.complaint;
   }
@@ -61,7 +69,7 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
     BillingCustomer? customer,
     BillingVehicle? vehicle,
     String? complaint,
-    String? mechanic,
+    List<String>? mechanics,
     String? jobType,
   }) {
     ref.read(newJobFormProvider.notifier).update((state) => state.copyWith(
@@ -69,7 +77,7 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
       customer: customer ?? _selectedCustomer,
       vehicle: vehicle ?? _selectedVehicle,
       complaint: complaint ?? _complaintController.text,
-      mechanic: mechanic ?? _mechanic,
+      mechanics: mechanics ?? _mechanics,
       jobType: jobType ?? _jobType,
     ));
   }
@@ -97,11 +105,14 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
   }
 
   void _selectMechanic(String mechanic) {
-    final newMechanic = _mechanic == mechanic ? '' : mechanic;
     setState(() {
-      _mechanic = newMechanic;
+      if (_mechanics.contains(mechanic)) {
+        _mechanics = _mechanics.where((m) => m != mechanic).toList();
+      } else {
+        _mechanics = [..._mechanics, mechanic];
+      }
     });
-    _updateState(mechanic: newMechanic);
+    _updateState(mechanics: _mechanics);
   }
 
   @override
@@ -112,12 +123,12 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
     if (_step != formState.step ||
         _selectedCustomer != formState.customer ||
         _selectedVehicle != formState.vehicle ||
-        _mechanic != formState.mechanic ||
+        !_areListsEqual(_mechanics, formState.mechanics) ||
         _jobType != formState.jobType) {
       _step = formState.step;
       _selectedCustomer = formState.customer;
       _selectedVehicle = formState.vehicle;
-      _mechanic = formState.mechanic;
+      _mechanics = formState.mechanics;
       _jobType = formState.jobType;
       if (_complaintController.text != formState.complaint) {
         _complaintController.text = formState.complaint;
@@ -695,7 +706,7 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                         }
                         return Column(
                           children: mechanics.map((m) {
-                            final isSelected = _mechanic == m.name;
+                            final isSelected = _mechanics.contains(m.name);
                             final initials = m.initials.trim().isNotEmpty
                                 ? m.initials.trim().toUpperCase()
                                 : m.name
@@ -799,7 +810,7 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                                   vehicleType: 'item',
                                   brand: '',
                                   complaint: _complaintController.text.trim(),
-                                  mechanic: _mechanic,
+                                  mechanics: _mechanics,
                                   status: 'pending',
                                   date: DateFormat('dd MMM yyyy').format(DateTime.now()),
                                   amount: 0,
@@ -825,7 +836,7 @@ class _NewJobScreenState extends ConsumerState<NewJobScreen> {
                                   vehicleType: type,
                                   brand: _selectedVehicle != null ? '${_selectedVehicle!.vehicleBrand} ${_selectedVehicle!.vehicleModel}' : 'Unknown',
                                   complaint: _complaintController.text.trim(),
-                                  mechanic: _mechanic,
+                                  mechanics: _mechanics,
                                   status: 'pending',
                                   date: DateFormat('dd MMM yyyy').format(DateTime.now()),
                                   amount: 0,

@@ -14,6 +14,7 @@ import '../screen/navigation_screen/customers/CustomersScreen.dart';
 import '../screen/navigation_screen/DashboardScreen.dart';
 import '../screen/navigation_screen/inventory/InventoryScreen.dart';
 import '../screen/navigation_screen/secondhand/SecondHandInventoryScreen.dart';
+import '../screen/navigation_screen/services/ServicesScreen.dart';
 import '../screen/navigation_screen/job/JobsScreen.dart';
 import '../screen/report/ReportsScreen.dart';
 import '../screen/navigation_screen/customers/CustomerDetailScreen.dart';
@@ -93,6 +94,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/secondhand-inventory',
             builder: (context, state) => const SecondHandInventoryScreen(),
+          ),
+          GoRoute(
+            path: '/services',
+            builder: (context, state) => const ServicesScreen(),
           ),
           GoRoute(
             path: '/reports',

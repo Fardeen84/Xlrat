@@ -13,6 +13,8 @@ import '../../../providers/billing_providers.dart';
 import '../../../widgets/EmptyStateView.dart';
 import '../../../providers/newJobFormProvider.dart';
 import '../../../models/NewJobFormState.dart';
+import '../../../providers/jobsProvider.dart';
+import '../../../models/job.dart';
 
 class CustomerDetailScreen extends ConsumerStatefulWidget {
   final String customerId;
@@ -40,96 +42,131 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: kCard,
-        title: Text(
-          'Edit Customer',
-          style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
-        ),
-        content: Form(
-          key: formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: 'Name *',
-                    labelStyle: TextStyle(color: kMutedForeground),
+      builder: (context) {
+        bool isSaving = false;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: kCard,
+              title: Text(
+                'Edit Customer',
+                style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
+              ),
+              content: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: nameController,
+                        decoration: InputDecoration(
+                          labelText: 'Name *',
+                          labelStyle: TextStyle(color: kMutedForeground),
+                        ),
+                        style: TextStyle(color: kForeground),
+                        validator: (value) => (value == null || value.trim().isEmpty)
+                            ? 'Please enter name'
+                            : null,
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: mobileController,
+                        decoration: InputDecoration(
+                          labelText: 'Mobile *',
+                          labelStyle: TextStyle(color: kMutedForeground),
+                        ),
+                        keyboardType: TextInputType.phone,
+                        style: TextStyle(color: kForeground),
+                        validator: (value) => (value == null || value.trim().isEmpty)
+                            ? 'Please enter mobile'
+                            : null,
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: emailController,
+                        decoration: InputDecoration(
+                          labelText: 'Email (Optional)',
+                          labelStyle: TextStyle(color: kMutedForeground),
+                        ),
+                        keyboardType: TextInputType.emailAddress,
+                        style: TextStyle(color: kForeground),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: addressController,
+                        decoration: InputDecoration(
+                          labelText: 'Address (Optional)',
+                          labelStyle: TextStyle(color: kMutedForeground),
+                        ),
+                        maxLines: 2,
+                        style: TextStyle(color: kForeground),
+                      ),
+                    ],
                   ),
-                  style: TextStyle(color: kForeground),
-                  validator: (value) => (value == null || value.trim().isEmpty)
-                      ? 'Please enter name'
-                      : null,
                 ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: mobileController,
-                  decoration: InputDecoration(
-                    labelText: 'Mobile *',
-                    labelStyle: TextStyle(color: kMutedForeground),
-                  ),
-                  keyboardType: TextInputType.phone,
-                  style: TextStyle(color: kForeground),
-                  validator: (value) => (value == null || value.trim().isEmpty)
-                      ? 'Please enter mobile'
-                      : null,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSaving ? null : () => Navigator.pop(context),
+                  child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
                 ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: emailController,
-                  decoration: InputDecoration(
-                    labelText: 'Email (Optional)',
-                    labelStyle: TextStyle(color: kMutedForeground),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                  style: TextStyle(color: kForeground),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: addressController,
-                  decoration: InputDecoration(
-                    labelText: 'Address (Optional)',
-                    labelStyle: TextStyle(color: kMutedForeground),
-                  ),
-                  maxLines: 2,
-                  style: TextStyle(color: kForeground),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          if (formKey.currentState!.validate()) {
+                            setState(() {
+                              isSaving = true;
+                            });
+                            try {
+                              final updated = customer.copyWith(
+                                name: nameController.text.trim(),
+                                mobile: mobileController.text.trim(),
+                                email: emailController.text.trim(),
+                                address: addressController.text.trim(),
+                              );
+                              await ref
+                                  .read(customerRepositoryProvider)
+                                  .updateCustomer(updated);
+                              ref.invalidate(customerByIdProvider(widget.customerId));
+                              ref.invalidate(customerListStateProvider);
+                              ref.invalidate(filteredBillingCustomersProvider);
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Failed to update customer: $e')),
+                                );
+                              }
+                            } finally {
+                              if (context.mounted) {
+                                setState(() {
+                                  isSaving = false;
+                                });
+                              }
+                            }
+                          }
+                        },
+                  child: isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text('Save', style: TextStyle(color: Colors.white)),
                 ),
               ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                final updated = customer.copyWith(
-                  name: nameController.text.trim(),
-                  mobile: mobileController.text.trim(),
-                  email: emailController.text.trim(),
-                  address: addressController.text.trim(),
-                );
-                await ref
-                    .read(customerRepositoryProvider)
-                    .updateCustomer(updated);
-                ref.invalidate(customerByIdProvider(widget.customerId));
-                ref.invalidate(customerListStateProvider);
-                ref.invalidate(filteredBillingCustomersProvider);
-                if (context.mounted) {
-                  Navigator.pop(context);
-                }
-              }
-            },
-            child: const Text('Save', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -186,111 +223,381 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: kCard,
-        title: Text(
-          'Add Vehicle',
-          style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
-        ),
-        content: Form(
-          key: formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: numberCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Vehicle Number *',
-                    labelStyle: TextStyle(color: kMutedForeground),
+      builder: (context) {
+        bool isSaving = false;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: kCard,
+              title: Text(
+                'Add Vehicle',
+                style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
+              ),
+              content: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: numberCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Vehicle Number *',
+                          labelStyle: TextStyle(color: kMutedForeground),
+                        ),
+                        style: TextStyle(color: kForeground),
+                        validator: (value) => (value == null || value.trim().isEmpty)
+                            ? 'Please enter vehicle number'
+                            : null,
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: brandCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Brand',
+                          labelStyle: TextStyle(color: kMutedForeground),
+                        ),
+                        style: TextStyle(color: kForeground),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: modelCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Model',
+                          labelStyle: TextStyle(color: kMutedForeground),
+                        ),
+                        style: TextStyle(color: kForeground),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: fuelTypeCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Fuel Type',
+                          labelStyle: TextStyle(color: kMutedForeground),
+                        ),
+                        style: TextStyle(color: kForeground),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: engineNumberCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Engine Number',
+                          labelStyle: TextStyle(color: kMutedForeground),
+                        ),
+                        style: TextStyle(color: kForeground),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: chassisNumberCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Chassis Number',
+                          labelStyle: TextStyle(color: kMutedForeground),
+                        ),
+                        style: TextStyle(color: kForeground),
+                      ),
+                    ],
                   ),
-                  style: TextStyle(color: kForeground),
-                  validator: (value) => (value == null || value.trim().isEmpty)
-                      ? 'Please enter vehicle number'
-                      : null,
                 ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: brandCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Brand',
-                    labelStyle: TextStyle(color: kMutedForeground),
-                  ),
-                  style: TextStyle(color: kForeground),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSaving ? null : () => Navigator.pop(context),
+                  child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
                 ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: modelCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Model',
-                    labelStyle: TextStyle(color: kMutedForeground),
-                  ),
-                  style: TextStyle(color: kForeground),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: fuelTypeCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Fuel Type',
-                    labelStyle: TextStyle(color: kMutedForeground),
-                  ),
-                  style: TextStyle(color: kForeground),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: engineNumberCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Engine Number',
-                    labelStyle: TextStyle(color: kMutedForeground),
-                  ),
-                  style: TextStyle(color: kForeground),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: chassisNumberCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Chassis Number',
-                    labelStyle: TextStyle(color: kMutedForeground),
-                  ),
-                  style: TextStyle(color: kForeground),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          if (formKey.currentState!.validate()) {
+                            setState(() {
+                              isSaving = true;
+                            });
+                            try {
+                              final newVehicle = BillingVehicle(
+                                customerId: widget.customerId,
+                                vehicleNumber: numberCtrl.text.trim().toUpperCase(),
+                                vehicleBrand: brandCtrl.text.trim(),
+                                vehicleModel: modelCtrl.text.trim(),
+                                fuelType: fuelTypeCtrl.text.trim(),
+                                engineNumber: engineNumberCtrl.text.trim(),
+                                chassisNumber: chassisNumberCtrl.text.trim(),
+                                createdAt: DateTime.now(),
+                              );
+                              await ref
+                                  .read(vehicleRepositoryProvider)
+                                  .createVehicle(newVehicle);
+                              ref.invalidate(vehiclesForCustomerProvider(widget.customerId));
+                              ref.invalidate(allVehiclesProvider);
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Failed to add vehicle: $e')),
+                                );
+                              }
+                            } finally {
+                              if (context.mounted) {
+                                setState(() {
+                                  isSaving = false;
+                                });
+                              }
+                            }
+                          }
+                        },
+                  child: isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text('Save', style: TextStyle(color: Colors.white)),
                 ),
               ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                final newVehicle = BillingVehicle(
-                  customerId: widget.customerId,
-                  vehicleNumber: numberCtrl.text.trim().toUpperCase(),
-                  vehicleBrand: brandCtrl.text.trim(),
-                  vehicleModel: modelCtrl.text.trim(),
-                  fuelType: fuelTypeCtrl.text.trim(),
-                  engineNumber: engineNumberCtrl.text.trim(),
-                  chassisNumber: chassisNumberCtrl.text.trim(),
-                  createdAt: DateTime.now(),
-                );
-                await ref
-                    .read(vehicleRepositoryProvider)
-                    .createVehicle(newVehicle);
-                ref.invalidate(vehiclesForCustomerProvider(widget.customerId));
-                ref.invalidate(allVehiclesProvider);
-                if (context.mounted) {
-                  Navigator.pop(context);
-                }
-              }
-            },
-            child: const Text('Save', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showEditVehicleDialog(BuildContext context, BillingVehicle vehicle) {
+    final numberCtrl = TextEditingController(text: vehicle.vehicleNumber);
+    final brandCtrl = TextEditingController(text: vehicle.vehicleBrand);
+    final modelCtrl = TextEditingController(text: vehicle.vehicleModel);
+    final fuelTypeCtrl = TextEditingController(text: vehicle.fuelType);
+    final engineNumberCtrl = TextEditingController(text: vehicle.engineNumber);
+    final chassisNumberCtrl = TextEditingController(text: vehicle.chassisNumber);
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        bool isSaving = false;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: kCard,
+              title: Text(
+                'Edit Vehicle',
+                style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
+              ),
+              content: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: numberCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Vehicle Number *',
+                          labelStyle: TextStyle(color: kMutedForeground),
+                        ),
+                        style: TextStyle(color: kForeground),
+                        validator: (value) => (value == null || value.trim().isEmpty)
+                            ? 'Please enter vehicle number'
+                            : null,
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: brandCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Brand',
+                          labelStyle: TextStyle(color: kMutedForeground),
+                        ),
+                        style: TextStyle(color: kForeground),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: modelCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Model',
+                          labelStyle: TextStyle(color: kMutedForeground),
+                        ),
+                        style: TextStyle(color: kForeground),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: fuelTypeCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Fuel Type',
+                          labelStyle: TextStyle(color: kMutedForeground),
+                        ),
+                        style: TextStyle(color: kForeground),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: engineNumberCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Engine Number',
+                          labelStyle: TextStyle(color: kMutedForeground),
+                        ),
+                        style: TextStyle(color: kForeground),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: chassisNumberCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Chassis Number',
+                          labelStyle: TextStyle(color: kMutedForeground),
+                        ),
+                        style: TextStyle(color: kForeground),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSaving ? null : () => Navigator.pop(context),
+                  child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          if (formKey.currentState!.validate()) {
+                            setState(() {
+                              isSaving = true;
+                            });
+                            try {
+                              final updatedVehicle = vehicle.copyWith(
+                                vehicleNumber: numberCtrl.text.trim().toUpperCase(),
+                                vehicleBrand: brandCtrl.text.trim(),
+                                vehicleModel: modelCtrl.text.trim(),
+                                fuelType: fuelTypeCtrl.text.trim(),
+                                engineNumber: engineNumberCtrl.text.trim(),
+                                chassisNumber: chassisNumberCtrl.text.trim(),
+                              );
+                              await ref
+                                  .read(vehicleRepositoryProvider)
+                                  .updateVehicle(updatedVehicle);
+                              ref.invalidate(vehiclesForCustomerProvider(widget.customerId));
+                              ref.invalidate(allVehiclesProvider);
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Vehicle updated successfully')),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Failed to update vehicle: $e')),
+                                );
+                              }
+                            } finally {
+                              if (context.mounted) {
+                                setState(() {
+                                  isSaving = false;
+                                });
+                              }
+                            }
+                          }
+                        },
+                  child: isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text('Save', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showDeleteVehicleConfirmationDialog(
+    BuildContext context,
+    BillingVehicle vehicle,
+  ) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return FutureBuilder<List<Job>>(
+          future: ref.read(jobRepositoryProvider).getJobsForVehicle(vehicle.id!),
+          builder: (context, snapshot) {
+            final isLoading = snapshot.connectionState == ConnectionState.waiting;
+            final linkedJobsCount = snapshot.data?.length ?? 0;
+
+            final String message = isLoading
+                ? 'Checking linked job cards...'
+                : linkedJobsCount > 0
+                    ? 'This vehicle is linked to $linkedJobsCount job card(s). Deleting it will not delete those job cards, but they will show an orphaned/missing vehicle reference. Are you sure you want to continue?'
+                    : 'Are you sure you want to delete vehicle ${vehicle.vehicleNumber}? This action cannot be undone and may affect linked job cards and invoices.';
+
+            return AlertDialog(
+              backgroundColor: kCard,
+              title: Text(
+                'Delete Vehicle',
+                style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (isLoading)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 12),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  Text(
+                    message,
+                    style: TextStyle(color: kForeground),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
+                ),
+                if (!isLoading)
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: kRed),
+                    onPressed: () async {
+                      try {
+                        await ref
+                            .read(vehicleRepositoryProvider)
+                            .deleteVehicle(vehicle.id!);
+                        ref.invalidate(vehiclesForCustomerProvider(widget.customerId));
+                        ref.invalidate(allVehiclesProvider);
+                        if (context.mounted) {
+                          Navigator.pop(dialogContext);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Vehicle deleted successfully')),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          Navigator.pop(dialogContext);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Failed to delete vehicle: $e')),
+                          );
+                        }
+                      }
+                    },
+                    child: const Text('Delete', style: TextStyle(color: Colors.white)),
+                  ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -666,6 +973,35 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
                                           ),
                                         ],
                                       ),
+                                    ),
+                                    PopupMenuButton<String>(
+                                      icon: Icon(Icons.more_vert_rounded, color: kMutedForeground, size: 20),
+                                      color: kCard,
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      onSelected: (val) {
+                                        if (val == 'edit') {
+                                          _showEditVehicleDialog(context, v);
+                                        } else if (val == 'delete') {
+                                          _showDeleteVehicleConfirmationDialog(context, v);
+                                        }
+                                      },
+                                      itemBuilder: (context) => [
+                                        PopupMenuItem(
+                                          value: 'edit',
+                                          child: Text(
+                                            'Edit Vehicle',
+                                            style: TextStyle(color: kForeground),
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'delete',
+                                          child: Text(
+                                            'Delete Vehicle',
+                                            style: TextStyle(color: kRed),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),

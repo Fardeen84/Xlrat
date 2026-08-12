@@ -1,25 +1,22 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/InventoryItem.dart';
-import '../repository/InventoryRepository.dart';
+import '../models/ServiceItem.dart';
+import '../repository/ServiceRepository.dart';
 import 'profile_provider.dart';
 import 'billing_providers.dart';
-import '../utils/backfill_migration.dart';
-
 import '../local_database/billing_database.dart';
 
-final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
+final serviceRepositoryProvider = Provider<ServiceRepository>((ref) {
   final garageId = ref.watch(profileProvider).garageId;
-  return InventoryRepository(
+  return ServiceRepository(
     garageId: garageId,
-    onWriteError: (err) => ref.read(connectionErrorProvider.notifier).state = "Failed to update inventory. Please check your internet connection.",
+    onWriteError: (err) => ref.read(connectionErrorProvider.notifier).state = "Failed to update services. Please check your internet connection.",
   );
 });
 
-class InventoryState {
-  final List<InventoryItem> items;
+class ServiceState {
+  final List<ServiceItem> items;
   final bool isLoading;
   final bool isLoadMore;
   final bool hasMore;
@@ -27,7 +24,7 @@ class InventoryState {
   final bool isSyncing;
   final int syncedCount;
 
-  InventoryState({
+  ServiceState({
     required this.items,
     required this.isLoading,
     required this.isLoadMore,
@@ -37,7 +34,7 @@ class InventoryState {
     this.syncedCount = 0,
   });
 
-  factory InventoryState.initial() => InventoryState(
+  factory ServiceState.initial() => ServiceState(
     items: [],
     isLoading: true,
     isLoadMore: false,
@@ -46,8 +43,8 @@ class InventoryState {
     syncedCount: 0,
   );
 
-  InventoryState copyWith({
-    List<InventoryItem>? items,
+  ServiceState copyWith({
+    List<ServiceItem>? items,
     bool? isLoading,
     bool? isLoadMore,
     bool? hasMore,
@@ -55,7 +52,7 @@ class InventoryState {
     bool? isSyncing,
     int? syncedCount,
   }) {
-    return InventoryState(
+    return ServiceState(
       items: items ?? this.items,
       isLoading: isLoading ?? this.isLoading,
       isLoadMore: isLoadMore ?? this.isLoadMore,
@@ -67,11 +64,11 @@ class InventoryState {
   }
 }
 
-class InventoryListNotifier extends StateNotifier<InventoryState> {
-  final InventoryRepository _repo;
+class ServiceListNotifier extends StateNotifier<ServiceState> {
+  final ServiceRepository _repo;
   Timer? _syncTimer;
 
-  InventoryListNotifier(this._repo) : super(InventoryState.initial()) {
+  ServiceListNotifier(this._repo) : super(ServiceState.initial()) {
     _init();
   }
 
@@ -107,17 +104,6 @@ class InventoryListNotifier extends StateNotifier<InventoryState> {
     state = state.copyWith(isSyncing: true, syncedCount: 0);
     try {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
-      
-      final garageId = _repo.garageId;
-      final backfillKey = 'name_lower_backfill_completed_$garageId';
-      if (garageId.isNotEmpty && !(prefs.getBool(backfillKey) ?? false)) {
-        unawaited(runOneTimeNameLowerBackfill(garageId).then((_) {
-          prefs.setBool(backfillKey, true);
-        }).catchError((e) {
-          print('Name lower backfill failed: $e');
-        }));
-      }
-
       await _repo.syncFromFirestore(
         prefs,
         onProgress: (count) {
@@ -138,18 +124,17 @@ class InventoryListNotifier extends StateNotifier<InventoryState> {
       final garageId = _repo.garageId;
 
       // Clear shared preferences keys
-      await prefs.remove('inventory_last_sync_$garageId');
-      await prefs.remove('inventory_updatedAt_repaired_$garageId');
-      await prefs.remove('inventory_sync_date_$garageId');
-      await prefs.remove('inventory_sync_daily_count_$garageId');
-      await prefs.remove('inventory_sync_last_doc_id_$garageId');
-      await prefs.remove('inventory_sync_total_synced_$garageId');
-      await prefs.remove('inventory_last_orphan_check_$garageId');
-      await prefs.remove('inventory_orphan_check_last_doc_id_$garageId');
+      await prefs.remove('services_last_sync_$garageId');
+      await prefs.remove('services_updatedAt_repaired_$garageId');
+      await prefs.remove('services_sync_date_$garageId');
+      await prefs.remove('services_sync_daily_count_$garageId');
+      await prefs.remove('services_sync_last_doc_id_$garageId');
+      await prefs.remove('services_sync_total_synced_$garageId');
+      await prefs.remove('services_last_orphan_check_$garageId');
 
       // Clear local database rows for this garage
       final db = await BillingDatabase.instance.database;
-      await db.delete('inventory', where: 'garage_id = ?', whereArgs: [garageId]);
+      await db.delete('services', where: 'garage_id = ?', whereArgs: [garageId]);
 
       // Re-trigger sync
       await _repo.syncFromFirestore(
@@ -180,14 +165,13 @@ class InventoryListNotifier extends StateNotifier<InventoryState> {
   }
 }
 
-final inventoryListStateProvider = StateNotifierProvider<InventoryListNotifier, InventoryState>((ref) {
-  final repo = ref.watch(inventoryRepositoryProvider);
-  return InventoryListNotifier(repo);
+final servicesListStateProvider = StateNotifierProvider<ServiceListNotifier, ServiceState>((ref) {
+  final repo = ref.watch(serviceRepositoryProvider);
+  return ServiceListNotifier(repo);
 });
 
-// Wrapped to maintain backward compatibility with components watching inventoryListProvider
-final inventoryListProvider = Provider.autoDispose<AsyncValue<List<InventoryItem>>>((ref) {
-  final state = ref.watch(inventoryListStateProvider);
+final servicesListProvider = Provider.autoDispose<AsyncValue<List<ServiceItem>>>((ref) {
+  final state = ref.watch(servicesListStateProvider);
   if (state.isLoading) {
     return const AsyncValue.loading();
   }
@@ -197,33 +181,18 @@ final inventoryListProvider = Provider.autoDispose<AsyncValue<List<InventoryItem
   return AsyncValue.data(state.items);
 });
 
-final inventorySearchProvider = StateProvider<String>((ref) => '');
+final servicesSearchProvider = StateProvider<String>((ref) => '');
 
-final searchResultProvider = FutureProvider.autoDispose<List<InventoryItem>>((ref) async {
-  final query = ref.watch(inventorySearchProvider);
-  final repo = ref.watch(inventoryRepositoryProvider);
+final servicesSearchResultProvider = FutureProvider.autoDispose<List<ServiceItem>>((ref) async {
+  final query = ref.watch(servicesSearchProvider);
+  final repo = ref.watch(serviceRepositoryProvider);
   return repo.searchItems(query);
 });
 
-final filteredInventoryProvider = Provider.autoDispose<AsyncValue<List<InventoryItem>>>((ref) {
-  final query = ref.watch(inventorySearchProvider);
+final filteredServicesProvider = Provider.autoDispose<AsyncValue<List<ServiceItem>>>((ref) {
+  final query = ref.watch(servicesSearchProvider);
   if (query.trim().isEmpty) {
-    return ref.watch(inventoryListProvider);
+    return ref.watch(servicesListProvider);
   }
-  return ref.watch(searchResultProvider);
-});
-
-final lowStockItemsProvider = StreamProvider.autoDispose<List<InventoryItem>>((ref) {
-  final repo = ref.watch(inventoryRepositoryProvider);
-  final coll = FirebaseFirestore.instance
-      .collection('garages')
-      .doc(repo.garageId)
-      .collection('inventory');
-  return coll
-      .where('isLowStock', isEqualTo: true)
-      .limit(20)
-      .snapshots()
-      .map((snap) => snap.docs
-          .map((doc) => InventoryItem.fromMap(doc.data()..['id'] = doc.id))
-          .toList());
+  return ref.watch(servicesSearchResultProvider);
 });

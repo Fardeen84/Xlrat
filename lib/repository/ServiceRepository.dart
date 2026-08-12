@@ -2,13 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
-import '../models/SecondHandItem.dart';
+import '../models/ServiceItem.dart';
 import '../local_database/billing_database.dart';
 import '../utils/fts_query.dart';
 
-/// Direct Firestore repository for second-hand items, backed by local SQLite cache.
-class SecondHandInventoryRepository {
-  SecondHandInventoryRepository({required this.garageId, this.onWriteError, FirebaseFirestore? firestore})
+/// Direct Firestore repository for service items, backed by local SQLite cache.
+class ServiceRepository {
+  ServiceRepository({required this.garageId, this.onWriteError, FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final String garageId;
@@ -16,29 +16,23 @@ class SecondHandInventoryRepository {
   final FirebaseFirestore _firestore;
 
   CollectionReference<Map<String, dynamic>> get _collection =>
-      _firestore.collection('garages').doc(garageId).collection('secondhand_inventory');
+      _firestore.collection('garages').doc(garageId).collection('services');
 
   // ─── Create ───────────────────────────────────────────────────────────────
 
-  Future<SecondHandItem> createItem(SecondHandItem item) async {
+  Future<ServiceItem> createService(ServiceItem service) async {
     try {
       final docRef = _collection.doc();
-      final toSave = SecondHandItem(
+      final toSave = ServiceItem(
         id: docRef.id,
-        name: item.name,
-        category: item.category,
-        stock: item.stock,
-        unit: item.unit,
-        purchase: item.purchase,
-        selling: item.selling,
-        minStock: item.minStock,
-        sku: item.sku,
-        sourceNotes: item.sourceNotes,
-        conditionNotes: item.conditionNotes,
-        createdAt: item.createdAt,
-        syncStatus: item.syncStatus,
+        name: service.name,
+        category: service.category,
+        price: service.price,
+        description: service.description,
+        createdAt: service.createdAt,
+        syncStatus: service.syncStatus,
         updatedAt: null,
-        isDeleted: item.isDeleted,
+        isDeleted: service.isDeleted,
       );
 
       // Write to Firestore
@@ -47,25 +41,18 @@ class SecondHandInventoryRepository {
       // Write to SQLite
       final db = await BillingDatabase.instance.database;
       await db.insert(
-        'secondhand_inventory',
+        'services',
         {
           'id': toSave.id,
           'name': toSave.name,
           'category': toSave.category,
-          'stock': toSave.stock,
-          'unit': toSave.unit,
-          'purchase': toSave.purchase,
-          'selling': toSave.selling,
-          'min_stock': toSave.minStock,
-          'sku': toSave.sku,
-          'source_notes': toSave.sourceNotes,
-          'condition_notes': toSave.conditionNotes,
+          'price': toSave.price,
+          'description': toSave.description,
           'created_at': toSave.createdAt.toIso8601String(),
           'sync_status': 'pending',
           'updated_at': DateTime.now().millisecondsSinceEpoch,
           'is_deleted': 0,
           'name_lower': toSave.name.toLowerCase(),
-          'sku_lower': toSave.sku.toLowerCase(),
           'category_lower': toSave.category.toLowerCase(),
           'garage_id': garageId,
         },
@@ -81,60 +68,60 @@ class SecondHandInventoryRepository {
 
   // ─── Read ─────────────────────────────────────────────────────────────────
 
-  Future<SecondHandItem?> getItem(String id) async {
+  Future<ServiceItem?> getItem(String id) async {
     // Read from SQLite first
     final db = await BillingDatabase.instance.database;
-    final rows = await db.query('secondhand_inventory', where: 'id = ? AND garage_id = ?', whereArgs: [id, garageId]);
+    final rows = await db.query('services', where: 'id = ? AND garage_id = ?', whereArgs: [id, garageId]);
     if (rows.isNotEmpty) {
-      return SecondHandItem.fromMap(rows.first);
+      return ServiceItem.fromMap(rows.first);
     }
 
     // Fallback to Firestore
     final doc = await _collection.doc(id).get();
     if (!doc.exists) return null;
-    return SecondHandItem.fromMap(doc.data()!..['id'] = doc.id);
+    return ServiceItem.fromMap(doc.data()!..['id'] = doc.id);
   }
 
-  Future<SecondHandItem?> findByName(String name) async {
+  Future<ServiceItem?> findByName(String name) async {
     final db = await BillingDatabase.instance.database;
     final rows = await db.query(
-      'secondhand_inventory',
+      'services',
       where: 'name_lower = ? AND garage_id = ? AND is_deleted = 0',
       whereArgs: [name.trim().toLowerCase(), garageId],
     );
     if (rows.isNotEmpty) {
-      return SecondHandItem.fromMap(rows.first);
+      return ServiceItem.fromMap(rows.first);
     }
     return null;
   }
 
-  Future<List<SecondHandItem>> getLocalItems() async {
+  Future<List<ServiceItem>> getLocalItems() async {
     final db = await BillingDatabase.instance.database;
-    final rows = await db.query('secondhand_inventory', where: 'is_deleted = 0 AND garage_id = ?', whereArgs: [garageId], orderBy: 'name ASC');
-    return rows.map((row) => SecondHandItem.fromMap(row)).toList();
+    final rows = await db.query('services', where: 'is_deleted = 0 AND garage_id = ?', whereArgs: [garageId], orderBy: 'name ASC');
+    return rows.map((row) => ServiceItem.fromMap(row)).toList();
   }
 
-  Future<List<SecondHandItem>> searchItems(String query) async {
+  Future<List<ServiceItem>> searchItems(String query) async {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return getLocalItems();
 
     // 1. Local SQLite search (FTS with LIKE fallback)
-    List<SecondHandItem> localResults = [];
+    List<ServiceItem> localResults = [];
     final ftsQuery = buildFtsPrefixQuery(query);
 
     if (BillingDatabase.ftsAvailable && ftsQuery != null) {
       try {
         final db = await BillingDatabase.instance.database;
         final rows = await db.rawQuery('''
-          SELECT s.* FROM secondhand_inventory s
-          JOIN secondhand_fts f ON s.id = f.id
-          WHERE secondhand_fts MATCH ? AND f.garage_id = ? AND s.is_deleted = 0
+          SELECT s.* FROM services s
+          JOIN services_fts f ON s.id = f.id
+          WHERE services_fts MATCH ? AND f.garage_id = ? AND s.is_deleted = 0
           ORDER BY s.name ASC
           LIMIT 15
         ''', [ftsQuery, garageId]);
-        localResults = rows.map((row) => SecondHandItem.fromMap(row)).toList();
+        localResults = rows.map((row) => ServiceItem.fromMap(row)).toList();
       } catch (e) {
-        print('Local FTS secondhand search failed, falling back to LIKE: $e');
+        print('Local FTS services search failed, falling back to LIKE: $e');
       }
     }
 
@@ -144,15 +131,15 @@ class SecondHandInventoryRepository {
         final searchQ = trimmed.toLowerCase();
         final q = '%$searchQ%';
         final rows = await db.query(
-          'secondhand_inventory',
-          where: 'is_deleted = 0 AND garage_id = ? AND (name_lower LIKE ? OR sku_lower LIKE ? OR category_lower LIKE ?)',
-          whereArgs: [garageId, q, q, q],
+          'services',
+          where: 'is_deleted = 0 AND garage_id = ? AND (name_lower LIKE ? OR category_lower LIKE ?)',
+          whereArgs: [garageId, q, q],
           orderBy: 'name ASC',
           limit: 15,
         );
-        localResults = rows.map((row) => SecondHandItem.fromMap(row)).toList();
+        localResults = rows.map((row) => ServiceItem.fromMap(row)).toList();
       } catch (e) {
-        print('Local LIKE secondhand search failed: $e');
+        print('Local LIKE services search failed: $e');
       }
     }
 
@@ -171,44 +158,38 @@ class SecondHandInventoryRepository {
           .limit(15)
           .get();
       return snap.docs
-          .map((doc) => SecondHandItem.fromMap(doc.data()..['id'] = doc.id))
+          .map((doc) => ServiceItem.fromMap(doc.data()..['id'] = doc.id))
           .toList();
     } catch (e) {
-      print('Firestore secondhand search failed: $e');
+      print('Firestore services search failed: $e');
       return const [];
     }
   }
 
   // ─── Update ───────────────────────────────────────────────────────────────
 
-  Future<SecondHandItem> updateItem(SecondHandItem item) async {
-    assert(item.id != null, 'Cannot update an item without an id');
+  Future<ServiceItem> updateService(ServiceItem service) async {
+    assert(service.id != null, 'Cannot update a service without an id');
     try {
-      final toSave = SecondHandItem(
-        id: item.id,
-        name: item.name,
-        category: item.category,
-        stock: item.stock,
-        unit: item.unit,
-        purchase: item.purchase,
-        selling: item.selling,
-        minStock: item.minStock,
-        sku: item.sku,
-        sourceNotes: item.sourceNotes,
-        conditionNotes: item.conditionNotes,
-        createdAt: item.createdAt,
-        syncStatus: item.syncStatus,
+      final toSave = ServiceItem(
+        id: service.id,
+        name: service.name,
+        category: service.category,
+        price: service.price,
+        description: service.description,
+        createdAt: service.createdAt,
+        syncStatus: service.syncStatus,
         updatedAt: null,
-        isDeleted: item.isDeleted,
+        isDeleted: service.isDeleted,
       );
 
       // Write to Firestore
-      await _collection.doc(item.id).set(toSave.toMap());
+      await _collection.doc(service.id).set(toSave.toMap());
 
       // Write to local SQLite
       final db = await BillingDatabase.instance.database;
       final existing = await db.query(
-        'secondhand_inventory',
+        'services',
         columns: ['garage_id'],
         where: 'id = ?',
         whereArgs: [toSave.id],
@@ -221,25 +202,18 @@ class SecondHandInventoryRepository {
         }
       }
       await db.insert(
-        'secondhand_inventory',
+        'services',
         {
           'id': toSave.id,
           'name': toSave.name,
           'category': toSave.category,
-          'stock': toSave.stock,
-          'unit': toSave.unit,
-          'purchase': toSave.purchase,
-          'selling': toSave.selling,
-          'min_stock': toSave.minStock,
-          'sku': toSave.sku,
-          'source_notes': toSave.sourceNotes,
-          'condition_notes': toSave.conditionNotes,
+          'price': toSave.price,
+          'description': toSave.description,
           'created_at': toSave.createdAt.toIso8601String(),
           'sync_status': 'pending',
           'updated_at': DateTime.now().millisecondsSinceEpoch,
           'is_deleted': 0,
           'name_lower': toSave.name.toLowerCase(),
-          'sku_lower': toSave.sku.toLowerCase(),
           'category_lower': toSave.category.toLowerCase(),
           'garage_id': garageId,
         },
@@ -253,60 +227,29 @@ class SecondHandInventoryRepository {
     }
   }
 
-  Future<void> updateStock(String id, int newStock) async {
-    try {
-      final now = DateTime.now();
-      // Read item first to compute isLowStock (Fix 1)
-      final item = await getItem(id);
-      final isLow = item != null ? (newStock <= item.minStock) : false;
-
-      // Update Firestore
-      await _collection.doc(id).update({
-        'stock': newStock,
-        'updatedAt': FieldValue.serverTimestamp(),
-        'isLowStock': isLow,
-      });
-
-      // Update local SQLite
-      final db = await BillingDatabase.instance.database;
-      await db.update(
-        'secondhand_inventory',
-        {
-          'stock': newStock,
-          'updated_at': now.millisecondsSinceEpoch,
-        },
-        where: 'id = ? AND garage_id = ?',
-        whereArgs: [id, garageId],
-      );
-    } catch (e) {
-      onWriteError?.call(e.toString());
-      rethrow;
-    }
-  }
-
   // ─── Delete ───────────────────────────────────────────────────────────────
 
-  Future<void> deleteItem(String id) async {
+  Future<void> deleteService(String id) async {
     try {
       // Delete from Firestore
       await _collection.doc(id).delete();
 
       // Delete from SQLite
       final db = await BillingDatabase.instance.database;
-      await db.delete('secondhand_inventory', where: 'id = ? AND garage_id = ?', whereArgs: [id, garageId]);
+      await db.delete('services', where: 'id = ? AND garage_id = ?', whereArgs: [id, garageId]);
     } catch (e) {
       onWriteError?.call(e.toString());
       rethrow;
     }
   }
 
-  // ─── Sync Logic (Fix 2 & Fix 4) ──────────────────────────────────────────
+  // ─── Sync Logic ──────────────────────────────────────────────────────────
 
   Future<int> syncFromFirestore(
       SharedPreferences prefs, {
         void Function(int syncedCount)? onProgress,
       }) async {
-    final lastSyncKey = 'secondhand_last_sync_$garageId';
+    final lastSyncKey = 'services_last_sync_$garageId';
     final lastSyncMs = prefs.getInt(lastSyncKey) ?? 0;
     final lastSyncDateTime = DateTime.fromMillisecondsSinceEpoch(lastSyncMs);
 
@@ -314,12 +257,11 @@ class SecondHandInventoryRepository {
     final isInitialSync = lastSyncMs == 0;
 
     if (isInitialSync) {
-      // Resumable initial sync configuration (Fix 2)
       final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
-      final syncDateKey = 'secondhand_sync_date_$garageId';
-      final dailyCountKey = 'secondhand_sync_daily_count_$garageId';
-      final lastDocIdKey = 'secondhand_sync_last_doc_id_$garageId';
-      final totalSyncedKey = 'secondhand_sync_total_synced_$garageId';
+      final syncDateKey = 'services_sync_date_$garageId';
+      final dailyCountKey = 'services_sync_daily_count_$garageId';
+      final lastDocIdKey = 'services_sync_last_doc_id_$garageId';
+      final totalSyncedKey = 'services_sync_total_synced_$garageId';
 
       final savedSyncDate = prefs.getString(syncDateKey) ?? '';
       int dailyCount = 0;
@@ -333,7 +275,6 @@ class SecondHandInventoryRepository {
       int totalSynced = prefs.getInt(totalSyncedKey) ?? 0;
       String lastDocId = prefs.getString(lastDocIdKey) ?? '';
 
-      // Limit per day to prevent Spark ceiling hit (Fix 2)
       const dailyLimit = 40000;
       bool hasMore = true;
 
@@ -355,11 +296,10 @@ class SecondHandInventoryRepository {
           break;
         }
 
-        // Clarification B Check
         final ids = snap.docs.map((d) => d.id).toList();
         final placeholders = List.filled(ids.length, '?').join(',');
         final existingRows = await db.query(
-          'secondhand_inventory',
+          'services',
           columns: ['id', 'garage_id'],
           where: 'id IN ($placeholders)',
           whereArgs: ids,
@@ -375,7 +315,7 @@ class SecondHandInventoryRepository {
           if (existingGarageId != null && existingGarageId.isNotEmpty && existingGarageId != garageId) {
             continue;
           }
-          final item = SecondHandItem.fromMap(doc.data()..['id'] = doc.id);
+          final item = ServiceItem.fromMap(doc.data()..['id'] = doc.id);
           _insertItemToBatch(batch, item);
         }
 
@@ -398,8 +338,7 @@ class SecondHandInventoryRepository {
       }
 
       if (!hasMore) {
-        // Find maximum updatedAt from local database (Fix 4)
-        final maxRow = await db.rawQuery('SELECT MAX(updated_at) as maxVal FROM secondhand_inventory WHERE garage_id = ?', [garageId]);
+        final maxRow = await db.rawQuery('SELECT MAX(updated_at) as maxVal FROM services WHERE garage_id = ?', [garageId]);
         final maxVal = maxRow.first['maxVal'] as int? ?? 0;
         await prefs.setInt(lastSyncKey, maxVal > 0 ? maxVal : DateTime.now().millisecondsSinceEpoch);
 
@@ -411,9 +350,7 @@ class SecondHandInventoryRepository {
 
       return totalSynced;
     } else {
-      // Fix 6: One-time repair scan for legacy docs that are missing the
-      // 'updatedAt' field entirely.
-      final repairFlagKey = 'secondhand_updatedAt_repaired_$garageId';
+      final repairFlagKey = 'services_updatedAt_repaired_$garageId';
       final alreadyRepaired = prefs.getBool(repairFlagKey) ?? false;
       int repairedCount = 0;
 
@@ -421,11 +358,10 @@ class SecondHandInventoryRepository {
         final allSnap = await _collection.get();
 
         if (allSnap.docs.isNotEmpty) {
-          // Clarification B check
           final ids = allSnap.docs.map((d) => d.id).toList();
           final placeholders = List.filled(ids.length, '?').join(',');
           final existingRows = await db.query(
-            'secondhand_inventory',
+            'services',
             columns: ['id', 'garage_id'],
             where: 'id IN ($placeholders)',
             whereArgs: ids,
@@ -453,7 +389,7 @@ class SecondHandInventoryRepository {
               fsWrites++;
             }
 
-            final item = SecondHandItem.fromMap({...data, 'id': doc.id});
+            final item = ServiceItem.fromMap({...data, 'id': doc.id});
             _insertItemToBatch(repairDbBatch, item);
             repairedCount++;
           }
@@ -467,16 +403,14 @@ class SecondHandInventoryRepository {
         await prefs.setBool(repairFlagKey, true);
       }
 
-      // Subsequent delta sync (Fix 4)
       Query<Map<String, dynamic>> query = _collection.where('updatedAt', isGreaterThan: Timestamp.fromDate(lastSyncDateTime));
       final snap = await query.get();
       int deltaCount = 0;
       if (snap.docs.isNotEmpty) {
-        // Clarification B check
         final ids = snap.docs.map((d) => d.id).toList();
         final placeholders = List.filled(ids.length, '?').join(',');
         final existingRows = await db.query(
-          'secondhand_inventory',
+          'services',
           columns: ['id', 'garage_id'],
           where: 'id IN ($placeholders)',
           whereArgs: ids,
@@ -494,7 +428,7 @@ class SecondHandInventoryRepository {
           if (existingGarageId != null && existingGarageId.isNotEmpty && existingGarageId != garageId) {
             continue;
           }
-          final item = SecondHandItem.fromMap(doc.data()..['id'] = doc.id);
+          final item = ServiceItem.fromMap(doc.data()..['id'] = doc.id);
           _insertItemToBatch(batch, item);
           deltaCount++;
 
@@ -504,15 +438,13 @@ class SecondHandInventoryRepository {
         }
 
         await batch.commit(noResult: true);
-
-        // Persist maximum batch-derived updatedAt timestamp (Fix 4)
         await prefs.setInt(lastSyncKey, maxUpdatedAt.millisecondsSinceEpoch);
       }
 
-      // Periodic orphan check for secondhand (small collection, check every 24 hours via full get)
+      // Periodic orphan check for services
       int orphanSyncedCount = 0;
       final now = DateTime.now();
-      final lastOrphanCheckKey = 'secondhand_last_orphan_check_$garageId';
+      final lastOrphanCheckKey = 'services_last_orphan_check_$garageId';
       final lastOrphanCheckMs = prefs.getInt(lastOrphanCheckKey) ?? 0;
 
       if (now.millisecondsSinceEpoch - lastOrphanCheckMs >= 24 * 60 * 60 * 1000) {
@@ -521,7 +453,7 @@ class SecondHandInventoryRepository {
           final ids = orphanSnap.docs.map((d) => d.id).toList();
           final placeholders = List.filled(ids.length, '?').join(',');
           final existingRows = await db.query(
-            'secondhand_inventory',
+            'services',
             columns: ['id', 'garage_id'],
             where: 'id IN ($placeholders)',
             whereArgs: ids,
@@ -553,7 +485,7 @@ class SecondHandInventoryRepository {
               }
             }
 
-            final item = SecondHandItem.fromMap({...data, 'id': doc.id});
+            final item = ServiceItem.fromMap({...data, 'id': doc.id});
             _insertItemToBatch(dbBatch, item);
             orphanSyncedCount++;
           }
@@ -570,27 +502,20 @@ class SecondHandInventoryRepository {
     }
   }
 
-  void _insertItemToBatch(Batch batch, SecondHandItem item) {
+  void _insertItemToBatch(Batch batch, ServiceItem item) {
     batch.insert(
-      'secondhand_inventory',
+      'services',
       {
         'id': item.id,
         'name': item.name,
         'category': item.category,
-        'stock': item.stock,
-        'unit': item.unit,
-        'purchase': item.purchase,
-        'selling': item.selling,
-        'min_stock': item.minStock,
-        'sku': item.sku,
-        'source_notes': item.sourceNotes,
-        'condition_notes': item.conditionNotes,
+        'price': item.price,
+        'description': item.description,
         'created_at': item.createdAt.toIso8601String(),
         'sync_status': 'synced',
         'updated_at': item.updatedAt?.millisecondsSinceEpoch ?? DateTime.now().millisecondsSinceEpoch,
         'is_deleted': 0,
         'name_lower': item.name.toLowerCase(),
-        'sku_lower': item.sku.toLowerCase(),
         'category_lower': item.category.toLowerCase(),
         'garage_id': garageId,
       },

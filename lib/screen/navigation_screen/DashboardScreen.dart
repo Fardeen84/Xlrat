@@ -1489,10 +1489,10 @@ class _BillCard extends StatelessWidget {
   }
 
   String _initials(String name) {
-    final parts = name.trim().split(' ');
-    if (parts.isEmpty) return '?';
-    if (parts.length == 1) return parts[0][0].toUpperCase();
-    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    final cleanParts = name.trim().split(' ').where((p) => p.isNotEmpty).toList();
+    if (cleanParts.isEmpty) return '?';
+    if (cleanParts.length == 1) return cleanParts[0][0].toUpperCase();
+    return '${cleanParts[0][0]}${cleanParts[1][0]}'.toUpperCase();
   }
 
   Color _statusColor(PaymentStatus status) {

@@ -191,7 +191,7 @@ void main() {
       vehicleType: 'bike',
       brand: 'Honda Activa',
       complaint: 'Engine oil leak',
-      mechanic: 'Suresh K.',
+      mechanics: const ['Suresh K.'],
       status: 'pending',
       date: '08 Jul 2026',
       amount: 450,

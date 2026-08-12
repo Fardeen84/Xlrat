@@ -78,11 +78,12 @@ class SecondHandInventoryListNotifier extends StateNotifier<SecondHandInventoryS
     // 1. Load local items from SQLite cache immediately
     await _loadFromLocal();
 
-    // 2. Run delta sync in the background
-    await triggerSync();
-
-    // 3. Sync periodically every 5 minutes
-    _syncTimer = Timer.periodic(const Duration(minutes: 5), (_) => triggerSync());
+    // 2. Run delta sync in background (unawaited so override in tests works)
+    Future.microtask(() async {
+      await triggerSync();
+      // 3. Sync periodically every 5 minutes
+      _syncTimer = Timer.periodic(const Duration(minutes: 5), (_) => triggerSync());
+    });
   }
 
   Future<void> _loadFromLocal() async {

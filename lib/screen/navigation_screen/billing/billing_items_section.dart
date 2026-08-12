@@ -10,6 +10,8 @@ import '../../../models/InventoryItem.dart';
 import '../../../providers/inventoryProvider.dart';
 import '../../../models/SecondHandItem.dart';
 import '../../../providers/secondHandInventoryProvider.dart';
+import '../../../models/ServiceItem.dart';
+import '../../../providers/servicesProvider.dart';
 
 class BillingItemsSection extends ConsumerWidget {
   const BillingItemsSection({super.key});
@@ -190,7 +192,7 @@ class BillingItemsSection extends ConsumerWidget {
                 ),
                 ...List.generate(
                   items.length,
-                  (i) => _ItemRow(
+                      (i) => _ItemRow(
                     item: items[i],
                     isLast: i == items.length - 1,
                     onRemove: () => notifier.removeItem(i),
@@ -375,7 +377,6 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
   final _nameCtrl = TextEditingController();
   final _qtyCtrl = TextEditingController(text: '1');
   final _priceCtrl = TextEditingController();
-  final _nameFocusNode = FocusNode();
   String _unit = 'pcs';
   String? _selectedProductId;
   String _productSource = 'inventory'; // 'inventory' or 'secondhand'
@@ -386,6 +387,7 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
     Future.microtask(() {
       ref.read(inventoryListStateProvider.notifier).loadFirstPage();
       ref.read(secondHandInventoryListStateProvider.notifier).loadFirstPage();
+      ref.read(servicesListStateProvider.notifier).loadFirstPage();
     });
   }
 
@@ -409,13 +411,12 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
     _nameCtrl.dispose();
     _qtyCtrl.dispose();
     _priceCtrl.dispose();
-    _nameFocusNode.dispose();
     super.dispose();
   }
 
   double get _total =>
       (double.tryParse(_qtyCtrl.text) ?? 0) *
-      (double.tryParse(_priceCtrl.text) ?? 0);
+          (double.tryParse(_priceCtrl.text) ?? 0);
 
   void _add() {
     final name = _nameCtrl.text.trim();
@@ -432,7 +433,7 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
     }
 
     // Prevent adding more than what's actually available in stock
-    if (_selectedProductId != null) {
+    if (_selectedProductId != null && _productSource != 'service') {
       if (_productSource == 'secondhand') {
         final secondhand = ref.read(secondHandInventoryListProvider).value ?? [];
         final match = secondhand.where((item) => item.id == _selectedProductId);
@@ -465,15 +466,15 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
     ref
         .read(invoiceDraftProvider.notifier)
         .addItem(
-          InvoiceItem.create(
-            productId: _selectedProductId,
-            itemName: name,
-            quantity: qty,
-            unit: _unit,
-            price: price,
-            productSource: _productSource,
-          ),
-        );
+      InvoiceItem.create(
+        productId: _selectedProductId,
+        itemName: name,
+        quantity: qty,
+        unit: _unit,
+        price: price,
+        productSource: _productSource,
+      ),
+    );
 
     // Stock is deducted only when the invoice is actually saved/generated.
     // See billing_providers.dart -> onInvoiceCreated -> _deductInventoryForInvoice.
@@ -483,10 +484,14 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final isSecondHand = _productSource == 'secondhand';
-    final inventoryAsync = isSecondHand
-        ? ref.watch(secondHandInventoryListProvider)
-        : ref.watch(inventoryListProvider);
+    final AsyncValue<List<dynamic>> inventoryAsync;
+    if (_productSource == 'secondhand') {
+      inventoryAsync = ref.watch(secondHandInventoryListProvider);
+    } else if (_productSource == 'service') {
+      inventoryAsync = ref.watch(servicesListProvider);
+    } else {
+      inventoryAsync = ref.watch(inventoryListProvider);
+    }
     final List<dynamic> inventory = inventoryAsync.value ?? [];
     final bottom = MediaQuery.of(context).viewInsets.bottom;
     return Container(
@@ -556,6 +561,7 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
                         _selectedProductId = null;
                         _nameCtrl.clear();
                         _priceCtrl.clear();
+                        _unit = 'pcs';
                       });
                     },
                     child: Container(
@@ -571,7 +577,7 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
                       child: Text(
                         'New Stock',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: _productSource == 'inventory' ? kPrimaryDark : kMutedForeground,
                         ),
@@ -579,7 +585,7 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: GestureDetector(
                     onTap: () {
@@ -588,6 +594,7 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
                         _selectedProductId = null;
                         _nameCtrl.clear();
                         _priceCtrl.clear();
+                        _unit = 'pcs';
                       });
                     },
                     child: Container(
@@ -603,9 +610,42 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
                       child: Text(
                         'Second Hand',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: _productSource == 'secondhand' ? kPrimaryDark : kMutedForeground,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _productSource = 'service';
+                        _selectedProductId = null;
+                        _nameCtrl.clear();
+                        _priceCtrl.clear();
+                        _unit = 'service';
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: _productSource == 'service' ? kPrimary : kMuted,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _productSource == 'service' ? kPrimary : kBorder,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'Services',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: _productSource == 'service' ? kPrimaryDark : kMutedForeground,
                         ),
                       ),
                     ),
@@ -615,266 +655,153 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
             ),
             const SizedBox(height: 16),
 
-            // Quick picks (horizontal scroll)
-            // Quick picks (horizontal scroll) — populated directly from inventory
-            Text(
-              'Quick Pick',
-              style: TextStyle(
-                fontSize: 11,
-                color: kMutedForeground,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.3,
-              ),
-            ),
-            const SizedBox(height: 8),
-            if (inventory.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Text(
-                  'No parts in inventory yet.',
-                  style: TextStyle(fontSize: 11, color: kMutedForeground),
-                ),
-              )
-            else
-              SizedBox(
-                height: 52,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: inventory.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (_, i) {
-                    final invItem = inventory[i];
-                    final sel = _selectedProductId == invItem.id;
-                    final isSH = invItem is SecondHandItem;
+            // Quick picks (horizontal scroll) — populated directly from
+            // inventory, filtered live as the user types in the Item Name
+            // field below so search results appear as tappable chips here
+            // instead of a separate dropdown.
+            AnimatedBuilder(
+              animation: _nameCtrl,
+              builder: (context, _) {
+                final query = _nameCtrl.text.trim().toLowerCase();
+                final displayedItems = query.isEmpty
+                    ? inventory
+                    : inventory
+                    .where((invItem) =>
+                    (invItem.name as String).toLowerCase().contains(query))
+                    .toList();
 
-                    return GestureDetector(
-                      onTap: () => setState(() {
-                        _nameCtrl.text = invItem.name;
-                        _priceCtrl.text = invItem.selling.toString();
-                        _unit = invItem.unit;
-                        _selectedProductId = invItem.id;
-                      }),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 140),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: sel ? kPrimary : kMuted,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: sel ? kPrimary : kBorder),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  invItem.name,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: sel ? kPrimaryDark : kForeground,
-                                  ),
-                                ),
-                                if (isSH) ...[
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '(Used)',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: sel ? kPrimaryDark : kOrange,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${invItem.stock} ${invItem.unit} left',
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w600,
-                                color: invItem.isLowStock
-                                    ? (sel ? kPrimaryDark : kRed)
-                                    : (sel ? kPrimaryDark.withOpacity(0.7) : kMutedForeground),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            const SizedBox(height: 14),
-            const SizedBox(height: 14),
-
-            // Item name with Autocomplete
-            Autocomplete<Object>(
-              textEditingController: _nameCtrl,
-              focusNode: _nameFocusNode,
-              optionsBuilder: (TextEditingValue textEditingValue) async {
-                final query = textEditingValue.text;
-                if (query.trim().length < 2) {
-                  return const Iterable<Object>.empty();
-                }
-                
-                await Future.delayed(const Duration(milliseconds: 300));
-                if (query != _nameCtrl.text) {
-                  return const Iterable<Object>.empty();
-                }
-
-                if (isSecondHand) {
-                  final repo = ref.read(secondHandInventoryRepositoryProvider);
-                  return await repo.searchItems(
-                    query,
-                  );
-                } else {
-                  final repo = ref.read(inventoryRepositoryProvider);
-                  return await repo.searchItems(
-                    query,
-                  );
-                }
-              },
-              displayStringForOption: (Object option) => (option as dynamic).name,
-              onSelected: (Object selection) {
-                final sel = selection as dynamic;
-                setState(() {
-                  _nameCtrl.text = sel.name;
-                  _priceCtrl.text = sel.selling.toString();
-                  _unit = sel.unit;
-                  _selectedProductId = sel.id;
-                });
-              },
-              fieldViewBuilder:
-                  (context, controller, focusNode, onFieldSubmitted) {
-                    return BillingField(
-                      ctrl: controller,
-                      label: 'Item Name',
-                      icon: Icons.inventory_2_outlined,
-                      onChanged: (val) {
-                        setState(() {
-                          _selectedProductId = null;
-                        });
-                      },
-                    );
-                  },
-              optionsViewBuilder: (context, onSelected, options) {
-                return Align(
-                  alignment: Alignment.topLeft,
-                  child: Material(
-                    color: Colors.transparent,
-                    child: Container(
-                      width: MediaQuery.of(context).size.width - 40,
-                      margin: const EdgeInsets.only(top: 4),
-                      decoration: BoxDecoration(
-                        color: kCard,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: kBorder),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      constraints: const BoxConstraints(maxHeight: 200),
-                      child: ListView.builder(
-                        padding: EdgeInsets.zero,
-                        shrinkWrap: true,
-                        itemCount: options.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          final dynamic option = options.elementAt(index);
-                          final isSH = option is SecondHandItem;
-                          return InkWell(
-                            onTap: () => onSelected(option),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(
-                                    color: index == options.length - 1
-                                        ? Colors.transparent
-                                        : kBorder,
-                                  ),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Text(
-                                              option.name,
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w600,
-                                                color: kForeground,
-                                              ),
-                                            ),
-                                            if (isSH) ...[
-                                              const SizedBox(width: 6),
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: kOrange.withOpacity(0.2),
-                                                  borderRadius: BorderRadius.circular(6),
-                                                ),
-                                                child: const Text(
-                                                  'Used',
-                                                  style: TextStyle(
-                                                    fontSize: 9,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: kOrange,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ],
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          'SKU: ${option.sku} • Stock: ${option.stock} ${option.unit}',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: kMutedForeground,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Text(
-                                    '₹${option.selling}',
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: kPrimary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      query.isEmpty ? 'Quick Pick' : 'Matching Items',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: kMutedForeground,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.3,
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 8),
+                    if (displayedItems.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Text(
+                          query.isEmpty
+                              ? 'No parts in inventory yet.'
+                              : 'No matching items found.',
+                          style: TextStyle(fontSize: 11, color: kMutedForeground),
+                        ),
+                      )
+                    else
+                      SizedBox(
+                        height: 52,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: displayedItems.length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 8),
+                          itemBuilder: (_, i) {
+                            final invItem = displayedItems[i];
+                            final sel = _selectedProductId == invItem.id;
+                            final isSH = invItem is SecondHandItem;
+                            final isService = invItem is ServiceItem;
+
+                            return GestureDetector(
+                              onTap: () => setState(() {
+                                _nameCtrl.text = invItem.name;
+                                _priceCtrl.text = (isService ? invItem.price : invItem.selling).toString();
+                                _unit = isService ? 'service' : invItem.unit;
+                                _selectedProductId = invItem.id;
+                              }),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 140),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: sel ? kPrimary : kMuted,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: sel ? kPrimary : kBorder),
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          invItem.name,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: sel ? kPrimaryDark : kForeground,
+                                          ),
+                                        ),
+                                        if (isSH) ...[
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '(Used)',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: sel ? kPrimaryDark : kOrange,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    if (!isService) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${invItem.stock} ${invItem.unit} left',
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w600,
+                                          color: invItem.isLowStock
+                                              ? (sel ? kPrimaryDark : kRed)
+                                              : (sel ? kPrimaryDark.withOpacity(0.7) : kMutedForeground),
+                                        ),
+                                      ),
+                                    ] else ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '₹${invItem.price}',
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w600,
+                                          color: sel ? kPrimaryDark.withOpacity(0.7) : kMutedForeground,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                  ],
                 );
+              },
+            ),
+            const SizedBox(height: 14),
+            const SizedBox(height: 14),
+
+            // Item name — plain text field. Typing filters the "Quick
+            // Pick" chip list above (see AnimatedBuilder wrapping it) so the
+            // user picks a match by tapping a chip, rather than relying on
+            // a separate dropdown overlay.
+            BillingField(
+              ctrl: _nameCtrl,
+              label: 'Item Name',
+              icon: Icons.inventory_2_outlined,
+              onChanged: (val) {
+                setState(() {
+                  _selectedProductId = null;
+                });
               },
             ),
             const SizedBox(height: 12),
@@ -913,7 +840,7 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
                         vertical: 14,
                       ),
                     ),
-                    items: ['pcs', 'litre', 'set', 'hr', 'kg', 'mtr']
+                    items: ['pcs', 'litre', 'set', 'hr', 'kg', 'mtr', 'unit', 'service']
                         .map((u) => DropdownMenuItem(value: u, child: Text(u)))
                         .toList(),
                     onChanged: (v) => setState(() => _unit = v ?? 'pcs'),
@@ -938,36 +865,36 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
               duration: const Duration(milliseconds: 200),
               child: _total > 0
                   ? Container(
-                      margin: const EdgeInsets.only(bottom: 14),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
+                margin: const EdgeInsets.only(bottom: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F0FE),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${_qtyCtrl.text.isEmpty ? '0' : _qtyCtrl.text} $_unit  ×  ₹${_priceCtrl.text.isEmpty ? '0' : _priceCtrl.text}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: kMutedForeground,
                       ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE8F0FE),
-                        borderRadius: BorderRadius.circular(12),
+                    ),
+                    Text(
+                      formatCurrency(_total.round()),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: kPrimary,
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            '${_qtyCtrl.text.isEmpty ? '0' : _qtyCtrl.text} $_unit  ×  ₹${_priceCtrl.text.isEmpty ? '0' : _priceCtrl.text}',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: kMutedForeground,
-                            ),
-                          ),
-                          Text(
-                            formatCurrency(_total.round()),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              color: kPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
+                    ),
+                  ],
+                ),
+              )
                   : const SizedBox.shrink(),
             ),
 

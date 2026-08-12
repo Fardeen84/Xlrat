@@ -34,6 +34,7 @@ class BillingField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final List<TextInputFormatter> formatter;
   final bool enabled;
+  final Widget? suffixIcon;
 
   const BillingField({
     super.key,
@@ -44,6 +45,7 @@ class BillingField extends StatelessWidget {
     this.onChanged,
     this.formatter = const [],
     this.enabled = true,
+    this.suffixIcon,
   });
 
   @override
@@ -60,6 +62,7 @@ class BillingField extends StatelessWidget {
     decoration: InputDecoration(
       labelText: label,
       prefixIcon: Icon(icon, size: 18, color: kMutedForeground),
+      suffixIcon: suffixIcon,
       filled: true,
       fillColor: enabled ? kMuted : kMuted.withOpacity(0.5),
       border: OutlineInputBorder(

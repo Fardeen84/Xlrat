@@ -459,7 +459,13 @@ class _Header extends StatelessWidget {
       children: [
         IconButton(
           icon: Icon(Icons.arrow_back_rounded, color: kForeground),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/dashboard');
+            }
+          },
         ),
         Expanded(
           child: Text(

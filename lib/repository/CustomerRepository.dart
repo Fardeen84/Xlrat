@@ -17,6 +17,13 @@ class CustomerRepository {
 
   Future<BillingCustomer> createCustomer(BillingCustomer customer) async {
     try {
+      final trimmedMobile = customer.mobile.trim();
+      final querySnapshot = await _collection.where('mobile', isEqualTo: trimmedMobile).get();
+      if (querySnapshot.docs.isNotEmpty) {
+        final existingData = querySnapshot.docs.first.data();
+        final existingName = existingData['name'] ?? '';
+        throw Exception('A customer with this mobile number already exists: $existingName');
+      }
       final docRef = _collection.doc();
       final toSave = customer.copyWith(id: docRef.id);
       await docRef.set(toSave.toMap());

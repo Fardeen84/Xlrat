@@ -8,7 +8,7 @@ ThemeMode gThemeMode = ThemeMode.light;
 
 // ─── Brand / accent colors — JCB-style safety yellow + industrial black ──────
 const kPrimary = Color(
-  0xFFFDB913,
+  0xFFE0A500,
 ); // safety yellow — primary brand/action color
 const kPrimaryDark = Color(
   0xFF1A1A1A,

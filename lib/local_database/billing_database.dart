@@ -8,10 +8,21 @@ class BillingDatabase {
   static final BillingDatabase instance = BillingDatabase._();
 
   static Database? _db;
+  static bool ftsAvailable = false;
+  static String? _customPath;
+
+  static set customPath(String? path) {
+    _customPath = path;
+    _db = null;
+  }
+
+  static String? get customPath => _customPath;
+
 
   Future<Database> get database async {
     _db ??= await _initDb();
-    await _runOneTimeStaleSyncCleanup();
+    // Skip platform-channel-dependent cleanup when using a custom test path.
+    if (_customPath == null) await _runOneTimeStaleSyncCleanup();
     return _db!;
   }
 
@@ -58,162 +69,339 @@ class BillingDatabase {
   // }
 
   Future<Database> _initDb() async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'xlrat_billing.db');
+    final String path;
+    if (_customPath != null) {
+      path = _customPath!;
+    } else {
+      final dbPath = await getDatabasesPath();
+      path = join(dbPath, 'xlrat_billing.db');
+    }
 
-    return openDatabase(
+    final db = await openDatabase(
       path,
-      version:
-          11, // 10 -> 11: Added garage_id column, indexes & scoping for inventory and secondhand_inventory
+      version: 13,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
-      onCreate: _onCreate,
+      onCreate: (db, version) async {
+        await _onCreate(db, version);
+        await _createFtsTables(db);
+      },
       onUpgrade: (db, oldVersion, newVersion) async {
-        if (oldVersion < 2) {
-          await db.execute(
-            "ALTER TABLE billing_invoices ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'pending'",
-          );
-        }
-        if (oldVersion < 3) {
-          await db.execute(_sqlJobs);
-          //await _seedMockJobs(db);
-        }
-        if (oldVersion < 4) {
-          await db.execute(_sqlInventory);
-        }
-        if (oldVersion < 5) {
-          await db.execute("ALTER TABLE jobs ADD COLUMN customer_id INTEGER");
-          await db.execute("ALTER TABLE jobs ADD COLUMN vehicle_id INTEGER");
-        }
-        if (oldVersion < 6) {
-          // Add columns to billing_customers
-          await db.execute(
-            "ALTER TABLE billing_customers ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'pending'",
-          );
-          await db.execute(
-            "ALTER TABLE billing_customers ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0",
-          );
-          await db.execute(
-            "ALTER TABLE billing_customers ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0",
-          );
-
-          // Add columns to billing_vehicles
-          await db.execute(
-            "ALTER TABLE billing_vehicles ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'pending'",
-          );
-          await db.execute(
-            "ALTER TABLE billing_vehicles ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0",
-          );
-          await db.execute(
-            "ALTER TABLE billing_vehicles ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0",
-          );
-
-          // Add columns to jobs
-          await db.execute(
-            "ALTER TABLE jobs ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'pending'",
-          );
-          await db.execute(
-            "ALTER TABLE jobs ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0",
-          );
-          await db.execute(
-            "ALTER TABLE jobs ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0",
-          );
-
-          // Add columns to inventory
-          await db.execute(
-            "ALTER TABLE inventory ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'pending'",
-          );
-          await db.execute(
-            "ALTER TABLE inventory ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0",
-          );
-          await db.execute(
-            "ALTER TABLE inventory ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0",
-          );
-
-          // Add columns to billing_invoices (which already has sync_status, just add updated_at and is_deleted)
-          await db.execute(
-            "ALTER TABLE billing_invoices ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0",
-          );
-          await db.execute(
-            "ALTER TABLE billing_invoices ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0",
-          );
-        }
-        if (oldVersion < 7) {
-          await db.execute(
-            "ALTER TABLE jobs ADD COLUMN job_type TEXT NOT NULL DEFAULT 'vehicle'",
-          );
-          await db.execute(
-            "ALTER TABLE jobs ADD COLUMN item_name TEXT NOT NULL DEFAULT ''",
-          );
-          await db.execute(
-            "ALTER TABLE jobs ADD COLUMN item_description TEXT NOT NULL DEFAULT ''",
-          );
-        }
-        if (oldVersion < 8) {
-          await db.execute(_sqlMechanics);
-        }
-        if (oldVersion < 9) {
-          await db.execute(_sqlSecondHandInventory);
-          await db.execute(
-            "ALTER TABLE billing_invoice_items ADD COLUMN product_source TEXT NOT NULL DEFAULT 'inventory'",
-          );
-        }
-        if (oldVersion < 10) {
-          await db.execute("DROP TABLE IF EXISTS inventory");
-          await db.execute("DROP TABLE IF EXISTS secondhand_inventory");
-          await db.execute(_sqlInventory);
-          await db.execute(_sqlSecondHandInventory);
-          await db.execute("CREATE INDEX IF NOT EXISTS idx_inventory_search ON inventory(name_lower, sku_lower, category_lower)");
-          await db.execute("CREATE INDEX IF NOT EXISTS idx_secondhand_search ON secondhand_inventory(name_lower, sku_lower, category_lower)");
-
-          try {
-            final prefs = await SharedPreferences.getInstance();
-            final staleSyncKeys = prefs.getKeys().where((k) =>
-                k.startsWith('inventory_last_sync_') ||
-                k.startsWith('inventory_sync_date_') ||
-                k.startsWith('inventory_sync_daily_count_') ||
-                k.startsWith('inventory_sync_last_doc_id_') ||
-                k.startsWith('inventory_sync_total_synced_') ||
-                k.startsWith('secondhand_last_sync_') ||
-                k.startsWith('secondhand_sync_date_') ||
-                k.startsWith('secondhand_sync_daily_count_') ||
-                k.startsWith('secondhand_sync_last_doc_id_') ||
-                k.startsWith('secondhand_sync_total_synced_'));
-            for (final key in staleSyncKeys.toList()) {
-              await prefs.remove(key);
-            }
-          } catch (_) {
-            // Non-fatal — don't block the DB migration if prefs aren't reachable.
-          }
-        }
-        if (oldVersion < 11) {
-          await db.execute(
-            "ALTER TABLE inventory ADD COLUMN garage_id TEXT NOT NULL DEFAULT ''",
-          );
-          await db.execute(
-            "ALTER TABLE secondhand_inventory ADD COLUMN garage_id TEXT NOT NULL DEFAULT ''",
-          );
-          await db.execute(
-            "CREATE INDEX IF NOT EXISTS idx_inventory_garage ON inventory(garage_id)",
-          );
-          await db.execute(
-            "CREATE INDEX IF NOT EXISTS idx_secondhand_garage ON secondhand_inventory(garage_id)",
-          );
-
-          try {
-            final prefs = await SharedPreferences.getInstance();
-            final garageId = prefs.getString('garage_id') ?? '';
-            if (garageId.isNotEmpty) {
-              await db.update('inventory', {'garage_id': garageId});
-              await db.update('secondhand_inventory', {'garage_id': garageId});
-            }
-          } catch (_) {
-            // Non-fatal
-          }
-        }
+        await _onUpgrade(db, oldVersion, newVersion);
       },
     );
+
+    // Self-healing check: Ensure FTS tables and triggers are created
+    await _createFtsTables(db);
+    ftsAvailable = await _checkFtsSupport(db);
+
+    // If FTS is available, check if the FTS tables are empty and backfill if necessary
+    if (ftsAvailable) {
+      try {
+        final ftsCountResult = await db.rawQuery('SELECT COUNT(*) as count FROM inventory_fts');
+        final ftsCount = ftsCountResult.first['count'] as int? ?? 0;
+        if (ftsCount == 0) {
+          await db.execute('''
+            INSERT INTO inventory_fts (id, name, sku, category, garage_id)
+            SELECT id, name, sku, category, garage_id FROM inventory WHERE is_deleted = 0
+          ''');
+          await db.execute('''
+            INSERT INTO secondhand_fts (id, name, sku, category, garage_id)
+            SELECT id, name, sku, category, garage_id FROM secondhand_inventory WHERE is_deleted = 0
+          ''');
+          await db.execute('''
+            INSERT INTO services_fts (id, name, category, garage_id)
+            SELECT id, name, category, garage_id FROM services WHERE is_deleted = 0
+          ''');
+          print('FTS tables self-healing backfilled successfully.');
+        }
+      } catch (e) {
+        print('FTS self-healing backfill failed: $e');
+      }
+    }
+
+    return db;
+  }
+
+  static Future<bool> _checkFtsSupport(Database db) async {
+    try {
+      final result = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='inventory_fts'"
+      );
+      return result.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<void> _createFtsTables(Database db) async {
+    try {
+      // 1. Create FTS5 virtual tables
+      await db.execute('''
+        CREATE VIRTUAL TABLE IF NOT EXISTS inventory_fts USING fts5(
+          id UNINDEXED,
+          name,
+          sku,
+          category,
+          garage_id UNINDEXED
+        )
+      ''');
+      await db.execute('''
+        CREATE VIRTUAL TABLE IF NOT EXISTS secondhand_fts USING fts5(
+          id UNINDEXED,
+          name,
+          sku,
+          category,
+          garage_id UNINDEXED
+        )
+      ''');
+      await db.execute('''
+        CREATE VIRTUAL TABLE IF NOT EXISTS services_fts USING fts5(
+          id UNINDEXED,
+          name,
+          category,
+          garage_id UNINDEXED
+        )
+      ''');
+
+      // 2. Create triggers for inventory
+      await db.execute('''
+        CREATE TRIGGER IF NOT EXISTS inventory_after_insert AFTER INSERT ON inventory
+        BEGIN
+          INSERT INTO inventory_fts (id, name, sku, category, garage_id)
+          VALUES (new.id, new.name, new.sku, new.category, new.garage_id);
+        END
+      ''');
+      await db.execute('''
+        CREATE TRIGGER IF NOT EXISTS inventory_after_update AFTER UPDATE ON inventory
+        BEGIN
+          DELETE FROM inventory_fts WHERE id = old.id;
+          INSERT INTO inventory_fts (id, name, sku, category, garage_id)
+          VALUES (new.id, new.name, new.sku, new.category, new.garage_id);
+        END
+      ''');
+      await db.execute('''
+        CREATE TRIGGER IF NOT EXISTS inventory_after_delete AFTER DELETE ON inventory
+        BEGIN
+          DELETE FROM inventory_fts WHERE id = old.id;
+        END
+      ''');
+
+      // 3. Create triggers for secondhand_inventory
+      await db.execute('''
+        CREATE TRIGGER IF NOT EXISTS secondhand_after_insert AFTER INSERT ON secondhand_inventory
+        BEGIN
+          INSERT INTO secondhand_fts (id, name, sku, category, garage_id)
+          VALUES (new.id, new.name, new.sku, new.category, new.garage_id);
+        END
+      ''');
+      await db.execute('''
+        CREATE TRIGGER IF NOT EXISTS secondhand_after_update AFTER UPDATE ON secondhand_inventory
+        BEGIN
+          DELETE FROM secondhand_fts WHERE id = old.id;
+          INSERT INTO secondhand_fts (id, name, sku, category, garage_id)
+          VALUES (new.id, new.name, new.sku, new.category, new.garage_id);
+        END
+      ''');
+      await db.execute('''
+        CREATE TRIGGER IF NOT EXISTS secondhand_after_delete AFTER DELETE ON secondhand_inventory
+        BEGIN
+          DELETE FROM secondhand_fts WHERE id = old.id;
+        END
+      ''');
+
+      // 4. Create triggers for services
+      await db.execute('''
+        CREATE TRIGGER IF NOT EXISTS services_after_insert AFTER INSERT ON services
+        BEGIN
+          INSERT INTO services_fts (id, name, category, garage_id)
+          VALUES (new.id, new.name, new.category, new.garage_id);
+        END
+      ''');
+      await db.execute('''
+        CREATE TRIGGER IF NOT EXISTS services_after_update AFTER UPDATE ON services
+        BEGIN
+          DELETE FROM services_fts WHERE id = old.id;
+          INSERT INTO services_fts (id, name, category, garage_id)
+          VALUES (new.id, new.name, new.category, new.garage_id);
+        END
+      ''');
+      await db.execute('''
+        CREATE TRIGGER IF NOT EXISTS services_after_delete AFTER DELETE ON services
+        BEGIN
+          DELETE FROM services_fts WHERE id = old.id;
+        END
+      ''');
+    } catch (e) {
+      print('FTS5 table creation failed: $e');
+    }
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute(
+        "ALTER TABLE billing_invoices ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'pending'",
+      );
+    }
+    if (oldVersion < 3) {
+      await db.execute(_sqlJobs);
+    }
+    if (oldVersion < 4) {
+      await db.execute(_sqlInventory);
+    }
+    if (oldVersion < 5) {
+      await db.execute("ALTER TABLE jobs ADD COLUMN customer_id INTEGER");
+      await db.execute("ALTER TABLE jobs ADD COLUMN vehicle_id INTEGER");
+    }
+    if (oldVersion < 6) {
+      await db.execute(
+        "ALTER TABLE billing_customers ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'pending'",
+      );
+      await db.execute(
+        "ALTER TABLE billing_customers ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0",
+      );
+      await db.execute(
+        "ALTER TABLE billing_customers ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0",
+      );
+      await db.execute(
+        "ALTER TABLE billing_vehicles ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'pending'",
+      );
+      await db.execute(
+        "ALTER TABLE billing_vehicles ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0",
+      );
+      await db.execute(
+        "ALTER TABLE billing_vehicles ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0",
+      );
+      await db.execute(
+        "ALTER TABLE jobs ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'pending'",
+      );
+      await db.execute(
+        "ALTER TABLE jobs ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0",
+      );
+      await db.execute(
+        "ALTER TABLE jobs ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0",
+      );
+      await db.execute(
+        "ALTER TABLE inventory ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'pending'",
+      );
+      await db.execute(
+        "ALTER TABLE inventory ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0",
+      );
+      await db.execute(
+        "ALTER TABLE inventory ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0",
+      );
+      await db.execute(
+        "ALTER TABLE billing_invoices ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0",
+      );
+      await db.execute(
+        "ALTER TABLE billing_invoices ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0",
+      );
+    }
+    if (oldVersion < 7) {
+      await db.execute(
+        "ALTER TABLE jobs ADD COLUMN job_type TEXT NOT NULL DEFAULT 'vehicle'",
+      );
+      await db.execute(
+        "ALTER TABLE jobs ADD COLUMN item_name TEXT NOT NULL DEFAULT ''",
+      );
+      await db.execute(
+        "ALTER TABLE jobs ADD COLUMN item_description TEXT NOT NULL DEFAULT ''",
+      );
+    }
+    if (oldVersion < 8) {
+      await db.execute(_sqlMechanics);
+    }
+    if (oldVersion < 9) {
+      await db.execute(_sqlSecondHandInventory);
+      await db.execute(
+        "ALTER TABLE billing_invoice_items ADD COLUMN product_source TEXT NOT NULL DEFAULT 'inventory'",
+      );
+    }
+    if (oldVersion < 10) {
+      await db.execute("DROP TABLE IF EXISTS inventory");
+      await db.execute("DROP TABLE IF EXISTS secondhand_inventory");
+      await db.execute(_sqlInventory);
+      await db.execute(_sqlSecondHandInventory);
+      await db.execute("CREATE INDEX IF NOT EXISTS idx_inventory_search ON inventory(name_lower, sku_lower, category_lower)");
+      await db.execute("CREATE INDEX IF NOT EXISTS idx_secondhand_search ON secondhand_inventory(name_lower, sku_lower, category_lower)");
+
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final staleSyncKeys = prefs.getKeys().where((k) =>
+            k.startsWith('inventory_last_sync_') ||
+            k.startsWith('inventory_sync_date_') ||
+            k.startsWith('inventory_sync_daily_count_') ||
+            k.startsWith('inventory_sync_last_doc_id_') ||
+            k.startsWith('inventory_sync_total_synced_') ||
+            k.startsWith('secondhand_last_sync_') ||
+            k.startsWith('secondhand_sync_date_') ||
+            k.startsWith('secondhand_sync_daily_count_') ||
+            k.startsWith('secondhand_sync_last_doc_id_') ||
+            k.startsWith('secondhand_sync_total_synced_'));
+        for (final key in staleSyncKeys.toList()) {
+          await prefs.remove(key);
+        }
+      } catch (_) {
+        // Non-fatal.
+      }
+    }
+    if (oldVersion < 11) {
+      await db.execute(
+        "ALTER TABLE inventory ADD COLUMN garage_id TEXT NOT NULL DEFAULT ''",
+      );
+      await db.execute(
+        "ALTER TABLE secondhand_inventory ADD COLUMN garage_id TEXT NOT NULL DEFAULT ''",
+      );
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_inventory_garage ON inventory(garage_id)",
+      );
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_secondhand_garage ON secondhand_inventory(garage_id)",
+      );
+
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final garageId = prefs.getString('garage_id') ?? '';
+        if (garageId.isNotEmpty) {
+          await db.update('inventory', {'garage_id': garageId});
+          await db.update('secondhand_inventory', {'garage_id': garageId});
+        }
+      } catch (_) {
+        // Non-fatal
+      }
+    }
+    if (oldVersion < 12) {
+      await db.execute(_sqlServices);
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_services_search ON services(name_lower, category_lower)",
+      );
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_services_garage ON services(garage_id)",
+      );
+    }
+    if (oldVersion < 13) {
+      await _createFtsTables(db);
+      final hasFts = await _checkFtsSupport(db);
+      if (hasFts) {
+        try {
+          await db.execute('''
+            INSERT INTO inventory_fts (id, name, sku, category, garage_id)
+            SELECT id, name, sku, category, garage_id FROM inventory WHERE is_deleted = 0
+          ''');
+          await db.execute('''
+            INSERT INTO secondhand_fts (id, name, sku, category, garage_id)
+            SELECT id, name, sku, category, garage_id FROM secondhand_inventory WHERE is_deleted = 0
+          ''');
+          await db.execute('''
+            INSERT INTO services_fts (id, name, category, garage_id)
+            SELECT id, name, category, garage_id FROM services WHERE is_deleted = 0
+          ''');
+        } catch (e) {
+          print('FTS5 migration backfill failed: $e');
+        }
+      }
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -226,10 +414,13 @@ class BillingDatabase {
     await db.execute(_sqlInventory);
     await db.execute(_sqlMechanics);
     await db.execute(_sqlSecondHandInventory);
+    await db.execute(_sqlServices);
     await db.execute("CREATE INDEX IF NOT EXISTS idx_inventory_search ON inventory(name_lower, sku_lower, category_lower)");
     await db.execute("CREATE INDEX IF NOT EXISTS idx_secondhand_search ON secondhand_inventory(name_lower, sku_lower, category_lower)");
+    await db.execute("CREATE INDEX IF NOT EXISTS idx_services_search ON services(name_lower, category_lower)");
     await db.execute("CREATE INDEX IF NOT EXISTS idx_inventory_garage ON inventory(garage_id)");
     await db.execute("CREATE INDEX IF NOT EXISTS idx_secondhand_garage ON secondhand_inventory(garage_id)");
+    await db.execute("CREATE INDEX IF NOT EXISTS idx_services_garage ON services(garage_id)");
     // Seed invoice counter
     await db.insert('invoice_counter', {'id': 1, 'last_number': 0});
     // Seed mock jobs
@@ -406,6 +597,23 @@ class BillingDatabase {
       is_deleted      INTEGER NOT NULL DEFAULT 0,
       name_lower      TEXT,
       sku_lower       TEXT,
+      category_lower  TEXT,
+      garage_id       TEXT    NOT NULL DEFAULT ''
+    )
+  ''';
+
+  static const _sqlServices = '''
+    CREATE TABLE services (
+      id              TEXT    PRIMARY KEY,
+      name            TEXT    NOT NULL,
+      category        TEXT    NOT NULL DEFAULT '',
+      price           INTEGER NOT NULL DEFAULT 0,
+      description     TEXT    NOT NULL DEFAULT '',
+      created_at      TEXT    NOT NULL,
+      sync_status     TEXT    NOT NULL DEFAULT 'pending',
+      updated_at      INTEGER NOT NULL DEFAULT 0,
+      is_deleted      INTEGER NOT NULL DEFAULT 0,
+      name_lower      TEXT,
       category_lower  TEXT,
       garage_id       TEXT    NOT NULL DEFAULT ''
     )

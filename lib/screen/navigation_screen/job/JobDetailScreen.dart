@@ -25,7 +25,7 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
   void _showEditJobDialog(BuildContext context, Job job) {
     final complaintCtrl = TextEditingController(text: job.complaint);
     final amountCtrl = TextEditingController(text: job.amount.toString());
-    String selectedMechanic = job.mechanic;
+    List<String> selectedMechanics = List<String>.from(job.mechanics);
     String selectedStatus = job.status;
     final formKey = GlobalKey<FormState>();
 
@@ -34,6 +34,7 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
       builder: (context) => Consumer(
         builder: (context, ref, child) {
           final mechanicsAsync = ref.watch(mechanicListProvider);
+          bool isSaving = false;
           return StatefulBuilder(
             builder: (context, setStateDialog) {
               final List<String> availableMechanics = mechanicsAsync.maybeWhen(
@@ -41,14 +42,10 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
                 orElse: () => ['Suresh K.', 'Ramesh V.', 'Kiran M.'],
               );
 
-              final String initialMech = selectedMechanic.isNotEmpty
-                  ? selectedMechanic
-                  : (availableMechanics.isNotEmpty ? availableMechanics.first : 'Suresh K.');
-
-              if (selectedMechanic.isNotEmpty && !availableMechanics.contains(selectedMechanic)) {
-                availableMechanics.insert(0, selectedMechanic);
-              } else if (selectedMechanic.isEmpty && !availableMechanics.contains(initialMech)) {
-                availableMechanics.insert(0, initialMech);
+              for (final name in selectedMechanics) {
+                if (!availableMechanics.contains(name)) {
+                  availableMechanics.add(name);
+                }
               }
 
               return AlertDialog(
@@ -73,27 +70,80 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
                           style: TextStyle(color: kForeground),
                         ),
                         SizedBox(height: 8),
-                        DropdownButtonFormField<String>(
-                          value: selectedMechanic.isNotEmpty ? selectedMechanic : initialMech,
-                          decoration: InputDecoration(
-                            labelText: 'Mechanic',
-                            labelStyle: TextStyle(color: kMutedForeground),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Assign Mechanics',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: kMutedForeground,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                          dropdownColor: kCard,
-                          items: availableMechanics.map((name) {
-                            return DropdownMenuItem<String>(
-                              value: name,
-                              child: Text(
-                                name,
-                                style: TextStyle(color: kForeground),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (v) {
-                            if (v != null) {
-                              setStateDialog(() => selectedMechanic = v);
-                            }
-                          },
+                        ),
+                        const SizedBox(height: 6),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: availableMechanics.map((name) {
+                              final isSelected = selectedMechanics.contains(name);
+                              return GestureDetector(
+                                onTap: isSaving
+                                    ? null
+                                    : () {
+                                        setStateDialog(() {
+                                          if (isSelected) {
+                                            selectedMechanics.remove(name);
+                                          } else {
+                                            selectedMechanics.add(name);
+                                          }
+                                        });
+                                      },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? kPrimary.withOpacity(0.1)
+                                        : kMuted.withOpacity(0.3),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isSelected ? kPrimary : kBorder,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        name,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: isSelected
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
+                                          color: isSelected ? kPrimary : kForeground,
+                                        ),
+                                      ),
+                                      if (isSelected) ...[
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          Icons.check_rounded,
+                                          color: kPrimary,
+                                          size: 14,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
                         ),
                         SizedBox(height: 8),
                         DropdownButtonFormField<String>(
@@ -126,7 +176,7 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
                               ),
                             ),
                           ],
-                          onChanged: (v) {
+                          onChanged: isSaving ? null : (v) {
                             if (v != null) setStateDialog(() => selectedStatus = v);
                           },
                         ),
@@ -150,34 +200,117 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
                 ),
                 actions: [
                   TextButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: isSaving ? null : () => Navigator.pop(context),
                     child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
                   ),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
-                    onPressed: () async {
-                      if (formKey.currentState!.validate()) {
-                        final updatedJob = job.copyWith(
-                          complaint: complaintCtrl.text.trim(),
-                          mechanic: selectedMechanic,
-                          status: selectedStatus,
-                          amount: int.parse(amountCtrl.text.trim()),
-                        );
-                        await ref.read(jobRepositoryProvider).updateJob(updatedJob);
-                        ref.invalidate(jobByIdProvider(job.id!));
-                        ref.invalidate(jobsListStateProvider);
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                        }
-                      }
-                    },
-                    child: const Text('Save', style: TextStyle(color: Colors.white)),
+                    onPressed: isSaving
+                        ? null
+                        : () async {
+                            if (formKey.currentState!.validate()) {
+                              setStateDialog(() {
+                                isSaving = true;
+                              });
+                              final messenger = ScaffoldMessenger.of(context);
+                              try {
+                                final updatedJob = job.copyWith(
+                                  complaint: complaintCtrl.text.trim(),
+                                  mechanics: selectedMechanics,
+                                  status: selectedStatus,
+                                  amount: int.parse(amountCtrl.text.trim()),
+                                );
+                                await ref.read(jobRepositoryProvider).updateJob(updatedJob);
+                                ref.invalidate(jobByIdProvider(job.id!));
+                                ref.invalidate(jobsListStateProvider);
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                  messenger.showSnackBar(
+                                    const SnackBar(content: Text('Job Card updated successfully')),
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  messenger.showSnackBar(
+                                    SnackBar(content: Text('Failed to update Job Card: $e')),
+                                  );
+                                }
+                              } finally {
+                                if (context.mounted) {
+                                  setStateDialog(() {
+                                    isSaving = false;
+                                  });
+                                }
+                              }
+                            }
+                          },
+                    child: isSaving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text('Save', style: TextStyle(color: Colors.white)),
                   ),
                 ],
               );
             },
           );
         },
+      ),
+    );
+  }
+
+  void _showDeleteJobConfirmationDialog(BuildContext context, Job job) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: kCard,
+        title: Text(
+          'Delete Job Card',
+          style: TextStyle(fontWeight: FontWeight.w800, color: kForeground),
+        ),
+        content: Text(
+          'Are you sure you want to delete Job Card ${job.jobNumber}? This action cannot be undone.',
+          style: TextStyle(color: kForeground),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text('Cancel', style: TextStyle(color: kMutedForeground)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: kRed),
+            onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              try {
+                final router = GoRouter.of(context);
+                await ref
+                    .read(jobRepositoryProvider)
+                    .deleteJob(job.id!);
+                ref.invalidate(jobsListStateProvider);
+                if (context.mounted) {
+                  Navigator.pop(dialogContext);
+                  router.go('/jobs');
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('Job Card deleted successfully')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  Navigator.pop(dialogContext);
+                  messenger.showSnackBar(
+                    SnackBar(content: Text('Failed to delete Job Card: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
@@ -299,10 +432,32 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
                     ),
                   ),
                 ),
-                IconButton(
-                  icon: Icon(Icons.edit_rounded, color: kForeground, size: 18),
-                  onPressed: () => _showEditJobDialog(context, job),
-                  tooltip: 'Edit Job Card',
+                PopupMenuButton<String>(
+                  icon: Icon(Icons.more_vert_rounded, color: kForeground),
+                  color: kCard,
+                  onSelected: (val) {
+                    if (val == 'edit') {
+                      _showEditJobDialog(context, job);
+                    } else if (val == 'delete') {
+                      _showDeleteJobConfirmationDialog(context, job);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Text(
+                        'Edit Job Card',
+                        style: TextStyle(color: kForeground),
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text(
+                        'Delete Job Card',
+                        style: TextStyle(color: kRed),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(width: 4),
                 StatusBadge(status: job.status),
@@ -394,7 +549,7 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
                         Row(
                           children: [
                             Expanded(
-                              child: _infoChip('Mechanic', job.mechanic),
+                              child: _infoChip('Mechanics', job.mechanics.isNotEmpty ? job.mechanics.join(', ') : 'Unassigned'),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
@@ -464,18 +619,49 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
                         const SizedBox(height: 10),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Mechanic Assigned',
-                              style: TextStyle(fontSize: 13),
-                            ),
-                            Text(
-                              job.mechanic,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
+                            const Padding(
+                              padding: EdgeInsets.only(top: 4.0),
+                              child: Text(
+                                'Mechanics Assigned',
+                                style: TextStyle(fontSize: 13),
                               ),
                             ),
+                            const SizedBox(width: 12),
+                            if (job.mechanics.isEmpty)
+                              const Text(
+                                'Unassigned',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              )
+                            else
+                              Expanded(
+                                child: Wrap(
+                                  alignment: WrapAlignment.end,
+                                  spacing: 4,
+                                  runSpacing: 4,
+                                  children: job.mechanics.map((name) {
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: kMuted.withOpacity(0.4),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        name,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: kForeground,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
                           ],
                         ),
                         const SizedBox(height: 8),
@@ -643,6 +829,8 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
         const SizedBox(height: 2),
         Text(
           value,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             color: Colors.white,
             fontSize: 11,

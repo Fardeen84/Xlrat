@@ -44,6 +44,12 @@ class _MainShellState extends ConsumerState<MainShell> {
       'Second Hand',
       AppScreen.secondHandInventory,
     ),
+    _NavTab(
+      '/services',
+      Icons.construction_rounded,
+      'Services',
+      AppScreen.services,
+    ),
     _NavTab('/reports', Icons.bar_chart_rounded, 'Reports', AppScreen.reports),
     _NavTab('/profile', Icons.person_rounded, 'Profile', AppScreen.profile),
   ];
@@ -74,6 +80,12 @@ class _MainShellState extends ConsumerState<MainShell> {
       'Second Hand',
       AppScreen.secondHandInventory,
     ),
+    _NavTab(
+      '/services',
+      Icons.construction_rounded,
+      'Services',
+      AppScreen.services,
+    ),
     _NavTab('/profile', Icons.person_rounded, 'Profile', AppScreen.profile),
   ];
 
@@ -96,6 +108,7 @@ class _MainShellState extends ConsumerState<MainShell> {
     if (location.startsWith('/jobs')) return AppScreen.jobs;
     if (location.startsWith('/inventory')) return AppScreen.inventory;
     if (location.startsWith('/secondhand-inventory')) return AppScreen.secondHandInventory;
+    if (location.startsWith('/services')) return AppScreen.services;
     if (location.startsWith('/billing')) return AppScreen.billing;
     if (location.startsWith('/InvoiceHistory')) return AppScreen.reports;
     if (location.startsWith('/invoice')) return AppScreen.invoice;
@@ -111,6 +124,7 @@ class _MainShellState extends ConsumerState<MainShell> {
         location == '/jobs' ||
         location == '/inventory' ||
         location == '/secondhand-inventory' ||
+        location == '/services' ||
         location == '/profile';
   }
 
@@ -132,6 +146,8 @@ class _MainShellState extends ConsumerState<MainShell> {
         return 'Inventory';
       case AppScreen.secondHandInventory:
         return 'Second Hand Inventory';
+      case AppScreen.services:
+        return 'Services';
       case AppScreen.billing:
         return 'Billing / New Invoice';
       case AppScreen.invoice:
@@ -183,6 +199,7 @@ class _MainShellState extends ConsumerState<MainShell> {
     final location = GoRouterState.of(context).matchedLocation;
     final screen = _locationToScreen(location);
     final themeMode = ref.watch(themeModeProvider);
+    print('[DEBUG] MainShell location="$location" isMainTabRoute=${_isMainTabRoute(location)}');
 
     // Sync GoRouter location with riverpod state provider post frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -196,6 +213,7 @@ class _MainShellState extends ConsumerState<MainShell> {
     return PopScope(
       canPop: !_isMainTabRoute(location),
       onPopInvokedWithResult: (didPop, result) async {
+        print('[DEBUG] onPopInvokedWithResult didPop=$didPop');
         if (didPop) return;
         final shouldExit = await _showExitConfirmationDialog(context);
         if (shouldExit == true) {
@@ -203,376 +221,376 @@ class _MainShellState extends ConsumerState<MainShell> {
         }
       },
       child: Scaffold(
-      backgroundColor: kBackground,
-      body: Stack(
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isPC = constraints.maxWidth > 1100;
-              final isTablet =
-                  constraints.maxWidth >= 768 && constraints.maxWidth <= 1100;
+        backgroundColor: kBackground,
+        body: Stack(
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isPC = constraints.maxWidth > 1100;
+                final isTablet =
+                    constraints.maxWidth >= 768 && constraints.maxWidth <= 1100;
 
-              if (isPC || isTablet) {
-                final sidebarWidth = isPC ? 240.0 : 64.0;
-                final activeIndex = _currentIndex(location, _sidebarTabs);
+                if (isPC || isTablet) {
+                  final sidebarWidth = isPC ? 240.0 : 64.0;
+                  final activeIndex = _currentIndex(location, _sidebarTabs);
 
-                return Row(
-                  children: [
-                    // ── Sidebar ──
+                  return Row(
+                    children: [
+                      // ── Sidebar ──
 
-                    Container(
+                      Container(
 
-                      width: sidebarWidth,
-                      height: double.infinity,
-                      color: kPrimary,
-                      child: Column(
-                        children: [
-                          // Header
-                          Container(
-                              height: 80,
-                              alignment: Alignment.center,
-                              decoration: const BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(
-                                    color: Colors.white10,
-                                    width: 0.8,
+                        width: sidebarWidth,
+                        height: double.infinity,
+                        color: kPrimary,
+                        child: Column(
+                          children: [
+                            // Header
+                            Container(
+                                height: 80,
+                                alignment: Alignment.center,
+                                decoration: const BoxDecoration(
+                                  border: Border(
+                                    bottom: BorderSide(
+                                      color: Colors.white10,
+                                      width: 0.8,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              child: isPC
-                                  ? Column(
-                                children: [
-                                  const SizedBox(height: 16),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children:  [
-                                      SizedBox(width: 10),
-                                      ClipOval(
-                                        child: Image.asset(
-                                          "assets/images/l.png",
-                                          width: 50,
-                                          height: 50,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                      SizedBox(width: 10),
-                                      Expanded(
-                                        child: Text(
-                                          "Asian Fabrication\n& Engineers",
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
+                                child: isPC
+                                    ? Column(
+                                  children: [
+                                    const SizedBox(height: 16),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children:  [
+                                        SizedBox(width: 10),
+                                        ClipOval(
+                                          child: Image.asset(
+                                            "assets/images/l.png",
+                                            width: 50,
+                                            height: 50,
+                                            fit: BoxFit.cover,
                                           ),
                                         ),
-                                      )
-                                    ],
-                                  ),
-                                ],
-                              )
-                                  : ClipOval(
-                                child: Image.asset(
-                                  "assets/images/afslogo.jpeg",
-                                  width: 30,
-                                  height: 30,
-                                  fit: BoxFit.cover,
-                                ),
-                              )
-                          ),
-                          const SizedBox(height: 16),
-                          // Navigation List
-                          Expanded(
-                            child: ListView.builder(
-                              itemCount: _sidebarTabs.length,
-                              itemBuilder: (context, i) {
-                                final tab = _sidebarTabs[i];
-                                final isActive = activeIndex == i;
-
-                                if (isPC) {
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 4,
-                                    ),
-                                    child: InkWell(
-                                      onTap: () => context.go(tab.path),
-                                      borderRadius: BorderRadius.circular(10),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 12,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: isActive
-                                              ? Colors.white.withOpacity(0.15)
-                                              : Colors.transparent,
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              tab.icon,
+                                        SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            "Asian Fabrication\n& Engineers",
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
                                               color: Colors.white,
-                                              size: 20,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
                                             ),
-                                            const SizedBox(width: 12),
-                                            Text(
-                                              tab.label,
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 13,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
+                                          ),
+                                        )
+                                      ],
                                     ),
-                                  );
-                                } else {
-                                  return Tooltip(
-                                    message: tab.label,
-                                    child: Padding(
+                                  ],
+                                )
+                                    : ClipOval(
+                                  child: Image.asset(
+                                    "assets/images/afslogo.jpeg",
+                                    width: 30,
+                                    height: 30,
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                            ),
+                            const SizedBox(height: 16),
+                            // Navigation List
+                            Expanded(
+                              child: ListView.builder(
+                                itemCount: _sidebarTabs.length,
+                                itemBuilder: (context, i) {
+                                  final tab = _sidebarTabs[i];
+                                  final isActive = activeIndex == i;
+
+                                  if (isPC) {
+                                    return Padding(
                                       padding: const EdgeInsets.symmetric(
-                                        vertical: 8,
+                                        horizontal: 12,
+                                        vertical: 4,
                                       ),
                                       child: InkWell(
                                         onTap: () => context.go(tab.path),
+                                        borderRadius: BorderRadius.circular(10),
                                         child: Container(
-                                          height: 48,
-                                          alignment: Alignment.center,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 12,
+                                          ),
                                           decoration: BoxDecoration(
-                                            border: Border(
-                                              left: BorderSide(
-                                                color: isActive
-                                                    ? Colors.white
-                                                    : Colors.transparent,
-                                                width: 4,
-                                              ),
-                                            ),
-                                          ),
-                                          child: Icon(
-                                            tab.icon,
                                             color: isActive
-                                                ? Colors.white
-                                                : Colors.white70,
-                                            size: 24,
+                                                ? Colors.white.withOpacity(0.15)
+                                                : Colors.transparent,
+                                            borderRadius: BorderRadius.circular(10),
                                           ),
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }
-                              },
-                            ),
-                          ),
-                          // Footer info
-                          if (isPC)
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: const BoxDecoration(
-                                border: Border(
-                                  top: BorderSide(
-                                    color: Colors.white10,
-                                    width: 0.8,
-                                  ),
-                                ),
-                              ),
-                              child: const Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 16,
-                                    backgroundColor: Colors.white24,
-                                    child: Icon(
-                                      Icons.person,
-                                      color: Colors.white,
-                                      size: 18,
-                                    ),
-                                  ),
-                                  SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Asian Fabrication & Engineers',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 12,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        Text(
-                                          'Owner / Admin',
-                                          style: TextStyle(
-                                            color: Colors.white60,
-                                            fontSize: 10,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    // ── Content Area ──
-                    Expanded(
-                      child: Column(
-                        children: [
-                          // Top Bar
-                          Container(
-                            height: 60,
-                            padding: EdgeInsets.symmetric(horizontal: 20),
-                            decoration: BoxDecoration(
-                              color: kCard,
-                              border: Border(
-                                bottom: BorderSide(color: kBorder, width: 0.8),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  _getPageTitle(screen),
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    color: kForeground,
-                                  ),
-                                ),
-                                Row(
-                                  children: [
-                                    ElevatedButton.icon(
-                                      onPressed: () => context.go('/billing'),
-                                      icon: const Icon(
-                                        Icons.add_rounded,
-                                        size: 16,
-                                        color: Colors.white,
-                                      ),
-                                      label: const Text(
-                                        'New Invoice',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                      style: ElevatedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 10,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        backgroundColor: kPrimary,
-                                      ),
-                                    ),
-                                    // const SizedBox(width: 16),
-                                    // IconButton(
-                                    //   icon: Icon(
-                                    //     themeMode == ThemeMode.dark
-                                    //         ? Icons.light_mode_rounded
-                                    //         : Icons.dark_mode_rounded,
-                                    //     color: kForeground,
-                                    //   ),
-                                    //   onPressed: () {
-                                    //     ref
-                                    //         .read(themeModeProvider.notifier)
-                                    //         .toggleTheme();
-                                    //   },
-                                    //   tooltip: 'Toggle theme mode',
-                                    // ),
-                                    const SizedBox(width: 8),
-                                    Stack(
-                                      children: [
-                                        IconButton(
-                                          icon: Icon(
-                                            Icons.notifications_rounded,
-                                            color: kForeground,
-                                          ),
-                                          onPressed: () =>
-                                              context.go('/notifications'),
-                                        ),
-                                        if (unreadNotifications > 0)
-                                          Positioned(
-                                            top: 6,
-                                            right: 6,
-                                            child: Container(
-                                              padding: const EdgeInsets.all(4),
-                                              decoration: const BoxDecoration(
-                                                color: kRed,
-                                                shape: BoxShape.circle,
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                tab.icon,
+                                                color: Colors.white,
+                                                size: 20,
                                               ),
-                                              constraints: const BoxConstraints(
-                                                minWidth: 16,
-                                                minHeight: 16,
-                                              ),
-                                              child: Text(
-                                                '$unreadNotifications',
+                                              const SizedBox(width: 12),
+                                              Text(
+                                                tab.label,
                                                 style: const TextStyle(
                                                   color: Colors.white,
-                                                  fontSize: 8,
-                                                  fontWeight: FontWeight.bold,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 13,
                                                 ),
-                                                textAlign: TextAlign.center,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  } else {
+                                    return Tooltip(
+                                      message: tab.label,
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 8,
+                                        ),
+                                        child: InkWell(
+                                          onTap: () => context.go(tab.path),
+                                          child: Container(
+                                            height: 48,
+                                            alignment: Alignment.center,
+                                            decoration: BoxDecoration(
+                                              border: Border(
+                                                left: BorderSide(
+                                                  color: isActive
+                                                      ? Colors.white
+                                                      : Colors.transparent,
+                                                  width: 4,
+                                                ),
                                               ),
                                             ),
+                                            child: Icon(
+                                              tab.icon,
+                                              color: isActive
+                                                  ? Colors.white
+                                                  : Colors.white70,
+                                              size: 24,
+                                            ),
                                           ),
-                                      ],
-                                    ),
-                                    const SizedBox(width: 8),
-                                    GestureDetector(
-                                      onTap: () => context.go('/profile'),
-                                      child: const CircleAvatar(
-                                        radius: 16,
-                                        backgroundColor: Color(0xFFE8F0FE),
-                                        child: Icon(
-                                          Icons.person_rounded,
-                                          color: kPrimary,
-                                          size: 20,
                                         ),
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+                            // Footer info
+                            if (isPC)
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: const BoxDecoration(
+                                  border: Border(
+                                    top: BorderSide(
+                                      color: Colors.white10,
+                                      width: 0.8,
+                                    ),
+                                  ),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 16,
+                                      backgroundColor: Colors.white24,
+                                      child: Icon(
+                                        Icons.person,
+                                        color: Colors.white,
+                                        size: 18,
+                                      ),
+                                    ),
+                                    SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Asian Fabrication & Engineers',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 12,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          Text(
+                                            'Owner / Admin',
+                                            style: TextStyle(
+                                              color: Colors.white60,
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
-                              ],
-                            ),
-                          ),
-                          // screen Child
-                          Expanded(child: widget.child),
-                        ],
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                );
-              } else {
-                // Mobile Mode
-                final idx = _currentIndex(location, _mobileTabs);
-                final showBottomNav = _isMainTabRoute(location);
+                      // ── Content Area ──
+                      Expanded(
+                        child: Column(
+                          children: [
+                            // Top Bar
+                            Container(
+                              height: 60,
+                              padding: EdgeInsets.symmetric(horizontal: 20),
+                              decoration: BoxDecoration(
+                                color: kCard,
+                                border: Border(
+                                  bottom: BorderSide(color: kBorder, width: 0.8),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    _getPageTitle(screen),
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                      color: kForeground,
+                                    ),
+                                  ),
+                                  Row(
+                                    children: [
+                                      ElevatedButton.icon(
+                                        onPressed: () => context.go('/billing'),
+                                        icon: const Icon(
+                                          Icons.add_rounded,
+                                          size: 16,
+                                          color: Colors.white,
+                                        ),
+                                        label: const Text(
+                                          'New Invoice',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        style: ElevatedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 10,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          backgroundColor: kPrimary,
+                                        ),
+                                      ),
+                                      // const SizedBox(width: 16),
+                                      // IconButton(
+                                      //   icon: Icon(
+                                      //     themeMode == ThemeMode.dark
+                                      //         ? Icons.light_mode_rounded
+                                      //         : Icons.dark_mode_rounded,
+                                      //     color: kForeground,
+                                      //   ),
+                                      //   onPressed: () {
+                                      //     ref
+                                      //         .read(themeModeProvider.notifier)
+                                      //         .toggleTheme();
+                                      //   },
+                                      //   tooltip: 'Toggle theme mode',
+                                      // ),
+                                      const SizedBox(width: 8),
+                                      Stack(
+                                        children: [
+                                          IconButton(
+                                            icon: Icon(
+                                              Icons.notifications_rounded,
+                                              color: kForeground,
+                                            ),
+                                            onPressed: () =>
+                                                context.go('/notifications'),
+                                          ),
+                                          if (unreadNotifications > 0)
+                                            Positioned(
+                                              top: 6,
+                                              right: 6,
+                                              child: Container(
+                                                padding: const EdgeInsets.all(4),
+                                                decoration: const BoxDecoration(
+                                                  color: kRed,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                constraints: const BoxConstraints(
+                                                  minWidth: 16,
+                                                  minHeight: 16,
+                                                ),
+                                                child: Text(
+                                                  '$unreadNotifications',
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 8,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                      const SizedBox(width: 8),
+                                      GestureDetector(
+                                        onTap: () => context.go('/profile'),
+                                        child: const CircleAvatar(
+                                          radius: 16,
+                                          backgroundColor: Color(0xFFE8F0FE),
+                                          child: Icon(
+                                            Icons.person_rounded,
+                                            color: kPrimary,
+                                            size: 20,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // screen Child
+                            Expanded(child: widget.child),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                } else {
+                  // Mobile Mode
+                  final idx = _currentIndex(location, _mobileTabs);
+                  final showBottomNav = _isMainTabRoute(location);
 
-                return Scaffold(
-                  body: widget.child,
-                  bottomNavigationBar: showBottomNav
-                      ? _GarageBottomNav(
-                    currentIndex: idx,
-                    onTap: (i) => context.go(_mobileTabs[i].path),
-                  )
-                      : null,
-                );
-              }
-            },
-          ),
-          const _ConnectionErrorOverlay(),
-        ],
+                  return Scaffold(
+                    body: widget.child,
+                    bottomNavigationBar: showBottomNav
+                        ? _GarageBottomNav(
+                      currentIndex: idx,
+                      onTap: (i) => context.go(_mobileTabs[i].path),
+                    )
+                        : null,
+                  );
+                }
+              },
+            ),
+            const _ConnectionErrorOverlay(),
+          ],
+        ),
       ),
-    ),
     );
   }
 }
@@ -667,6 +685,12 @@ class _GarageBottomNav extends StatelessWidget {
       Icons.recycling_rounded,
       'Second Hand',
       AppScreen.secondHandInventory,
+    ),
+    _NavTab(
+      '/services',
+      Icons.construction_rounded,
+      'Services',
+      AppScreen.services,
     ),
     _NavTab('/profile', Icons.person_rounded, 'Profile', AppScreen.profile),
   ];

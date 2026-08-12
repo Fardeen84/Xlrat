@@ -16,7 +16,7 @@ class InvoiceItem {
   final double price;
   final double total; // quantity × price  (always computed, stored for speed)
   final DateTime createdAt;
-  final String productSource; // 'inventory' or 'secondhand'
+  final String productSource; // 'inventory', 'secondhand', or 'service'
 
   const InvoiceItem({
     this.id,
